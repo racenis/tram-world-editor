@@ -20,8 +20,13 @@ enum {
     ID_World_Tree_Delete = 43,
     ID_World_Tree_New = 44,
     ID_World_Tree_Edit = 45,
+    ID_Entity_List_New = 50,
+    ID_Entity_List_Edit = 51,
+    ID_Entity_List_Delete = 52,
 };
-  
+
+class EntityList;
+
 class MainFrame : public wxFrame {
 public:
     MainFrame();
@@ -31,7 +36,7 @@ public:
         // deinitialize the frame manager
         m_mgr.UnInit();
     }
-private:
+protected:
     wxAuiManager m_mgr;
     void OnHello(wxCommandEvent& event);
     void OnExit(wxCommandEvent& event);
@@ -48,16 +53,29 @@ private:
     std::unordered_map<void*, Editor::WorldCellIndirector> world_tree_map;
     void RebuildWorldCellTree();
     void OnWorldCellTreeSelect(wxTreeEvent& event);
+    void OnWorldCellTreeActivate(wxTreeEvent& event);
     void OnWorldCellTreePopupSelect(wxCommandEvent& event);
     
     // property panel stuff
     wxPropertyGrid* property_panel;
     Editor::WorldCell* selected_worldcell;
+    Editor::Entity* selected_entity;
     void PropertyPanelClear();
     void PropertyPanelSetWorldCell(Editor::WorldCell* cell);
+    void PropertyPanelSetEntity(Editor::Entity* cell);
     void OnPropertyPanelChanged(wxPropertyGridEvent& event);
     
+    // entity list stuff
+    EntityList* entity_list;
+    wxMenu* entity_list_popup;
+    long entity_list_selected_item;
+    void OnEntityListSelect(wxListEvent& event);
+    void OnEntityListActivate(wxListEvent& event);
+    void OnEntityListPopupSelect(wxCommandEvent& event);
+    
     wxStreamToTextRedirector* std_cout_redirect;
+    
+    friend class EntityList;
 };
 
 class TramEditor : public wxApp {
@@ -68,12 +86,78 @@ public:
         return true;
     }
 };
- 
 
- 
 wxIMPLEMENT_APP(TramEditor);
- 
 
+class EntityList : public wxListCtrl {
+public:
+    EntityList (wxWindow* parent, wxWindowID id, const wxPoint& pos=wxDefaultPosition, const wxSize& size=wxDefaultSize, long style=wxLC_ICON) : wxListCtrl(parent, id, pos, size, style) {}
+    
+    wxString OnGetItemText (long item, long column) const override {
+        if (selected_worldcell) {
+            auto ent = selected_worldcell->entities[item];
+            switch (column) {
+                case 0:
+                    return wxString(std::to_string(ent->id));
+                case 1:
+                    return wxString(ent->name);
+                case 2:
+                    return wxString("(") + std::to_string(ent->location[0]) + ", " + std::to_string(ent->location[1]) + ", " + std::to_string(ent->location[2]) + ")";
+                case 3:
+                    return wxString("(") + std::to_string(ent->rotation[0]) + ", " + std::to_string(ent->rotation[1]) + ", " + std::to_string(ent->rotation[2]) + ")";
+                case 4:
+                    return wxString(ent->action);
+                default:
+                    return wxString("benis");
+            }
+        } else {
+            return wxString("nil");
+        }
+    }
+    
+    void SetClear() {
+        DeleteAllColumns();
+        selected_worldcell = nullptr;
+    }
+    
+    void SetWorldCell(Editor::WorldCell* cell) {
+        SetClear();
+        selected_worldcell = cell;
+        InsertColumn(0, L"ID");
+        InsertColumn(1, L"Nosaukums");
+        InsertColumn(2, L"Lokācija");
+        InsertColumn(3, L"Rotācija");
+        InsertColumn(4, L"Darbība");
+        SetItemCount(selected_worldcell->entities.size());
+    }
+    
+    void New (MainFrame* frame) {
+        if (selected_worldcell) {
+            auto ent = selected_worldcell->NewEntity();
+            frame->PropertyPanelSetEntity(ent);
+            SetItemCount(selected_worldcell->entities.size());
+        }
+    }
+    
+    void Edit (MainFrame* frame, long item) {
+        if (selected_worldcell) {
+            auto ent = selected_worldcell->entities[item];
+            frame->PropertyPanelSetEntity(ent);
+        }
+    }
+    
+    void Delete (long item) {
+        if (selected_worldcell) {
+            selected_worldcell->DeleteEntity(item);
+            SetItemCount(selected_worldcell->entities.size());
+            RefreshItems(item, GetItemCount());
+        }
+    }
+    
+private:
+    Editor::WorldCell* selected_worldcell = nullptr;
+    
+};
  
 MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Dzimumlocekļu palielienāšanas programma", wxDefaultPosition, wxSize(800, 600), wxDEFAULT_FRAME_STYLE) {
     Editor::Init();
@@ -105,9 +189,9 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Dzimumlocekļu palielienāša
     
     // --- POP-UP MENUS ---
     world_tree_cell_popup = new wxMenu;
+    world_tree_cell_popup->Append(ID_World_Tree_Edit, L"Rediģēt", L"Rediģēt šūnu.");
     world_tree_cell_popup->Append(ID_World_Tree_Show, L"Rādīt", L"Parāda šūnas saturu 3D skatā.");
     world_tree_cell_popup->Append(ID_World_Tree_Hide, L"Slēpt", L"Paslēpj šūnas saturu 3D skatā.");
-    world_tree_cell_popup->Append(ID_World_Tree_Edit, L"Rediģēt", L"Rediģē šūnu.");
     world_tree_cell_popup->Append(ID_World_Tree_Begonis, L"Begonizēt", L"Begonizē šūnas saturu.");
     world_tree_cell_popup->Append(ID_World_Tree_Delete, L"Dzēst", L"Dzēš šūnu.");
     world_tree_item_popup = new wxMenu;
@@ -122,6 +206,14 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Dzimumlocekļu palielienāša
     Bind(wxEVT_MENU, &MainFrame::OnWorldCellTreePopupSelect, this, ID_World_Tree_Begonis);
     Bind(wxEVT_MENU, &MainFrame::OnWorldCellTreePopupSelect, this, ID_World_Tree_Delete);
     
+    entity_list_popup = new wxMenu;
+    entity_list_popup->Append(ID_Entity_List_New, L"Jauns", L"Dzēš izvēlēto ierakstu.");
+    entity_list_popup->Append(ID_Entity_List_Delete, L"Dzēst", L"Dzēš izvēlēto ierakstu.");
+    entity_list_popup->Append(ID_Entity_List_Edit, L"Rediģēt", L"Atver rediģēšanai izvēlēto ierakstu.");
+    Bind(wxEVT_MENU, &MainFrame::OnEntityListPopupSelect, this, ID_Entity_List_New);
+    Bind(wxEVT_MENU, &MainFrame::OnEntityListPopupSelect, this, ID_Entity_List_Edit);
+    Bind(wxEVT_MENU, &MainFrame::OnEntityListPopupSelect, this, ID_Entity_List_Delete);
+    
      // notify wxAUI which frame to use
     m_mgr.SetManagedWindow(this);
 
@@ -134,7 +226,7 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Dzimumlocekļu palielienāša
     
     property_panel = new wxPropertyGrid(this, -1);
 
-    wxListCtrl* entity_list = new wxListCtrl(this, -1, wxDefaultPosition, wxSize(200,150), wxLC_REPORT | wxLC_HRULES | wxLC_VRULES);
+    entity_list = new EntityList(this, -1, wxDefaultPosition, wxSize(200,150), wxLC_REPORT | wxLC_VIRTUAL | wxLC_HRULES | wxLC_VRULES);
 
     wxTextCtrl* text4 = new wxTextCtrl(this, -1, L"Labrītiņ šo brīnišķo rītiņ.",
     wxDefaultPosition, wxSize(200,150),
@@ -163,6 +255,7 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Dzimumlocekļu palielienāša
     world_tree_root_node = world_tree->AddRoot(L"Pasaule");
     RebuildWorldCellTree();
     world_tree->Bind(wxEVT_TREE_ITEM_RIGHT_CLICK, &MainFrame::OnWorldCellTreeSelect, this);
+    world_tree->Bind(wxEVT_TREE_ITEM_ACTIVATED, &MainFrame::OnWorldCellTreeActivate, this);
     
     // --- PROPERTY PANEL ---
     //entity_data_panel->Append(new wxPropertyCategory(L"Īpašnieks"));
@@ -173,17 +266,16 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Dzimumlocekļu palielienāša
     property_panel->Bind(wxEVT_PG_CHANGED, &MainFrame::OnPropertyPanelChanged, this);
     
     // --- ENTITY LIST ---
-    entity_list->InsertColumn(0, L"ID");
-    entity_list->InsertColumn(1, L"Nosaukums");
-    entity_list->InsertColumn(2, L"Īpašnieks");
+
+    entity_list->Bind(wxEVT_LIST_ITEM_RIGHT_CLICK, &MainFrame::OnEntityListSelect, this);
+    entity_list->Bind(wxEVT_LIST_ITEM_ACTIVATED, &MainFrame::OnEntityListActivate, this);
+    //long benis1 = entity_list->InsertItem(0, L"420");
+    //entity_list->SetItem(benis1, 1, L"Lielais Čunguss");
+    //entity_list->SetItem(benis1, 2, L"Lielais Priekšnieks");    
     
-    long benis1 = entity_list->InsertItem(0, L"420");
-    entity_list->SetItem(benis1, 1, L"Lielais Čunguss");
-    entity_list->SetItem(benis1, 2, L"Lielais Priekšnieks");    
-    
-    long benis2 = entity_list->InsertItem(0, L"69");
-    entity_list->SetItem(benis2, 1, L"Benis");
-    entity_list->SetItem(benis2, 2, L"Spurdo O. Fuggs");
+    //long benis2 = entity_list->InsertItem(0, L"69");
+    //entity_list->SetItem(benis2, 1, L"Benis");
+    //entity_list->SetItem(benis2, 2, L"Spurdo O. Fuggs");
 
     // --- AUI FLAGS ---
     unsigned int flags = m_mgr.GetFlags();
@@ -307,8 +399,31 @@ void MainFrame::PropertyPanelSetWorldCell(Editor::WorldCell* cell) {
     selected_worldcell = cell;
     property_panel->Append(new wxPropertyCategory(L"Pasaules šūna"));
     property_panel->Append(new wxStringProperty(L"Nosaukums", "worldcell-name", cell->name.data()));
-    property_panel->Append(new wxBoolProperty(L"Iekštelpa", "worldcell-int", cell->is_interior));
-    property_panel->Append(new wxBoolProperty(L"Iekštlp. apg.", "worldcell-int-light", cell->is_interior_lighting));
+    auto chkprop1 = new wxBoolProperty(L"Iekštelpa", "worldcell-int", cell->is_interior);
+    auto chkprop2 = new wxBoolProperty(L"Iekštlp. apg.", "worldcell-int-light", cell->is_interior_lighting);
+    chkprop1->SetAttribute("UseCheckbox", 1); // <-- bad library design
+    chkprop2->SetAttribute("UseCheckbox", 1); // <-- DO NOT design your libraries like that
+    property_panel->Append(chkprop1);
+    property_panel->Append(chkprop2);
+}
+
+void MainFrame::PropertyPanelSetEntity(Editor::Entity* entity) {
+    PropertyPanelClear();
+    selected_entity = entity;
+    auto gen_props = property_panel->Append(new wxPropertyCategory(L"Vispārīgās īpašības"));
+    auto spec_props = property_panel->Append(new wxPropertyCategory(L"Īpašās īpašības"));
+    
+    property_panel->AppendIn(gen_props, new wxUIntProperty(L"ID", "entity-id", entity->id));
+    property_panel->AppendIn(gen_props, new wxStringProperty(L"Nosaukums", "entity-name", entity->name.data()));
+    auto loc_props = property_panel->AppendIn(gen_props, new wxPropertyCategory(L"Lokācija"));
+    property_panel->AppendIn(loc_props, new wxFloatProperty(L"X", "entity-location-x", entity->location[0]));
+    property_panel->AppendIn(loc_props, new wxFloatProperty(L"Y", "entity-location-y", entity->location[1]));
+    property_panel->AppendIn(loc_props, new wxFloatProperty(L"Z", "entity-location-z", entity->location[2]));
+    auto rot_props = property_panel->AppendIn(gen_props, new wxPropertyCategory(L"Rotācija"));
+    property_panel->AppendIn(rot_props, new wxFloatProperty(L"X", "entity-rotation-x", entity->rotation[0]));
+    property_panel->AppendIn(rot_props, new wxFloatProperty(L"Y", "entity-rotation-y", entity->rotation[1]));
+    property_panel->AppendIn(rot_props, new wxFloatProperty(L"Z", "entity-rotation-z", entity->rotation[2]));
+    property_panel->AppendIn(gen_props, new wxStringProperty(L"Darbība", "entity-action", entity->action.data()));
 }
 
 void MainFrame::OnPropertyPanelChanged(wxPropertyGridEvent& event) {
@@ -317,11 +432,61 @@ void MainFrame::OnPropertyPanelChanged(wxPropertyGridEvent& event) {
         {"worldcell-int", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selected_worldcell->is_interior = event.GetPropertyValue().GetBool(); }},
         {"worldcell-int-light", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selected_worldcell->is_interior_lighting = event.GetPropertyValue().GetBool(); }},
         
+        {"entity-id", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selected_entity->id = event.GetPropertyValue().GetULongLong().GetValue(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"entity-name", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selected_entity->name = event.GetPropertyValue().GetString(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"entity-location-x", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selected_entity->location[0] = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"entity-location-y", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selected_entity->location[1] = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"entity-location-z", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selected_entity->location[2] = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"entity-rotation-x", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selected_entity->rotation[0] = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"entity-rotation-y", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selected_entity->rotation[1] = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"entity-rotation-z", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selected_entity->rotation[2] = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        
+        {"entity-action", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selected_entity->action = event.GetPropertyValue().GetString(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
         };
     
     updates[std::string(event.GetPropertyName())](event, this);
     
     std::cout << "PROPERTY PANEL CHANGED!!!" << event.GetPropertyName() << std::endl;
+}
+
+void MainFrame::OnWorldCellTreeActivate(wxTreeEvent& event) {
+    if (event.GetItem() == world_tree_root_node) {
+        auto alert = wxMessageDialog(this, L"Tev biksēs skudras!", L"Skudru uzbrukums!", wxOK | wxICON_EXCLAMATION);
+        alert.SetExtendedMessage(L"Ir noticis skudru uzbrukums jūsu biksēm. Programma pēc šī uzbrukuma nespēs atkopties. Skatīt lietošanas instrukcijas nodaļu \"7.6.3 Negaidīts skudru uzbrukums\" (431. lpp).");
+        alert.ShowModal();
+    } else {
+        auto& indirect = world_tree_map[event.GetItem().GetID()];
+        if (indirect.indirection_type == Editor::WorldCellIndirector::CELL_ITSELF) {
+            PropertyPanelSetWorldCell(indirect.into);
+            entity_list->SetWorldCell(indirect.into);
+        }
+    }
+}
+
+void MainFrame::OnEntityListSelect(wxListEvent& event) {
+    entity_list_selected_item = event.GetIndex();
+    PopupMenu(entity_list_popup);
+    std::cout << "selected" << std::endl;
+}
+
+void MainFrame::OnEntityListActivate(wxListEvent& event) {
+    entity_list_selected_item = event.GetIndex();
+    entity_list->Edit(this, entity_list_selected_item);
+    std::cout << "activated" << std::endl;
+}
+
+void MainFrame::OnEntityListPopupSelect(wxCommandEvent& event) {
+    switch (event.GetId()) {
+        case ID_Entity_List_New:
+            entity_list->New(this);
+            break;
+        case ID_Entity_List_Delete:
+            entity_list->Delete(entity_list_selected_item);
+            break;
+        case ID_Entity_List_Edit:
+            entity_list->Edit(this, entity_list_selected_item);
+            break;
+    }
 }
 
 #endif

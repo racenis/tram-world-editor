@@ -6,10 +6,22 @@
 #include <unordered_map>
 
 namespace Editor {
+    struct Entity {
+        uint64_t id;
+        std::string name;
+        float location[3];
+        float rotation[3];
+        std::string action;
+    };
+    
     struct WorldCell {
         std::string name;
         bool is_interior = false;
         bool is_interior_lighting = false;
+        std::vector<Entity*> entities;
+        
+        Entity* NewEntity();
+        void DeleteEntity(size_t id);
     };
     
     struct WorldCellIndirector {

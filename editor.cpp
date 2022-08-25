@@ -32,6 +32,16 @@ namespace Editor {
         return cell;
     }
     
+    Entity* WorldCell::NewEntity() {
+        auto ent = new Entity {0, "Entītija"};
+        entities.push_back(ent);
+        return ent;
+    }
+    
+    void WorldCell::DeleteEntity(size_t id) {
+        entities.erase(entities.begin() + id);
+    }
+    
     
     
     void Init(){
@@ -45,5 +55,10 @@ namespace Editor {
         worldCells.push_back(cell3);
         worldCells.push_back(cell4);
         
+        cell1->entities.push_back(new Entity{0, "benis"});
+        cell1->entities.push_back(new Entity{4, "impressive"});
+        cell1->entities.push_back(new Entity{5, "nice"});
+        
+        cell2->entities.push_back(new Entity{1, "benisoner"});
     }
 }
