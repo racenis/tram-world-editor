@@ -1,12 +1,217 @@
 #ifndef NEKAD
+#include <glad.h>
+
 #include <wx/wx.h>
 #include <wx/treectrl.h>
 #include <wx/listctrl.h>
 #include <wx/propgrid/propgrid.h>
 #include <wx/aui/aui.h>
 #include <wx/aboutdlg.h>
+#include <wx/glcanvas.h>
 
 #include <editor.h>
+#include <filesystem>
+
+#include <core.h>
+#include <async.h>
+#include <render.h>
+
+#include <entitycomponents.h>
+
+class Viewport : public wxGLCanvas 
+{
+    public:
+        Viewport(wxWindow* parent, wxWindowID id = wxID_ANY, 
+            const int* attribList = 0,
+            const wxPoint& pos = wxDefaultPosition, 
+            const wxSize& size = wxDefaultSize, long style = 0L, 
+            const wxString& name = L"GLCanvas", 
+            const wxPalette& palette = wxNullPalette);
+        virtual ~Viewport();
+        Viewport(const Viewport& tc) = delete;
+        Viewport(Viewport&& tc) = delete;
+        Viewport& operator=(const Viewport& tc) = delete; 
+        Viewport& operator=(Viewport&& tc) = delete; 
+    private:
+            void SetupGraphics();
+            void OnPaint(wxPaintEvent& event);
+
+            wxGLContext* m_context;
+            GLuint m_vbo; // vertex buffer pointer
+            GLuint m_vao; // vertex array pointer 
+            
+            
+            Core::RenderComponent* monguser;
+            Core::LightComponent* lit;
+            Core::ArmatureComponent* monguser_armature;
+};
+
+Viewport::Viewport(wxWindow* parent, wxWindowID id, 
+        const int* attribList, const wxPoint& pos, const wxSize& size,
+        long style, const wxString& name, const wxPalette& palette)
+	: wxGLCanvas(parent, id, attribList, pos, size, style, name, palette),
+	m_vbo(0), m_vao(0)
+{
+	m_context = new wxGLContext(this);
+	Bind(wxEVT_PAINT, &Viewport::OnPaint, this);
+	
+	SetCurrent(*m_context);
+	
+    gladLoadGL();
+	//glewExperimental = true;
+	//GLenum err = glewInit();
+	//if (err != GLEW_OK) {
+	//	const GLubyte* msg = glewGetErrorString(err);
+	//	throw std::exception(reinterpret_cast<const char*>(msg));
+	//}
+    std::cout << "OPENGL VERSION:" << std::endl << glGetString(GL_VERSION) << std::endl;
+    std::cout << std::filesystem::current_path() << std::endl;
+    
+    using namespace Core;
+    using namespace Core::Render;
+    Core::Init();
+    Core::Render::Init();
+    Core::Async::Init();
+    
+    Material::SetErrorMaterial(new Material(UID("defaulttexture"), Material::TEXTURE));
+    Model::SetErrorModel(new Model(UID("errorstatic")));
+
+    // load all of the language strings
+    LoadText("data/lv.lang");
+
+    // texture info stuff
+    Material::LoadMaterialInfo("data/texture.list");
+
+    // animations
+    Animation mongusrun(UID("mongus"));
+    Animation floppaidle(UID("turtle"));
+    Animation bingusidle(UID("bingus_idle"));
+    mongusrun.LoadFromDisk();
+    floppaidle.LoadFromDisk();
+    bingusidle.LoadFromDisk();
+
+    // loading the demo level
+    //auto demo = PoolProxy<WorldCell>::New();
+    //demo->SetName(UID("demo"));
+    //demo->LoadFromDisk();
+    //demo->Load();
+    
+    // transition for the demo level
+    auto demo_trans = PoolProxy<WorldCell::Transition>::New();
+    demo_trans->AddPoint(glm::vec3(-5.0f, 0.0f, -5.0f));
+    demo_trans->AddPoint(glm::vec3(5.0f, 0.0f, -5.0f));
+    demo_trans->AddPoint(glm::vec3(-5.0f, 0.0f, 5.0f));
+    demo_trans->AddPoint(glm::vec3(5.0f, 0.0f, 5.0f));
+    demo_trans->AddPoint(glm::vec3(-5.0f, 5.0f, -5.0f));
+    demo_trans->AddPoint(glm::vec3(5.0f, 5.0f, -5.0f));
+    demo_trans->AddPoint(glm::vec3(-5.0f, 5.0f, 5.0f));
+    demo_trans->AddPoint(glm::vec3(5.0f, 5.0f, 5.0f));
+    
+    demo_trans->GeneratePlanes();
+    
+    //demo->AddTransition(demo_trans);
+
+    // create the mongus model
+    monguser = PoolProxy<RenderComponent>::New();
+    monguser->SetModel(UID("mongus"));
+    monguser->SetPose(poseList.begin());
+    monguser->Init();
+    monguser->UpdateLocation(glm::vec3(0.0f, 10.0f, 0.0f));
+    monguser->UpdateRotation(glm::quat(glm::vec3(0.0f, 0.0f, 0.0f)));
+
+    // create a light
+    lit = PoolProxy<LightComponent>::New();;
+    lit->Init();
+    lit->UpdateColor(255.0f, 0.0f, 255.0f);
+    lit->UpdateDistance(1000.0f);
+
+    // create the animation player for the mongus model
+    monguser_armature = PoolProxy<ArmatureComponent>::New();
+    monguser_armature->SetModel(UID("mongus"));
+    monguser_armature->Init();
+
+    // link the mongus model and his animation player
+    monguser->SetPose(monguser_armature->GetPosePtr());
+    
+    // turn on physics drawing
+    DRAW_PHYSICS_DEBUG = true;
+    
+	SetupGraphics();
+}
+
+void Viewport::SetupGraphics()
+{
+	// define vertices
+	float points[] = {
+		0.0f, 0.5f,
+		0.5f, -0.5f,
+		-0.5f, -0.5f
+	};
+	// upload vertex data
+	glGenBuffers(1, &m_vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
+	// setup vertex array objects
+	glGenVertexArrays(1, &m_vao);
+	glBindVertexArray(m_vao);
+	glEnableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+}
+
+Viewport::~Viewport()
+{
+	SetCurrent(*m_context);
+	glDeleteVertexArrays(1, &m_vao);
+	glDeleteBuffers(1, &m_vbo);
+}
+
+void Viewport::OnPaint(wxPaintEvent& event)
+{
+	SetCurrent(*m_context);
+
+	// set background to black
+	glClearColor(0.0, 0.0, 0.0, 1.0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
+    
+    
+    using namespace Core;
+    using namespace Core::Render;
+    
+    SetSun(time_of_day); // this sets the ambient lighting
+
+    static int tick = 0;
+    tick++;
+    
+    CAMERA_POSITION = glm::vec3(0.0f, 2.0f, -5.0f);
+    CAMERA_ROTATION = glm::quat(glm::vec3(0.0f, 3.14f, 0.0f));
+    
+    // this will make the light spin
+    lit->UpdateLocation(cos(((float)tick) / 60.0f) * 100.0f, 0.01 ,sin(((float)tick) / 60.0f) * 100.0f);
+    
+    // this makes the mongus model bob up and down
+    monguser->UpdateLocation(glm::vec3(0.0f, 0.5f + sin(((float)tick) / 45.0f)*0.1f, 0.0f));
+    
+    Async::ResourceLoader2ndStage();
+    Async::FinishResource();
+
+    if(tick == 100){
+        monguser_armature->PlayAnimation(UID("Run"), 100, 1.0f, 1.0f);
+    }
+    
+    Render::UpdateArmatures();
+    Render::Render();
+    
+	// draw the graphics
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+	// and display
+	glFlush();
+	SwapBuffers();
+}
+
+
+
 
 enum {
     ID_Hello = 1,
@@ -227,10 +432,6 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Dzimumlocekļu palielienāša
     property_panel = new wxPropertyGrid(this, -1);
 
     entity_list = new EntityList(this, -1, wxDefaultPosition, wxSize(200,150), wxLC_REPORT | wxLC_VIRTUAL | wxLC_HRULES | wxLC_VRULES);
-
-    wxTextCtrl* text4 = new wxTextCtrl(this, -1, L"Labrītiņ šo brīnišķo rītiņ.",
-    wxDefaultPosition, wxSize(200,150),
-    wxNO_BORDER | wxTE_MULTILINE);
     
     wxTextCtrl* output_text_ctrl = new wxTextCtrl(this, -1, "",
     wxDefaultPosition, wxSize(200,150),
@@ -242,12 +443,13 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Dzimumlocekļu palielienāša
     std::cout << "Loceklis!" << std::endl;
     std::cout << "Loceklis!" << std::endl;
 
-
+    Viewport* canvas = new Viewport(this, wxID_ANY, nullptr, { 0, 0 }, { 800, 800 });
     m_mgr.AddPane(world_tree, wxLEFT, L"Dzimumceļu navigators");
     m_mgr.AddPane(property_panel, wxLEFT, L"Dzimumlocekļa īpašības");
     m_mgr.AddPane(entity_list, wxBOTTOM, L"Dzimumlocekļu uzskaite");
     m_mgr.AddPane(output_text_ctrl, wxBOTTOM, L"Konsole");
-    m_mgr.AddPane(text4, wxCENTER, L"GIANT PENIS");
+    //m_mgr.AddPane(text4, wxCENTER, L"GIANT PENIS");
+    m_mgr.AddPane(canvas, wxCENTER, L"GIANT PENIS");
     
     //m_mgr.GetPane(text1).CloseButton(false);
     
@@ -412,6 +614,7 @@ void MainFrame::PropertyPanelSetEntity(Editor::Entity* entity) {
     selected_entity = entity;
     auto gen_props = property_panel->Append(new wxPropertyCategory(L"Vispārīgās īpašības"));
     auto spec_props = property_panel->Append(new wxPropertyCategory(L"Īpašās īpašības"));
+    std::cout << "spec props: " << spec_props << std::endl;
     
     property_panel->AppendIn(gen_props, new wxUIntProperty(L"ID", "entity-id", entity->id));
     property_panel->AppendIn(gen_props, new wxStringProperty(L"Nosaukums", "entity-name", entity->name.data()));
