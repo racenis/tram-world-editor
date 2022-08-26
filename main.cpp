@@ -10,7 +10,6 @@
 #include <wx/glcanvas.h>
 
 #include <editor.h>
-#include <filesystem>
 
 #include <core.h>
 #include <async.h>
@@ -33,39 +32,51 @@ class Viewport : public wxGLCanvas
         Viewport& operator=(const Viewport& tc) = delete; 
         Viewport& operator=(Viewport&& tc) = delete; 
     private:
-            void SetupGraphics();
             void OnPaint(wxPaintEvent& event);
+            void OnRightClick(wxMouseEvent& event);
+            void OnMouseMove(wxMouseEvent& event);
+            void OnSizeChange(wxSizeEvent& event);
+            void OnKeydown(wxKeyEvent& event);
+            void OnKeyup(wxKeyEvent& event);
+            void OnTimer(wxTimerEvent& event);
+            
+            // stuff for viewport navigation
+            bool mouse_captured = false;
+            float mouse_x = 0;
+            float mouse_y = 0;
+            bool key_forward = false;
+            bool key_backward = false;
+            bool key_left = false;
+            bool key_right = false;
+            wxTimer key_timer;
 
             wxGLContext* m_context;
-            GLuint m_vbo; // vertex buffer pointer
-            GLuint m_vao; // vertex array pointer 
             
             
             Core::RenderComponent* monguser;
             Core::LightComponent* lit;
-            Core::ArmatureComponent* monguser_armature;
 };
 
 Viewport::Viewport(wxWindow* parent, wxWindowID id, 
         const int* attribList, const wxPoint& pos, const wxSize& size,
         long style, const wxString& name, const wxPalette& palette)
 	: wxGLCanvas(parent, id, attribList, pos, size, style, name, palette),
-	m_vbo(0), m_vao(0)
+    key_timer(this)
 {
 	m_context = new wxGLContext(this);
 	Bind(wxEVT_PAINT, &Viewport::OnPaint, this);
+    Bind(wxEVT_LEFT_UP, &Viewport::OnRightClick, this);
+    Bind(wxEVT_MOTION, &Viewport::OnMouseMove, this);
+    Bind(wxEVT_SIZE, &Viewport::OnSizeChange, this);
+    Bind(wxEVT_KEY_DOWN, &Viewport::OnKeydown, this);
+    Bind(wxEVT_KEY_UP, &Viewport::OnKeyup, this);
+    Bind(wxEVT_TIMER, &Viewport::OnTimer, this);
 	
 	SetCurrent(*m_context);
 	
     gladLoadGL();
-	//glewExperimental = true;
-	//GLenum err = glewInit();
-	//if (err != GLEW_OK) {
-	//	const GLubyte* msg = glewGetErrorString(err);
-	//	throw std::exception(reinterpret_cast<const char*>(msg));
-	//}
+
     std::cout << "OPENGL VERSION:" << std::endl << glGetString(GL_VERSION) << std::endl;
-    std::cout << std::filesystem::current_path() << std::endl;
     
     using namespace Core;
     using namespace Core::Render;
@@ -76,25 +87,9 @@ Viewport::Viewport(wxWindow* parent, wxWindowID id,
     Material::SetErrorMaterial(new Material(UID("defaulttexture"), Material::TEXTURE));
     Model::SetErrorModel(new Model(UID("errorstatic")));
 
-    // load all of the language strings
     LoadText("data/lv.lang");
-
-    // texture info stuff
+    
     Material::LoadMaterialInfo("data/texture.list");
-
-    // animations
-    Animation mongusrun(UID("mongus"));
-    Animation floppaidle(UID("turtle"));
-    Animation bingusidle(UID("bingus_idle"));
-    mongusrun.LoadFromDisk();
-    floppaidle.LoadFromDisk();
-    bingusidle.LoadFromDisk();
-
-    // loading the demo level
-    //auto demo = PoolProxy<WorldCell>::New();
-    //demo->SetName(UID("demo"));
-    //demo->LoadFromDisk();
-    //demo->Load();
     
     // transition for the demo level
     auto demo_trans = PoolProxy<WorldCell::Transition>::New();
@@ -109,8 +104,6 @@ Viewport::Viewport(wxWindow* parent, wxWindowID id,
     
     demo_trans->GeneratePlanes();
     
-    //demo->AddTransition(demo_trans);
-
     // create the mongus model
     monguser = PoolProxy<RenderComponent>::New();
     monguser->SetModel(UID("mongus"));
@@ -124,46 +117,121 @@ Viewport::Viewport(wxWindow* parent, wxWindowID id,
     lit->Init();
     lit->UpdateColor(255.0f, 0.0f, 255.0f);
     lit->UpdateDistance(1000.0f);
-
-    // create the animation player for the mongus model
-    monguser_armature = PoolProxy<ArmatureComponent>::New();
-    monguser_armature->SetModel(UID("mongus"));
-    monguser_armature->Init();
-
-    // link the mongus model and his animation player
-    monguser->SetPose(monguser_armature->GetPosePtr());
     
-    // turn on physics drawing
-    DRAW_PHYSICS_DEBUG = true;
-    
-	SetupGraphics();
-}
-
-void Viewport::SetupGraphics()
-{
-	// define vertices
-	float points[] = {
-		0.0f, 0.5f,
-		0.5f, -0.5f,
-		-0.5f, -0.5f
-	};
-	// upload vertex data
-	glGenBuffers(1, &m_vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
-	// setup vertex array objects
-	glGenVertexArrays(1, &m_vao);
-	glBindVertexArray(m_vao);
-	glEnableVertexAttribArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+    CAMERA_POSITION = glm::vec3(0.0f, 2.0f, -5.0f);
+    CAMERA_ROTATION = glm::quat(glm::vec3(0.0f, 3.14f, 0.0f));
 }
 
 Viewport::~Viewport()
 {
+    Core::Async::Yeet();
 	SetCurrent(*m_context);
-	glDeleteVertexArrays(1, &m_vao);
-	glDeleteBuffers(1, &m_vbo);
+}
+
+void Viewport::OnRightClick(wxMouseEvent& event) {
+    if (mouse_captured) {
+        mouse_captured = false;
+        ReleaseMouse();
+        std::cout << "released" << std::endl;
+    } else {
+        mouse_captured = true;
+        CaptureMouse();
+        
+        // put the pointer in the center of viewport
+        int width, height;
+        GetSize(&width, &height);
+        WarpPointer(width/2, height/2);
+        std::cout << "captured" << std::endl;
+    }
+}
+
+void Viewport::OnMouseMove(wxMouseEvent& event) {
+    if (mouse_captured) {
+        int width, height;
+        GetSize(&width, &height);
+        int center_x = width/2, center_y = height/2;
+        mouse_x += (float)(event.GetX() - center_x) * 0.1f;
+        mouse_y += (float)(event.GetY() - center_y) * 0.1f;
+        WarpPointer(center_x, center_y);
+        
+        mouse_y = mouse_y > 90.0f ? 90.0f : mouse_y < -90.0f ? -90.0f : mouse_y;
+        Core::Render::CAMERA_ROTATION = glm::quat(glm::vec3(-glm::radians(mouse_y), -glm::radians(mouse_x), 0.0f));
+        
+        Refresh();
+        //std::cout << event.GetX() << " " << event.GetY() << std::endl;
+    }
+}
+
+void Viewport::OnKeydown(wxKeyEvent& event) {
+    bool movement_key_pressed = false;
+    bool any_movement = key_forward || key_backward || key_left  || key_right;
+    if (event.GetUnicodeKey() == 'W') {
+        movement_key_pressed = true;
+        key_forward = true;
+    }
+    
+    if (event.GetUnicodeKey() == 'A') {
+        movement_key_pressed = true;
+        key_left = true;
+    }
+    
+    if (event.GetUnicodeKey() == 'S') {
+        movement_key_pressed = true;
+        key_backward = true;
+    }
+    
+    if (event.GetUnicodeKey() == 'D') {
+        movement_key_pressed = true;
+        key_right = true;
+    }
+    
+    //std::cout << "hello this is keydown " << (char)event.GetUnicodeKey() << std::endl;
+    
+    if (!any_movement && movement_key_pressed) {
+        key_timer.Start(30);
+    }
+}
+
+void Viewport::OnKeyup(wxKeyEvent& event) {
+    if (event.GetUnicodeKey() == 'W') {
+        key_forward = false;
+    }
+    
+    if (event.GetUnicodeKey() == 'A') {
+        key_left = false;
+    }
+    
+    if (event.GetUnicodeKey() == 'S') {
+        key_backward = false;
+    }
+    
+    if (event.GetUnicodeKey() == 'D') {
+        key_right = false;
+    }
+    
+    if (!(key_forward || key_backward || key_left  || key_right)) {
+        key_timer.Stop();
+        std::cout << "stoppe" << std::endl;
+    }
+}
+
+void Viewport::OnTimer(wxTimerEvent& event) {
+    std::cout << "movin " << key_forward << std::endl;
+    using namespace Core::Render;
+    
+    if (key_forward) CAMERA_POSITION += CAMERA_ROTATION * CAMERA_FORWARD * 0.1f;
+    if (key_backward) CAMERA_POSITION -= CAMERA_ROTATION * CAMERA_FORWARD * 0.1f;
+    if (key_left) CAMERA_POSITION -= CAMERA_ROTATION * CAMERA_SIDE * 0.1f;
+    if (key_right) CAMERA_POSITION += CAMERA_ROTATION * CAMERA_SIDE * 0.1f;
+    
+    Refresh();
+}
+
+void Viewport::OnSizeChange(wxSizeEvent& event) {
+    int width, height;
+    GetSize(&width, &height);
+    glViewport(0, 0, width, height);
+    Core::Render::ScreenSize(width, height);
 }
 
 void Viewport::OnPaint(wxPaintEvent& event)
@@ -184,8 +252,8 @@ void Viewport::OnPaint(wxPaintEvent& event)
     static int tick = 0;
     tick++;
     
-    CAMERA_POSITION = glm::vec3(0.0f, 2.0f, -5.0f);
-    CAMERA_ROTATION = glm::quat(glm::vec3(0.0f, 3.14f, 0.0f));
+    //CAMERA_POSITION = glm::vec3(0.0f, 2.0f, -5.0f);
+    //CAMERA_ROTATION = glm::quat(glm::vec3(0.0f, 3.14f, 0.0f));
     
     // this will make the light spin
     lit->UpdateLocation(cos(((float)tick) / 60.0f) * 100.0f, 0.01 ,sin(((float)tick) / 60.0f) * 100.0f);
@@ -195,17 +263,10 @@ void Viewport::OnPaint(wxPaintEvent& event)
     
     Async::ResourceLoader2ndStage();
     Async::FinishResource();
-
-    if(tick == 100){
-        monguser_armature->PlayAnimation(UID("Run"), 100, 1.0f, 1.0f);
-    }
     
     Render::UpdateArmatures();
     Render::Render();
     
-	// draw the graphics
-	glDrawArrays(GL_TRIANGLES, 0, 3);
-	// and display
 	glFlush();
 	SwapBuffers();
 }
