@@ -4,14 +4,18 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <serializeddata.h>
 
 namespace Editor {
     struct Entity {
         uint64_t id;
         std::string name;
-        float location[3];
-        float rotation[3];
+        glm::vec3 location;
+        glm::vec3 rotation;
         std::string action;
+        Core::SerializedEntityData* ent_data = nullptr;
+        void FromString (std::string_view& str);
+        void ToString (std::string& str);
     };
     
     struct WorldCell {
@@ -22,6 +26,9 @@ namespace Editor {
         
         Entity* NewEntity();
         void DeleteEntity(size_t id);
+        
+        void Load();
+        void Save();
     };
     
     struct WorldCellIndirector {
@@ -43,6 +50,7 @@ namespace Editor {
     WorldCell* NewWorldCell();
     
     extern std::vector<WorldCell*> worldCells;
+    extern std::vector<std::pair<std::string, Core::SerializedEntityData* (*)(void)>> entityDatasSorted;
     
     
     
