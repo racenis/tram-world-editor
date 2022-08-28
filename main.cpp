@@ -69,6 +69,7 @@ protected:
     wxMenu* entity_list_popup;
     long entity_list_selected_item;
     void OnEntityListSelect(wxListEvent& event);
+    void OnEntityListSelect1(wxListEvent& event);
     void OnEntityListActivate(wxListEvent& event);
     void OnEntityListPopupSelect(wxCommandEvent& event);
     void OnEntityTypeChange(wxCommandEvent& event);
@@ -103,6 +104,7 @@ class Viewport : public wxGLCanvas
         Viewport& operator=(Viewport&& tc) = delete; 
     private:
             void OnPaint(wxPaintEvent& event);
+            void OnLeftClick(wxMouseEvent& event);
             void OnRightClick(wxMouseEvent& event);
             void OnMouseMove(wxMouseEvent& event);
             void OnSizeChange(wxSizeEvent& event);
@@ -112,7 +114,7 @@ class Viewport : public wxGLCanvas
             
             // stuff for viewport navigation
             bool mouse_captured = false;
-            bool move_mode = true;
+            bool move_mode = true; // false for entity select mode
             float mouse_x = 0;
             float mouse_y = 0;
             bool key_forward = false;
@@ -123,6 +125,8 @@ class Viewport : public wxGLCanvas
             
             // stuff for entity moving
             float transf_val;
+            glm::vec3 location_restore;
+            glm::vec3 rotation_restore;
             char entity_operation = 0;
             char entity_axis = 0;
             float cursor_x;
@@ -143,7 +147,8 @@ Viewport::Viewport(wxWindow* parent, wxWindowID id,
         key_timer(this), parent_frame((MainFrame*)parent) {
 	m_context = new wxGLContext(this);
 	Bind(wxEVT_PAINT, &Viewport::OnPaint, this);
-    Bind(wxEVT_LEFT_UP, &Viewport::OnRightClick, this);
+    Bind(wxEVT_LEFT_UP, &Viewport::OnLeftClick, this);
+    Bind(wxEVT_RIGHT_UP, &Viewport::OnRightClick, this);
     Bind(wxEVT_MOTION, &Viewport::OnMouseMove, this);
     Bind(wxEVT_SIZE, &Viewport::OnSizeChange, this);
     Bind(wxEVT_KEY_DOWN, &Viewport::OnKeydown, this);
@@ -154,7 +159,7 @@ Viewport::Viewport(wxWindow* parent, wxWindowID id,
 	
     gladLoadGL();
 
-    std::cout << "OPENGL VERSION:" << std::endl << glGetString(GL_VERSION) << std::endl;
+    std::cout << "OpenGL: " << glGetString(GL_VERSION) << std::endl;
     
     using namespace Core;
     using namespace Core::Render;
@@ -183,12 +188,12 @@ Viewport::Viewport(wxWindow* parent, wxWindowID id,
     demo_trans->GeneratePlanes();
     
     // create the mongus model
-    monguser = PoolProxy<RenderComponent>::New();
-    monguser->SetModel(UID("mongus"));
-    monguser->SetPose(poseList.begin());
-    monguser->Init();
-    monguser->UpdateLocation(glm::vec3(0.0f, 0.0f, 0.0f));
-    monguser->UpdateRotation(glm::quat(glm::vec3(0.0f, 0.0f, 0.0f)));
+    //monguser = PoolProxy<RenderComponent>::New();
+    //monguser->SetModel(UID("mongus"));
+    //monguser->SetPose(poseList.begin());
+    //monguser->Init();
+    //monguser->UpdateLocation(glm::vec3(0.0f, 0.0f, 0.0f));
+    //monguser->UpdateRotation(glm::quat(glm::vec3(0.0f, 0.0f, 0.0f)));
     
     CAMERA_POSITION = glm::vec3(0.0f, 2.0f, -5.0f);
     CAMERA_ROTATION = glm::quat(glm::vec3(0.0f, 3.14f, 0.0f));
@@ -201,14 +206,19 @@ Viewport::~Viewport()
 }
 
 
-void Viewport::OnRightClick(wxMouseEvent& event) {
+void Viewport::OnLeftClick(wxMouseEvent& event) {
     if (mouse_captured) {
         mouse_captured = false;
         entity_operation = 0;
         entity_axis = 0;
-        move_mode = true;
+        if (!move_mode) {
+            move_mode = true;
+            parent_frame->PropertyPanelRebuild();
+        }
+        
         ReleaseMouse();
-        std::cout << "released" << std::endl;
+        Refresh();
+        //std::cout << "released" << std::endl;
     } else {
         mouse_captured = true;
         CaptureMouse();
@@ -217,7 +227,21 @@ void Viewport::OnRightClick(wxMouseEvent& event) {
         int width, height;
         GetSize(&width, &height);
         WarpPointer(width/2, height/2);
-        std::cout << "captured" << std::endl;
+        //std::cout << "captured" << std::endl;
+    }
+}
+
+void Viewport::OnRightClick(wxMouseEvent& event) {
+    if (mouse_captured && !move_mode) {
+        mouse_captured = false;
+        entity_operation = 0;
+        entity_axis = 0;
+        move_mode = true;
+        parent_frame->selected_entity->location = location_restore;
+        parent_frame->selected_entity->rotation = rotation_restore;
+        parent_frame->selected_entity->ModelUpdate();
+        ReleaseMouse();
+        Refresh();
     }
 }
 
@@ -241,14 +265,15 @@ void Viewport::OnMouseMove(wxMouseEvent& event) {
             float delta_y = cursor_y - event.GetY();
             float new_val = ((delta_x + delta_y) * 0.01f) + transf_val;
             
+            
             if (entity_operation == 'G') {
                 if (entity_axis == 'X') selected_entity->location.x = new_val;
-                if (entity_axis == 'Y') selected_entity->location.y = new_val;
-                if (entity_axis == 'Z') selected_entity->location.z = new_val;
+                if (entity_axis == 'Y') selected_entity->location.z = new_val;
+                if (entity_axis == 'Z') selected_entity->location.y = new_val;
             } else {
                 if (entity_axis == 'X') selected_entity->rotation.x = new_val;
-                if (entity_axis == 'Y') selected_entity->rotation.y = new_val;
-                if (entity_axis == 'Z') selected_entity->rotation.z = new_val;
+                if (entity_axis == 'Y') selected_entity->rotation.z = new_val;
+                if (entity_axis == 'Z') selected_entity->rotation.y = new_val;
             }
             
             selected_entity->ModelUpdate();
@@ -290,11 +315,11 @@ void Viewport::OnKeydown(wxKeyEvent& event) {
     
     auto selected_entity = parent_frame->IsSelectedEntity();
     if (selected_entity) {
-        if (is_operation || is_axis) {
-            std::cout << "is_op " << is_operation << " is_axis " << is_axis << " keycode " << (char)keycode << std::endl;
+        if (is_operation || is_axis) {            
+            //std::cout << "is_op " << is_operation << " is_axis " << is_axis << " keycode " << (char)keycode << std::endl;
             if (entity_operation && entity_axis) {
                 //restore
-                if (entity_operation == 'G') {
+                /*if (entity_operation == 'G') {
                     if (entity_axis == 'X') selected_entity->location.x = transf_val;
                     if (entity_axis == 'Y') selected_entity->location.y = transf_val;
                     if (entity_axis == 'Z') selected_entity->location.z = transf_val;
@@ -302,7 +327,10 @@ void Viewport::OnKeydown(wxKeyEvent& event) {
                     if (entity_axis == 'X') selected_entity->rotation.x = transf_val;
                     if (entity_axis == 'Y') selected_entity->rotation.y = transf_val;
                     if (entity_axis == 'Z') selected_entity->rotation.z = transf_val;
-                }
+                }*/
+                
+                 selected_entity->location = location_restore;
+                 selected_entity->rotation = rotation_restore;
             }
             
             if (is_operation) {
@@ -315,18 +343,26 @@ void Viewport::OnKeydown(wxKeyEvent& event) {
             // tuck
             if (entity_operation == 'G') {
                 if (entity_axis == 'X') transf_val = selected_entity->location.x;
-                if (entity_axis == 'Y') transf_val = selected_entity->location.y;
-                if (entity_axis == 'Z') transf_val = selected_entity->location.z;
+                if (entity_axis == 'Y') transf_val = selected_entity->location.z;
+                if (entity_axis == 'Z') transf_val = selected_entity->location.y;
             } else {
                 if (entity_axis == 'X') transf_val = selected_entity->rotation.x;
-                if (entity_axis == 'Y') transf_val = selected_entity->rotation.y;
-                if (entity_axis == 'Z') transf_val = selected_entity->rotation.z;
+                if (entity_axis == 'Y') transf_val = selected_entity->rotation.z;
+                if (entity_axis == 'Z') transf_val = selected_entity->rotation.y;
             }
+            
+            location_restore = selected_entity->location;
+            rotation_restore = selected_entity->rotation;
             
             
             move_mode = false;
             cursor_x = event.GetX();
             cursor_y = event.GetY();
+            
+            if (!mouse_captured) {
+                mouse_captured = true;
+                CaptureMouse();
+            }
         }
     }
 }
@@ -381,12 +417,28 @@ void Viewport::OnPaint(wxPaintEvent& event)
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
-    
-    
     using namespace Core;
     using namespace Core::Render;
     
-    SetSun(time_of_day); // this sets the ambient lighting
+    if (parent_frame->selected_entity) {
+        auto& ent = *parent_frame->selected_entity;
+        glm::quat rot(ent.rotation);
+        AddLine(ent.location, ent.location + rot * glm::vec3(1.0f, 0.0f, 0.0f), COLOR_RED);
+        AddLine(ent.location, ent.location + rot * glm::vec3(0.0f, 0.0f, 1.0f), COLOR_GREEN);
+        AddLine(ent.location, ent.location + rot * glm::vec3(0.0f, 1.0f, 0.0f), COLOR_BLUE);
+        
+    }
+    
+    if (entity_axis) {
+        auto& ent = *parent_frame->selected_entity;
+        if (entity_axis == 'X') AddLine(ent.location - glm::vec3(100.0f, 0.0f, 0.0f), ent.location + glm::vec3(100.0f, 0.0f, 0.0f), COLOR_RED);
+        if (entity_axis == 'Y') AddLine(ent.location - glm::vec3(0.0f, 0.0f, 100.0f), ent.location + glm::vec3(0.0f, 0.0f, 100.0f), COLOR_GREEN);
+        if (entity_axis == 'Z') AddLine(ent.location - glm::vec3(0.0f, 100.0f, 0.0f), ent.location + glm::vec3(0.0f, 100.0f, 0.0f), COLOR_BLUE);
+    }
+    
+    AddLineMarker(glm::vec3(0.0f, 0.0f, 0.0f), COLOR_CYAN);
+    
+    SetSun(time_of_day);
 
     
     Async::ResourceLoader2ndStage();
@@ -516,7 +568,7 @@ private:
     
 };
  
-MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Dzimumlocekļu palielienāšanas programma", wxDefaultPosition, wxSize(800, 600), wxDEFAULT_FRAME_STYLE) {
+MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā programma", wxDefaultPosition, wxSize(800, 600), wxDEFAULT_FRAME_STYLE) {
     Editor::Init();
     
     // --- MENUS ---
@@ -575,7 +627,7 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Dzimumlocekļu palielienāša
     }
     
     entity_list_popup = new wxMenu;
-    entity_list_popup->Append(ID_Entity_List_New, L"Jauns", L"Dzēš izvēlēto ierakstu.");
+    entity_list_popup->Append(ID_Entity_List_New, L"Jauns", L"Pievieno jaunu ierakstu.");
     entity_list_popup->Append(ID_Entity_List_Delete, L"Dzēst", L"Dzēš izvēlēto ierakstu.");
     entity_list_popup->Append(ID_Entity_List_Edit, L"Rediģēt", L"Atver rediģēšanai izvēlēto ierakstu.");
     entity_list_popup->AppendSubMenu(entity_list_change_type_popup, L"Mainīt tipu", L"Maina entītijas tipu.");
@@ -598,15 +650,11 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Dzimumlocekļu palielienāša
     wxNO_BORDER | wxTE_READONLY | wxTE_MULTILINE);
     
     std_cout_redirect = new wxStreamToTextRedirector(output_text_ctrl);
-    
-    std::cout << "Loceklis!" << std::endl;
-    std::cout << "Loceklis!" << std::endl;
-    std::cout << "Loceklis!" << std::endl;
 
     viewport = new Viewport(this, wxID_ANY, nullptr, { 0, 0 }, { 800, 800 });
-    m_mgr.AddPane(world_tree, wxLEFT, L"Dzimumceļu navigators");
-    m_mgr.AddPane(property_panel, wxLEFT, L"Dzimumlocekļa īpašības");
-    m_mgr.AddPane(entity_list, wxBOTTOM, L"Dzimumlocekļu uzskaite");
+    m_mgr.AddPane(world_tree, wxLEFT, L"Pasaule");
+    m_mgr.AddPane(property_panel, wxLEFT, L"Īpašības");
+    m_mgr.AddPane(entity_list, wxBOTTOM, L"Saturs");
     m_mgr.AddPane(output_text_ctrl, wxBOTTOM, L"Konsole");
     m_mgr.AddPane(viewport, wxCENTER, L"GIANT PENIS");
     
@@ -617,7 +665,7 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Dzimumlocekļu palielienāša
     //m_mgr.GetPane(canvas).CloseButton(false);
     
     // --- WORLD TREE ---
-    world_tree_root_node = world_tree->AddRoot(L"Pasaule");
+    world_tree_root_node = world_tree->AddRoot(L"Pasaule un viss tajā iekšā");
     RebuildWorldCellTree();
     world_tree->Bind(wxEVT_TREE_ITEM_RIGHT_CLICK, &MainFrame::OnWorldCellTreeSelect, this);
     world_tree->Bind(wxEVT_TREE_ITEM_ACTIVATED, &MainFrame::OnWorldCellTreeActivate, this);
@@ -633,6 +681,7 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Dzimumlocekļu palielienāša
     // --- ENTITY LIST ---
 
     entity_list->Bind(wxEVT_LIST_ITEM_RIGHT_CLICK, &MainFrame::OnEntityListSelect, this);
+    entity_list->Bind(wxEVT_LIST_ITEM_SELECTED, &MainFrame::OnEntityListSelect1, this);
     entity_list->Bind(wxEVT_LIST_ITEM_ACTIVATED, &MainFrame::OnEntityListActivate, this);
     entity_list->Bind(wxEVT_LIST_COL_RIGHT_CLICK, &MainFrame::OnEntityListSelect, this);
     //long benis1 = entity_list->InsertItem(0, L"420");
@@ -664,11 +713,11 @@ void MainFrame::OnExit(wxCommandEvent& event)
 void MainFrame::OnAbout(wxCommandEvent& event)
 {
     wxAboutDialogInfo aboutInfo;
-    aboutInfo.SetName(L"Dzimumlocekļu palielinātājs");
-    aboutInfo.SetVersion(L"versija virs 9000");
-    aboutInfo.SetDescription(L"Vispiemērotākā dzimumlocekļu palielināšanas funkcionalitāte vienā rīkkopā.");
+    aboutInfo.SetName(L"Līmeņu rediģējamā programma");
+    aboutInfo.SetVersion(L"v0.0.1");
+    aboutInfo.SetDescription(L"Episkā līmeņu programmma.");
     aboutInfo.SetCopyright(L"Autortiesības (C) Lielais Jānis Dambergs 2022");
-    aboutInfo.SetWebSite(L"http://dzimumlocekļuserviss.lv");
+    aboutInfo.SetWebSite(L"https://github.com/racenis/tram-sdk");
     wxAboutBox(aboutInfo);
 }
  
@@ -741,7 +790,7 @@ void MainFrame::OnWorldCellTreeSelect(wxTreeEvent& event) {
         }
     }
     
-    std::cout << "open menu for: " << event.GetItem() << std::endl;
+    //std::cout << "open menu for: " << event.GetItem() << std::endl;
 }
 
 void MainFrame::OnWorldCellTreePopupSelect(wxCommandEvent& event) {
@@ -805,7 +854,7 @@ void MainFrame::PropertyPanelRebuild() {
     if(selected_entity){
         auto gen_props = property_panel->Append(new wxPropertyCategory(L"Vispārīgās īpašības"));
         auto spec_props = property_panel->Append(new wxPropertyCategory(L"Īpašās īpašības"));
-        std::cout << "spec props: " << spec_props << std::endl;
+        //std::cout << "spec props: " << spec_props << std::endl;
         
         property_panel->AppendIn(gen_props, new wxUIntProperty(L"ID", "entity-id", selected_entity->id));
         property_panel->AppendIn(gen_props, new wxStringProperty(L"Nosaukums", "entity-name", selected_entity->name.data()));
@@ -881,6 +930,7 @@ void MainFrame::OnPropertyPanelChanged(wxPropertyGridEvent& event) {
         updates[std::string(event.GetPropertyName())](event, this);
     }
     
+    viewport->Refresh();
     //std::cout << "PROPERTY PANEL CHANGED!!!" << event.GetPropertyName() << std::endl;
 }
 
@@ -901,6 +951,11 @@ void MainFrame::OnWorldCellTreeActivate(wxTreeEvent& event) {
 void MainFrame::OnEntityListSelect(wxListEvent& event) {
     entity_list_selected_item = event.GetIndex();
     PopupMenu(entity_list_popup);
+}
+
+void MainFrame::OnEntityListSelect1(wxListEvent& event) {
+    selected_entity = selected_worldcell->entities[event.GetIndex()];
+    viewport->Refresh();
 }
 
 void MainFrame::OnEntityListActivate(wxListEvent& event) {

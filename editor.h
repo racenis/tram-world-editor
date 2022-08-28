@@ -11,12 +11,14 @@ namespace Core {
 }
 
 namespace Editor {
+    struct WorldCell;
     struct Entity {
         uint64_t id;
         std::string name;
         glm::vec3 location;
         glm::vec3 rotation;
         std::string action;
+        WorldCell* parent;
         Core::SerializedEntityData* ent_data = nullptr;
         Core::RenderComponent* model = nullptr;
         void FromString (std::string_view& str);
@@ -30,6 +32,8 @@ namespace Editor {
         std::string name;
         bool is_interior = false;
         bool is_interior_lighting = false;
+        
+        bool is_visible = false;
         std::vector<Entity*> entities;
         
         Entity* NewEntity();

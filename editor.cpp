@@ -22,11 +22,13 @@ namespace Editor {
     void WorldCellIndirector::Show() {
         //std::cout << "SHOWING CELL: " << into->name << std::endl;
         for (auto ent : into->entities) ent->Show();
+        into->is_visible = true;
     }
     
     void WorldCellIndirector::Hide() {
         //std::cout << "HIDING CELL: " << into->name << std::endl;
         for (auto ent : into->entities) ent->Hide();
+        into->is_visible = true;
     }
     
     void WorldCellIndirector::Begonis() {
@@ -50,7 +52,7 @@ namespace Editor {
     }
     
     Entity* WorldCell::NewEntity() {
-        auto ent = new Entity {0, "Entītija"};
+        auto ent = new Entity {.id = 0, .name = "name", .action = "none", .parent = this};
         entities.push_back(ent);
         return ent;
     }
@@ -64,6 +66,7 @@ namespace Editor {
         model = Core::PoolProxy<Core::RenderComponent>::New();
         model->SetModel(ent_data->GetEditorModel());
         model->SetLightmap(Core::UID("fullbright"));
+        model->SetPose(Core::Render::poseList.begin());
         model->UpdateLocation(location);
         model->UpdateRotation(glm::quat(rotation));
         model->Init();
@@ -77,12 +80,13 @@ namespace Editor {
     }
     
     void Entity::ModelUpdate () {
+        if (!model && parent->is_visible) Show();
         if (!model) return;
         model->UpdateLocation(location);
         model->UpdateRotation(glm::quat(rotation));
         if (model->GetModel() != ent_data->GetEditorModel()) {
             std::cout << "owo model changed" << std::endl;
-            std::cout << model->GetModel() << "<- rn model | next model ->" << ent_data->GetEditorModel() << std::endl;
+            //std::cout << model->GetModel() << "<- rn model | next model ->" << ent_data->GetEditorModel() << std::endl;
             std::cout << Core::ReverseUID(model->GetModel()) << "  " << Core::ReverseUID(ent_data->GetEditorModel()) << std::endl;
             model->Uninit();
             model->SetModel(ent_data->GetEditorModel());
@@ -128,7 +132,7 @@ namespace Editor {
             while (std::getline(file, line)) {
                 std::string_view str (line);
                 std::string ent_name = Core::ReverseUID(Core::SerializedEntityData::Field<Core::name_t>().FromStringAsName(str));
-                auto ent = new Entity;
+                auto ent = new Entity {.id = 0, .parent = this};
                 ent->FromString(str);
                 ent->ent_data = entityDatas[ent_name]();
                 ent->ent_data->FromString(str);
