@@ -6,6 +6,10 @@
 #include <unordered_map>
 #include <serializeddata.h>
 
+namespace Core {
+    class RenderComponent;
+}
+
 namespace Editor {
     struct Entity {
         uint64_t id;
@@ -14,8 +18,12 @@ namespace Editor {
         glm::vec3 rotation;
         std::string action;
         Core::SerializedEntityData* ent_data = nullptr;
+        Core::RenderComponent* model = nullptr;
         void FromString (std::string_view& str);
         void ToString (std::string& str);
+        void Show ();
+        void Hide ();
+        void ModelUpdate ();
     };
     
     struct WorldCell {
@@ -50,7 +58,8 @@ namespace Editor {
     WorldCell* NewWorldCell();
     
     extern std::vector<WorldCell*> worldCells;
-    extern std::vector<std::pair<std::string, Core::SerializedEntityData* (*)(void)>> entityDatasSorted;
+    extern std::unordered_map<std::string, Core::SerializedEntityData* (*)(void)> entityDatas;
+    //extern std::vector<std::pair<std::string, Core::SerializedEntityData* (*)(void)>> entityDatasSorted;
     
     
     

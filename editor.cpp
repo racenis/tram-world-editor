@@ -2,21 +2,31 @@
 #include <iostream>
 #include <fstream>
 
+#include <components/rendercomponent.h>
+
 #include <entities/crate.h>
 #include <entities/staticworldobject.h>
 
 namespace Editor {
     std::vector<WorldCell*> worldCells;
-    std::vector<std::pair<std::string, Core::SerializedEntityData* (*)(void)>> entityDatasSorted;
+    //std::vector<std::pair<std::string, Core::SerializedEntityData* (*)(void)>> entityDatasSorted;
     std::unordered_map<std::string, Core::SerializedEntityData* (*)(void)> entityDatas;
     
+    void BENIS () {
+        int i = 0;
+        for (auto it = Editor::entityDatas.begin(); it != Editor::entityDatas.end(); it++, i++) {
+            std::cout << std::string() + *it->first.c_str();
+        }
+    }
     
     void WorldCellIndirector::Show() {
-        std::cout << "SHOWING CELL: " << into->name << std::endl;
+        //std::cout << "SHOWING CELL: " << into->name << std::endl;
+        for (auto ent : into->entities) ent->Show();
     }
     
     void WorldCellIndirector::Hide() {
-        std::cout << "HIDING CELL: " << into->name << std::endl;
+        //std::cout << "HIDING CELL: " << into->name << std::endl;
+        for (auto ent : into->entities) ent->Hide();
     }
     
     void WorldCellIndirector::Begonis() {
@@ -49,6 +59,37 @@ namespace Editor {
         entities.erase(entities.begin() + id);
     }
     
+    void Entity::Show () {
+        if (model || !ent_data) return;
+        model = Core::PoolProxy<Core::RenderComponent>::New();
+        model->SetModel(ent_data->GetEditorModel());
+        model->SetLightmap(Core::UID("fullbright"));
+        model->UpdateLocation(location);
+        model->UpdateRotation(glm::quat(rotation));
+        model->Init();
+    }
+    
+    void Entity::Hide () {
+        if (!model) return;
+        model->Uninit();
+        Core::PoolProxy<Core::RenderComponent>::Delete(model);
+        model = nullptr;
+    }
+    
+    void Entity::ModelUpdate () {
+        if (!model) return;
+        model->UpdateLocation(location);
+        model->UpdateRotation(glm::quat(rotation));
+        if (model->GetModel() != ent_data->GetEditorModel()) {
+            std::cout << "owo model changed" << std::endl;
+            std::cout << model->GetModel() << "<- rn model | next model ->" << ent_data->GetEditorModel() << std::endl;
+            std::cout << Core::ReverseUID(model->GetModel()) << "  " << Core::ReverseUID(ent_data->GetEditorModel()) << std::endl;
+            model->Uninit();
+            model->SetModel(ent_data->GetEditorModel());
+            model->Init();
+        }
+    }
+    
     void Entity::FromString (std::string_view& str) {
         using namespace Core;
         name = ReverseUID(SerializedEntityData::Field<name_t>().FromStringAsName(str));
@@ -65,7 +106,17 @@ namespace Editor {
     }
     
     void Entity::ToString (std::string& str) {
+        using namespace Core;
+        str += " " + name;
+        SerializedEntityData::Field<float>(location.x).ToString(str);
+        SerializedEntityData::Field<float>(location.y).ToString(str);
+        SerializedEntityData::Field<float>(location.z).ToString(str);
         
+        SerializedEntityData::Field<float>(rotation.x).ToString(str);
+        SerializedEntityData::Field<float>(rotation.y).ToString(str);
+        SerializedEntityData::Field<float>(rotation.z).ToString(str);
+        
+        str += " " + action;
     }
     
     void WorldCell::Load() {
@@ -88,9 +139,25 @@ namespace Editor {
         }
     }
     
-    void WorldCell::Save() { std::cout << "nosave " << std::endl; }
+    void WorldCell::Save() { 
+        
+        std::ofstream file (std::string("data/") + name + ".cell");
+        
+        if (file.is_open()) {
+            std::string line;
+            for (auto ent : entities) {
+                std::string output_line = ent->ent_data->GetDataName();
+                ent->ToString(output_line);
+                if (ent->ent_data) ent->ent_data->ToString(output_line);
+                file << output_line << std::endl;
+            }
+        } else {
+            std::cout << "Can't write to the cell file " << name << ".cell." << std::endl;
+        }
+    }
     
     void Init(){
+        Core::Init();
         //auto cell1 = new WorldCell{"chongon"};
         //auto cell2 = new WorldCell{"benigon"};
         //auto cell3 = new WorldCell{"dongon"};
@@ -107,11 +174,11 @@ namespace Editor {
         
         //cell2->entities.push_back(new Entity{1, "benisoner"});
         
-        entityDatas[Core::Crate::data_name] = []() -> Core::SerializedEntityData* { return new Core::Crate::Data; };
-        entityDatas[Core::StaticWorldObject::data_name] = []() -> Core::SerializedEntityData* { return new Core::StaticWorldObject::Data; };
+        entityDatas[(new Core::Crate::Data)->GetDataName()] = []() -> Core::SerializedEntityData* { auto d = new Core::Crate::Data; d->collmodel = 0; d->model = 0; return d; };
+        entityDatas[(new Core::StaticWorldObject::Data)->GetDataName()] = []() -> Core::SerializedEntityData* { auto d = new Core::StaticWorldObject::Data; d->lightmap = 0; d->model = 0; return d; };
         
-        entityDatasSorted.push_back(std::pair(Core::Crate::data_name, []() -> Core::SerializedEntityData* { auto d = new Core::Crate::Data; d->collmodel = 0; d->model = 0; return d; }));
-        entityDatasSorted.push_back(std::pair(Core::StaticWorldObject::data_name, []() -> Core::SerializedEntityData* { auto d = new Core::StaticWorldObject::Data; d->lightmap = 0; d->model = 0; return d; }));
+        //entityDatasSorted.push_back(std::pair(Core::Crate::data_name, []() -> Core::SerializedEntityData* { auto d = new Core::Crate::Data; d->collmodel = 0; d->model = 0; return d; }));
+        //entityDatasSorted.push_back(std::pair(Core::StaticWorldObject::data_name, []() -> Core::SerializedEntityData* { auto d = new Core::StaticWorldObject::Data; d->lightmap = 0; d->model = 0; return d; }));
         
         std::ifstream file("data/editor_data.txt");
         

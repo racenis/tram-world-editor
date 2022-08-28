@@ -7,17 +7,86 @@
 #include <wx/propgrid/propgrid.h>
 #include <wx/aui/aui.h>
 #include <wx/aboutdlg.h>
-//#include <wx/glcanvas.h>
+#include <wx/progdlg.h>
 
 #include <editor.h>
 
-//#include <core.h>
-//#include <async.h>
-//#include <render.h>
 
-//#include <components/rendercomponent.h>
+#include <wx/glcanvas.h>
+#include <core.h>
+#include <async.h>
+#include <render.h>
 
-/*
+#include <components/rendercomponent.h>
+
+class EntityList;
+class Viewport;
+
+class MainFrame : public wxFrame {
+public:
+    MainFrame();
+    ~MainFrame()
+    {
+        delete std_cout_redirect;
+        // deinitialize the frame manager
+        m_mgr.UnInit();
+    }
+protected:
+    wxAuiManager m_mgr;
+    void OnHello(wxCommandEvent& event);
+    void OnExit(wxCommandEvent& event);
+    void OnAbout(wxCommandEvent& event);
+    
+    void OnLoadCells(wxCommandEvent& event);
+    void OnSaveCells(wxCommandEvent& event);
+    
+    // world/worldcell tree is the tree in the top-left pane
+    // that contains a list of all of the world-cells
+    wxTreeCtrl* world_tree;
+    wxMenu* world_tree_cell_popup;
+    wxMenu* world_tree_item_popup;
+    wxMenu* world_tree_root_popup;
+    wxTreeItemId world_tree_selected_item;
+    wxTreeItemId world_tree_root_node;
+    std::unordered_map<void*, Editor::WorldCellIndirector> world_tree_map;
+    void RebuildWorldCellTree();
+    void OnWorldCellTreeSelect(wxTreeEvent& event);
+    void OnWorldCellTreeActivate(wxTreeEvent& event);
+    void OnWorldCellTreePopupSelect(wxCommandEvent& event);
+    
+    // property panel stuff
+    wxPropertyGrid* property_panel;
+    Editor::WorldCell* selected_worldcell;
+    Editor::Entity* selected_entity;
+    void PropertyPanelClear(); // TODO: yeet this
+    void PropertyPanelRebuild();
+    void PropertyPanelSetWorldCell(Editor::WorldCell* cell);
+    void PropertyPanelSetEntity(Editor::Entity* cell);
+    void OnPropertyPanelChanged(wxPropertyGridEvent& event);
+    
+    // entity list stuff
+    EntityList* entity_list;
+    wxMenu* entity_list_popup;
+    long entity_list_selected_item;
+    void OnEntityListSelect(wxListEvent& event);
+    void OnEntityListActivate(wxListEvent& event);
+    void OnEntityListPopupSelect(wxCommandEvent& event);
+    void OnEntityTypeChange(wxCommandEvent& event);
+    
+    // for viewport
+
+    //void OnKeyup(wxKeyEvent& event);
+    //void OnLeftClick(wxMouseEvent& event);
+    //void OnMouseMove(wxMouseEvent& event);
+    Editor::Entity* IsSelectedEntity();
+    Viewport* viewport;
+    
+    wxStreamToTextRedirector* std_cout_redirect;
+    
+    friend class EntityList;
+    friend class Viewport;
+};
+
 class Viewport : public wxGLCanvas 
 {
     public:
@@ -43,6 +112,7 @@ class Viewport : public wxGLCanvas
             
             // stuff for viewport navigation
             bool mouse_captured = false;
+            bool move_mode = true;
             float mouse_x = 0;
             float mouse_y = 0;
             bool key_forward = false;
@@ -50,19 +120,27 @@ class Viewport : public wxGLCanvas
             bool key_left = false;
             bool key_right = false;
             wxTimer key_timer;
+            
+            // stuff for entity moving
+            float transf_val;
+            char entity_operation = 0;
+            char entity_axis = 0;
+            float cursor_x;
+            float cursor_y;
 
             wxGLContext* m_context;
             
             
             Core::RenderComponent* monguser;
+            
+            MainFrame* parent_frame;
 };
 
 Viewport::Viewport(wxWindow* parent, wxWindowID id, 
         const int* attribList, const wxPoint& pos, const wxSize& size,
         long style, const wxString& name, const wxPalette& palette)
-	: wxGLCanvas(parent, id, attribList, pos, size, style, name, palette),
-    key_timer(this)
-{
+        : wxGLCanvas(parent, id, attribList, pos, size, style, name, palette),
+        key_timer(this), parent_frame((MainFrame*)parent) {
 	m_context = new wxGLContext(this);
 	Bind(wxEVT_PAINT, &Viewport::OnPaint, this);
     Bind(wxEVT_LEFT_UP, &Viewport::OnRightClick, this);
@@ -122,9 +200,13 @@ Viewport::~Viewport()
 	SetCurrent(*m_context);
 }
 
+
 void Viewport::OnRightClick(wxMouseEvent& event) {
     if (mouse_captured) {
         mouse_captured = false;
+        entity_operation = 0;
+        entity_axis = 0;
+        move_mode = true;
         ReleaseMouse();
         std::cout << "released" << std::endl;
     } else {
@@ -140,7 +222,7 @@ void Viewport::OnRightClick(wxMouseEvent& event) {
 }
 
 void Viewport::OnMouseMove(wxMouseEvent& event) {
-    if (mouse_captured) {
+    if (mouse_captured && move_mode) {
         int width, height;
         GetSize(&width, &height);
         int center_x = width/2, center_y = height/2;
@@ -152,13 +234,36 @@ void Viewport::OnMouseMove(wxMouseEvent& event) {
         Core::Render::CAMERA_ROTATION = glm::quat(glm::vec3(-glm::radians(mouse_y), -glm::radians(mouse_x), 0.0f));
         
         Refresh();
-        //std::cout << event.GetX() << " " << event.GetY() << std::endl;
+    } else if (mouse_captured) {
+        auto selected_entity = parent_frame->IsSelectedEntity();
+        if (entity_operation && entity_axis && selected_entity) {
+            float delta_x = cursor_x - event.GetX();
+            float delta_y = cursor_y - event.GetY();
+            float new_val = ((delta_x + delta_y) * 0.01f) + transf_val;
+            
+            if (entity_operation == 'G') {
+                if (entity_axis == 'X') selected_entity->location.x = new_val;
+                if (entity_axis == 'Y') selected_entity->location.y = new_val;
+                if (entity_axis == 'Z') selected_entity->location.z = new_val;
+            } else {
+                if (entity_axis == 'X') selected_entity->rotation.x = new_val;
+                if (entity_axis == 'Y') selected_entity->rotation.y = new_val;
+                if (entity_axis == 'Z') selected_entity->rotation.z = new_val;
+            }
+            
+            selected_entity->ModelUpdate();
+            Refresh();
+        }
     }
 }
 
 void Viewport::OnKeydown(wxKeyEvent& event) {
+    auto keycode = event.GetUnicodeKey();
     bool movement_key_pressed = false;
     bool any_movement = key_forward || key_backward || key_left  || key_right;
+    bool is_operation = keycode == 'G' || keycode == 'R';
+    bool is_axis = keycode == 'X' || keycode == 'Y' || keycode == 'Z';
+    
     if (event.GetUnicodeKey() == 'W') {
         movement_key_pressed = true;
         key_forward = true;
@@ -179,10 +284,50 @@ void Viewport::OnKeydown(wxKeyEvent& event) {
         key_right = true;
     }
     
-    //std::cout << "hello this is keydown " << (char)event.GetUnicodeKey() << std::endl;
-    
     if (!any_movement && movement_key_pressed) {
         key_timer.Start(30);
+    }
+    
+    auto selected_entity = parent_frame->IsSelectedEntity();
+    if (selected_entity) {
+        if (is_operation || is_axis) {
+            std::cout << "is_op " << is_operation << " is_axis " << is_axis << " keycode " << (char)keycode << std::endl;
+            if (entity_operation && entity_axis) {
+                //restore
+                if (entity_operation == 'G') {
+                    if (entity_axis == 'X') selected_entity->location.x = transf_val;
+                    if (entity_axis == 'Y') selected_entity->location.y = transf_val;
+                    if (entity_axis == 'Z') selected_entity->location.z = transf_val;
+                } else {
+                    if (entity_axis == 'X') selected_entity->rotation.x = transf_val;
+                    if (entity_axis == 'Y') selected_entity->rotation.y = transf_val;
+                    if (entity_axis == 'Z') selected_entity->rotation.z = transf_val;
+                }
+            }
+            
+            if (is_operation) {
+                entity_operation = keycode;
+            } else {
+                entity_axis = keycode;
+            }
+            
+            
+            // tuck
+            if (entity_operation == 'G') {
+                if (entity_axis == 'X') transf_val = selected_entity->location.x;
+                if (entity_axis == 'Y') transf_val = selected_entity->location.y;
+                if (entity_axis == 'Z') transf_val = selected_entity->location.z;
+            } else {
+                if (entity_axis == 'X') transf_val = selected_entity->rotation.x;
+                if (entity_axis == 'Y') transf_val = selected_entity->rotation.y;
+                if (entity_axis == 'Z') transf_val = selected_entity->rotation.z;
+            }
+            
+            
+            move_mode = false;
+            cursor_x = event.GetX();
+            cursor_y = event.GetY();
+        }
     }
 }
 
@@ -205,12 +350,12 @@ void Viewport::OnKeyup(wxKeyEvent& event) {
     
     if (!(key_forward || key_backward || key_left  || key_right)) {
         key_timer.Stop();
-        std::cout << "stoppe" << std::endl;
+        //std::cout << "stoppe" << std::endl;
     }
 }
 
 void Viewport::OnTimer(wxTimerEvent& event) {
-    std::cout << "movin " << key_forward << std::endl;
+    //std::cout << "movin " << key_forward << std::endl;
     using namespace Core::Render;
     
     if (key_forward) CAMERA_POSITION += CAMERA_ROTATION * CAMERA_FORWARD * 0.1f;
@@ -253,7 +398,14 @@ void Viewport::OnPaint(wxPaintEvent& event)
 	glFlush();
 	SwapBuffers();
 }
-*/
+
+
+
+
+
+
+
+
 
 
 
@@ -275,62 +427,7 @@ enum {
     ID_Entity_Change_Type = 100,
 };
 
-class EntityList;
 
-class MainFrame : public wxFrame {
-public:
-    MainFrame();
-    ~MainFrame()
-    {
-        delete std_cout_redirect;
-        // deinitialize the frame manager
-        m_mgr.UnInit();
-    }
-protected:
-    wxAuiManager m_mgr;
-    void OnHello(wxCommandEvent& event);
-    void OnExit(wxCommandEvent& event);
-    void OnAbout(wxCommandEvent& event);
-    
-    void OnLoadCells(wxCommandEvent& event);
-    void OnSaveCells(wxCommandEvent& event);
-    
-    // world/worldcell tree is the tree in the top-left pane
-    // that contains a list of all of the world-cells
-    wxTreeCtrl* world_tree;
-    wxMenu* world_tree_cell_popup;
-    wxMenu* world_tree_item_popup;
-    wxMenu* world_tree_root_popup;
-    wxTreeItemId world_tree_selected_item;
-    wxTreeItemId world_tree_root_node;
-    std::unordered_map<void*, Editor::WorldCellIndirector> world_tree_map;
-    void RebuildWorldCellTree();
-    void OnWorldCellTreeSelect(wxTreeEvent& event);
-    void OnWorldCellTreeActivate(wxTreeEvent& event);
-    void OnWorldCellTreePopupSelect(wxCommandEvent& event);
-    
-    // property panel stuff
-    wxPropertyGrid* property_panel;
-    Editor::WorldCell* selected_worldcell;
-    Editor::Entity* selected_entity;
-    void PropertyPanelClear();
-    void PropertyPanelSetWorldCell(Editor::WorldCell* cell);
-    void PropertyPanelSetEntity(Editor::Entity* cell);
-    void OnPropertyPanelChanged(wxPropertyGridEvent& event);
-    
-    // entity list stuff
-    EntityList* entity_list;
-    wxMenu* entity_list_popup;
-    long entity_list_selected_item;
-    void OnEntityListSelect(wxListEvent& event);
-    void OnEntityListActivate(wxListEvent& event);
-    void OnEntityListPopupSelect(wxCommandEvent& event);
-    void OnEntityTypeChange(wxCommandEvent& event);
-    
-    wxStreamToTextRedirector* std_cout_redirect;
-    
-    friend class EntityList;
-};
 
 class TramEditor : public wxApp {
 public:
@@ -371,7 +468,7 @@ public:
     
     void SetClear() {
         DeleteAllColumns();
-        //selected_worldcell = nullptr;
+        selected_worldcell = nullptr;
     }
     
     void SetWorldCell(Editor::WorldCell* cell) {
@@ -404,7 +501,13 @@ public:
         if (selected_worldcell) {
             selected_worldcell->DeleteEntity(item);
             SetItemCount(selected_worldcell->entities.size());
-            RefreshItems(item, GetItemCount());
+            RefreshItems(item, GetItemCount() - item); // ???
+        }
+    }
+    
+    void Refresh () {
+        if (selected_worldcell) {
+            SetItemCount(selected_worldcell->entities.size());
         }
     }
     
@@ -465,8 +568,9 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Dzimumlocekļu palielienāša
     
     
     wxMenu* entity_list_change_type_popup = new wxMenu;
-    for (size_t i = 0; i < Editor::entityDatasSorted.size(); i++) {
-        entity_list_change_type_popup->Append(ID_Entity_Change_Type + i, Editor::entityDatasSorted[i].first, L"Mainīt entītijas tipu uz izvēlēto.");
+    int i = 0;
+    for (auto it = Editor::entityDatas.begin(); it != Editor::entityDatas.end(); it++, i++) {
+        entity_list_change_type_popup->Append(ID_Entity_Change_Type + i, it->second()->GetEditorName(), L"Mainīt entītijas tipu uz izvēlēto.");
         Bind(wxEVT_MENU, &MainFrame::OnEntityTypeChange, this, ID_Entity_Change_Type + i);
     }
     
@@ -499,12 +603,12 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Dzimumlocekļu palielienāša
     std::cout << "Loceklis!" << std::endl;
     std::cout << "Loceklis!" << std::endl;
 
-    //Viewport* canvas = new Viewport(this, wxID_ANY, nullptr, { 0, 0 }, { 800, 800 });
+    viewport = new Viewport(this, wxID_ANY, nullptr, { 0, 0 }, { 800, 800 });
     m_mgr.AddPane(world_tree, wxLEFT, L"Dzimumceļu navigators");
     m_mgr.AddPane(property_panel, wxLEFT, L"Dzimumlocekļa īpašības");
     m_mgr.AddPane(entity_list, wxBOTTOM, L"Dzimumlocekļu uzskaite");
     m_mgr.AddPane(output_text_ctrl, wxBOTTOM, L"Konsole");
-    //m_mgr.AddPane(canvas, wxCENTER, L"GIANT PENIS");
+    m_mgr.AddPane(viewport, wxCENTER, L"GIANT PENIS");
     
     m_mgr.GetPane(world_tree).CloseButton(false);
     m_mgr.GetPane(property_panel).CloseButton(false);
@@ -559,8 +663,6 @@ void MainFrame::OnExit(wxCommandEvent& event)
  
 void MainFrame::OnAbout(wxCommandEvent& event)
 {
-    //wxMessageBox("This is a wxWidgets Hello World example",
-    //             "About Hello World", wxOK | wxICON_INFORMATION);
     wxAboutDialogInfo aboutInfo;
     aboutInfo.SetName(L"Dzimumlocekļu palielinātājs");
     aboutInfo.SetVersion(L"versija virs 9000");
@@ -576,11 +678,31 @@ void MainFrame::OnHello(wxCommandEvent& event)
 }
 
 void MainFrame::OnLoadCells(wxCommandEvent& event) {
-    for (auto cell : Editor::worldCells) cell->Load();
+    wxProgressDialog progress_dialog (L"Ielādē šūnas", L"Notiek šūnu ielāde", 100, this);
+    auto progress_increment = (100 / Editor::worldCells.size()) - 1;
+    auto progress = 0;
+    for (auto cell : Editor::worldCells) {
+        progress_dialog.Update(progress, wxString(L"Ielādē ") + cell->name);
+        cell->Load();
+        progress += progress_increment;
+    }
+    selected_entity = nullptr; PropertyPanelRebuild();
+    entity_list->Refresh();
+    progress_dialog.Update(100, L"Pabeigts");
+    std::cout << "Loaded cells." << std::endl;
 }
 
 void MainFrame::OnSaveCells(wxCommandEvent& event) {
-    for (auto cell : Editor::worldCells) cell->Save();
+    wxProgressDialog progress_dialog (L"Saglabā šūnas", L"Notiek šūnu saglābe", 100, this);
+    auto progress_increment = (100 / Editor::worldCells.size()) - 1;
+    auto progress = 0;
+    for (auto cell : Editor::worldCells) {
+        progress_dialog.Update(progress, wxString(L"Saglabā ") + cell->name);
+        cell->Save();
+        progress += progress_increment;
+    }
+    progress_dialog.Update(100, L"Pabeigts");
+    std::cout << "Saved cells." << std::endl;
 }
 
 
@@ -635,80 +757,90 @@ void MainFrame::OnWorldCellTreePopupSelect(wxCommandEvent& event) {
         auto& indirect = world_tree_map[world_tree_selected_item];
         switch (event.GetId()) {
             case ID_World_Tree_Show:
-            std::cout << "event is load, selected: " << world_tree_selected_item << std::endl;
             indirect.Show();
             break;
             case ID_World_Tree_Hide:
-            std::cout << "event is yeet, selected: " << world_tree_selected_item << std::endl;
             indirect.Hide();
             break;
             case ID_World_Tree_Edit:
-            std::cout << "event is yeet, selected: " << world_tree_selected_item << std::endl;
             PropertyPanelSetWorldCell(indirect.into);
             break;
             case ID_World_Tree_Begonis:
-            std::cout << "event is begonis, selected: " << world_tree_selected_item << std::endl;
             indirect.Begonis();
             break;
             case ID_World_Tree_Delete:
-            wxMessageDialog delete_confirmation(this, L"Uzmanību! Jums ir iespaidīgs loceklis!", L"Iespaidīgs loceklis!", wxYES_NO | wxCANCEL | wxCANCEL_DEFAULT | wxICON_EXCLAMATION);
-            std::cout << "output: " << delete_confirmation.ShowModal() << std::endl;
-            // TODO: return on no or cancel
-            indirect.Delete();
-            RebuildWorldCellTree();
+            wxMessageDialog delete_confirmation(this, wxString(L"Tiešām dzēst šūnu ") + indirect.into->name + "?", L"Dzēst šūnu", wxYES_NO | wxCANCEL | wxCANCEL_DEFAULT | wxICON_EXCLAMATION);
+            if(delete_confirmation.ShowModal() == wxID_YES) {
+                indirect.Delete();
+                RebuildWorldCellTree();
+            }
             break;
         }
     }
 }
 
+Editor::Entity* MainFrame::IsSelectedEntity() {
+    return selected_entity;
+}
+
+// TOOD: yeet this
 void MainFrame::PropertyPanelClear() {
     property_panel->Clear();
-    selected_worldcell = nullptr;
+    std::cout << "please cease using PropertyPanelClear()" << std::endl;
+    //selected_worldcell = nullptr;
 }
+
 void MainFrame::PropertyPanelSetWorldCell(Editor::WorldCell* cell) {
-    PropertyPanelClear();
     selected_worldcell = cell;
-    property_panel->Append(new wxPropertyCategory(L"Pasaules šūna"));
-    property_panel->Append(new wxStringProperty(L"Nosaukums", "worldcell-name", cell->name.data()));
-    auto chkprop1 = new wxBoolProperty(L"Iekštelpa", "worldcell-int", cell->is_interior);
-    auto chkprop2 = new wxBoolProperty(L"Iekštlp. apg.", "worldcell-int-light", cell->is_interior_lighting);
-    chkprop1->SetAttribute("UseCheckbox", 1); // <-- bad library design
-    chkprop2->SetAttribute("UseCheckbox", 1); // <-- DO NOT design your libraries like that
-    property_panel->Append(chkprop1);
-    property_panel->Append(chkprop2);
+    PropertyPanelRebuild();
 }
 
 void MainFrame::PropertyPanelSetEntity(Editor::Entity* entity) {
-    PropertyPanelClear();
     selected_entity = entity;
-    auto gen_props = property_panel->Append(new wxPropertyCategory(L"Vispārīgās īpašības"));
-    auto spec_props = property_panel->Append(new wxPropertyCategory(L"Īpašās īpašības"));
-    std::cout << "spec props: " << spec_props << std::endl;
-    
-    property_panel->AppendIn(gen_props, new wxUIntProperty(L"ID", "entity-id", entity->id));
-    property_panel->AppendIn(gen_props, new wxStringProperty(L"Nosaukums", "entity-name", entity->name.data()));
-    auto loc_props = property_panel->AppendIn(gen_props, new wxPropertyCategory(L"Lokācija"));
-    property_panel->AppendIn(loc_props, new wxFloatProperty(L"X", "entity-location-x", entity->location[0]));
-    property_panel->AppendIn(loc_props, new wxFloatProperty(L"Y", "entity-location-y", entity->location[1]));
-    property_panel->AppendIn(loc_props, new wxFloatProperty(L"Z", "entity-location-z", entity->location[2]));
-    auto rot_props = property_panel->AppendIn(gen_props, new wxPropertyCategory(L"Rotācija"));
-    property_panel->AppendIn(rot_props, new wxFloatProperty(L"X", "entity-rotation-x", entity->rotation[0]));
-    property_panel->AppendIn(rot_props, new wxFloatProperty(L"Y", "entity-rotation-y", entity->rotation[1]));
-    property_panel->AppendIn(rot_props, new wxFloatProperty(L"Z", "entity-rotation-z", entity->rotation[2]));
-    property_panel->AppendIn(gen_props, new wxStringProperty(L"Darbība", "entity-action", entity->action.data()));
-    
-    using namespace Core;
-    if (entity->ent_data) {
-        auto p = entity->ent_data->GetEditorFieldInfo();
-        for (size_t i = 0; i < p.size(); i++) {
-            if (p[i].type == SerializedEntityData::FieldInfo::FIELD_UINT64) {
-                property_panel->AppendIn(spec_props, new wxFloatProperty(p[i].name, std::string("special-") + std::to_string(i), *((SerializedEntityData::Field<uint64_t>*)p[i].field)));
-            } else if (p[i].type == SerializedEntityData::FieldInfo::FIELD_FLOAT) {
-                property_panel->AppendIn(spec_props, new wxFloatProperty(p[i].name, std::string("special-") + std::to_string(i), *((SerializedEntityData::Field<float>*)p[i].field)));
-            } else if (p[i].type == SerializedEntityData::FieldInfo::FIELD_STRING) {
-                property_panel->AppendIn(spec_props, new wxStringProperty(p[i].name, std::string("special-") + std::to_string(i), Core::ReverseUID(*((SerializedEntityData::Field<uint64_t>*)p[i].field))));
+    PropertyPanelRebuild();
+}
+
+void MainFrame::PropertyPanelRebuild() {
+    property_panel->Clear();
+    if(selected_entity){
+        auto gen_props = property_panel->Append(new wxPropertyCategory(L"Vispārīgās īpašības"));
+        auto spec_props = property_panel->Append(new wxPropertyCategory(L"Īpašās īpašības"));
+        std::cout << "spec props: " << spec_props << std::endl;
+        
+        property_panel->AppendIn(gen_props, new wxUIntProperty(L"ID", "entity-id", selected_entity->id));
+        property_panel->AppendIn(gen_props, new wxStringProperty(L"Nosaukums", "entity-name", selected_entity->name.data()));
+        auto loc_props = property_panel->AppendIn(gen_props, new wxPropertyCategory(L"Lokācija"));
+        property_panel->AppendIn(loc_props, new wxFloatProperty(L"X", "entity-location-x", selected_entity->location[0]));
+        property_panel->AppendIn(loc_props, new wxFloatProperty(L"Y", "entity-location-y", selected_entity->location[1]));
+        property_panel->AppendIn(loc_props, new wxFloatProperty(L"Z", "entity-location-z", selected_entity->location[2]));
+        auto rot_props = property_panel->AppendIn(gen_props, new wxPropertyCategory(L"Rotācija"));
+        property_panel->AppendIn(rot_props, new wxFloatProperty(L"X", "entity-rotation-x", selected_entity->rotation[0]));
+        property_panel->AppendIn(rot_props, new wxFloatProperty(L"Y", "entity-rotation-y", selected_entity->rotation[1]));
+        property_panel->AppendIn(rot_props, new wxFloatProperty(L"Z", "entity-rotation-z", selected_entity->rotation[2]));
+        property_panel->AppendIn(gen_props, new wxStringProperty(L"Darbība", "entity-action", selected_entity->action.data()));
+        
+        using namespace Core;
+        if (selected_entity->ent_data) {
+            auto p = selected_entity->ent_data->GetEditorFieldInfo();
+            for (size_t i = 0; i < p.size(); i++) {
+                if (p[i].type == SerializedEntityData::FieldInfo::FIELD_UINT64) {
+                    property_panel->AppendIn(spec_props, new wxFloatProperty(p[i].name, std::string("special-") + std::to_string(i), *((SerializedEntityData::Field<uint64_t>*)p[i].field)));
+                } else if (p[i].type == SerializedEntityData::FieldInfo::FIELD_FLOAT) {
+                    property_panel->AppendIn(spec_props, new wxFloatProperty(p[i].name, std::string("special-") + std::to_string(i), *((SerializedEntityData::Field<float>*)p[i].field)));
+                } else if (p[i].type == SerializedEntityData::FieldInfo::FIELD_STRING) {
+                    property_panel->AppendIn(spec_props, new wxStringProperty(p[i].name, std::string("special-") + std::to_string(i), Core::ReverseUID(*((SerializedEntityData::Field<uint64_t>*)p[i].field))));
+                }
             }
         }
+    } else if (selected_worldcell) {
+        property_panel->Append(new wxPropertyCategory(L"Pasaules šūna"));
+        property_panel->Append(new wxStringProperty(L"Nosaukums", "worldcell-name", selected_worldcell->name.data()));
+        auto chkprop1 = new wxBoolProperty(L"Iekštelpa", "worldcell-int", selected_worldcell->is_interior);
+        auto chkprop2 = new wxBoolProperty(L"Iekštlp. apg.", "worldcell-int-light", selected_worldcell->is_interior_lighting);
+        chkprop1->SetAttribute("UseCheckbox", 1); // <-- bad library design
+        chkprop2->SetAttribute("UseCheckbox", 1); // <-- DO NOT design your libraries like that
+        property_panel->Append(chkprop1);
+        property_panel->Append(chkprop2);
     }
 }
 
@@ -720,12 +852,12 @@ void MainFrame::OnPropertyPanelChanged(wxPropertyGridEvent& event) {
         
         {"entity-id", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selected_entity->id = event.GetPropertyValue().GetULongLong().GetValue(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
         {"entity-name", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selected_entity->name = event.GetPropertyValue().GetString(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"entity-location-x", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selected_entity->location[0] = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"entity-location-y", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selected_entity->location[1] = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"entity-location-z", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selected_entity->location[2] = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"entity-rotation-x", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selected_entity->rotation[0] = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"entity-rotation-y", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selected_entity->rotation[1] = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"entity-rotation-z", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selected_entity->rotation[2] = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"entity-location-x", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selected_entity->location[0] = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); frame->selected_entity->ModelUpdate(); }},
+        {"entity-location-y", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selected_entity->location[1] = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); frame->selected_entity->ModelUpdate(); }},
+        {"entity-location-z", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selected_entity->location[2] = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); frame->selected_entity->ModelUpdate(); }},
+        {"entity-rotation-x", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selected_entity->rotation[0] = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); frame->selected_entity->ModelUpdate(); }},
+        {"entity-rotation-y", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selected_entity->rotation[1] = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); frame->selected_entity->ModelUpdate(); }},
+        {"entity-rotation-z", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selected_entity->rotation[2] = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); frame->selected_entity->ModelUpdate(); }},
         
         {"entity-action", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selected_entity->action = event.GetPropertyValue().GetString(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
         };
@@ -741,6 +873,7 @@ void MainFrame::OnPropertyPanelChanged(wxPropertyGridEvent& event) {
             *((SerializedEntityData::Field<float>*)p.field) = event.GetPropertyValue().GetDouble();
         } else if (p.type == SerializedEntityData::FieldInfo::FIELD_STRING) {
             *((SerializedEntityData::Field<uint64_t>*)p.field) = UID(std::string(event.GetPropertyValue().GetString()));
+            selected_entity->ModelUpdate();
         }
         
     } else {
@@ -768,13 +901,11 @@ void MainFrame::OnWorldCellTreeActivate(wxTreeEvent& event) {
 void MainFrame::OnEntityListSelect(wxListEvent& event) {
     entity_list_selected_item = event.GetIndex();
     PopupMenu(entity_list_popup);
-    std::cout << "selected" << std::endl;
 }
 
 void MainFrame::OnEntityListActivate(wxListEvent& event) {
     entity_list_selected_item = event.GetIndex();
     entity_list->Edit(this, entity_list_selected_item);
-    std::cout << "activated" << std::endl;
 }
 
 void MainFrame::OnEntityListPopupSelect(wxCommandEvent& event) {
@@ -793,8 +924,20 @@ void MainFrame::OnEntityListPopupSelect(wxCommandEvent& event) {
 
 void MainFrame::OnEntityTypeChange(wxCommandEvent& event) {
     if (!selected_worldcell) return;
-    selected_worldcell->entities[entity_list_selected_item]->ent_data = Editor::entityDatasSorted[event.GetId()-ID_Entity_Change_Type].second();
+    
+    auto id = event.GetId()-ID_Entity_Change_Type;
+    
+    auto ent_constr = Editor::entityDatas.begin();
+    for (int i = 0; i < id; i++) ent_constr++;
+    
+    auto ent = selected_worldcell->entities[entity_list_selected_item];
+    ent->ent_data = ent_constr->second();
+    
+    if (ent == selected_entity) PropertyPanelRebuild();
 }
+
+
+
 
 #endif
 #ifdef NEKAD
