@@ -48,13 +48,16 @@ protected:
     wxMenu* world_tree_root_popup;
     wxMenuItem* world_tree_cell_is_visible_checkbox;
     wxMenuItem* world_tree_item_is_visible_checkbox;
+    wxMenuItem* world_tree_item_add_selection;
+    wxMenuItem* world_tree_item_edit_selection;
+    wxMenuItem* world_tree_item_delete_selection;
     wxTreeItemId world_tree_selected_item;
     wxTreeItemId world_tree_root_node;
     std::unordered_map<void*, Editor::WorldCellIndirector> world_tree_map;
     void RebuildWorldCellTree();
-    void OnWorldCellTreeSelect(wxTreeEvent& event);
-    void OnWorldCellTreeActivate(wxTreeEvent& event);
-    void OnWorldCellTreePopupSelect(wxCommandEvent& event);
+    void OnWorldCellTreeRightClick(wxTreeEvent& event);
+    void OnWorldCellTreeDoubleClick(wxTreeEvent& event);
+    void OnWorldCellTreePopupClick(wxCommandEvent& event);
     
     // property panel stuff
     wxPropertyGrid* property_panel;
@@ -65,6 +68,8 @@ protected:
     Editor::Transition::Point* selected_transition_point;
     Editor::Path* selected_path;
     Editor::Navmesh* selected_navmesh;
+    std::vector<Editor::Selector> selection;
+    void SetSingleSelection(Editor::Selector select);
     void PropertyPanelClear(); // TODO: yeet this
     void PropertyPanelRebuild();
     void PropertyPanelSetWorldCell(Editor::WorldCell* cell);
@@ -84,15 +89,11 @@ protected:
     long entity_list_selected_item;
     void OnEntityListSelect(wxListEvent& event);
     void OnEntityListSelect1(wxListEvent& event);
-    void OnEntityListActivate(wxListEvent& event);
+    void OnEntityListDoubleClick(wxListEvent& event);
     void OnEntityListPopupSelect(wxCommandEvent& event);
     void OnEntityTypeChange(wxCommandEvent& event);
     
     // for viewport
-
-    //void OnKeyup(wxKeyEvent& event);
-    //void OnLeftClick(wxMouseEvent& event);
-    //void OnMouseMove(wxMouseEvent& event);
     Viewport* viewport;
     
     wxStreamToTextRedirector* std_cout_redirect;
@@ -436,14 +437,14 @@ void Viewport::OnPaint(wxPaintEvent& event)
     using namespace Core;
     using namespace Core::Render;
     
-    if (parent_frame->selected_entity) {
+    /*if (parent_frame->selected_entity) {
         auto& ent = *parent_frame->selected_entity;
         glm::quat rot(ent.rotation);
         AddLine(ent.location, ent.location + rot * glm::vec3(1.0f, 0.0f, 0.0f), COLOR_RED);
         AddLine(ent.location, ent.location + rot * glm::vec3(0.0f, 0.0f, 1.0f), COLOR_GREEN);
         AddLine(ent.location, ent.location + rot * glm::vec3(0.0f, 1.0f, 0.0f), COLOR_BLUE);
         
-    }
+    }*/
     
     if (entity_axis) {
         auto& ent = *parent_frame->selected_entity;
@@ -510,11 +511,12 @@ wxIMPLEMENT_APP(TramEditor);
 
 class EntityList : public wxListCtrl {
 public:
-    EntityList (wxWindow* parent, wxWindowID id, const wxPoint& pos=wxDefaultPosition, const wxSize& size=wxDefaultSize, long style=wxLC_ICON) : wxListCtrl(parent, id, pos, size, style) {}
-    
+    EntityList (wxWindow* parent, wxWindowID id, const wxPoint& pos=wxDefaultPosition, const wxSize& size=wxDefaultSize, long style=wxLC_ICON) : wxListCtrl(parent, id, pos, size, style), parent_frame((MainFrame*)parent), selection(((MainFrame*)parent)->selection) {}
+
     wxString OnGetItemText (long item, long column) const override {
-        if (selected_worldcell) {
-            auto ent = selected_worldcell->entities[item];
+        if (selection.front().indirection_type == Editor::Selector::CELL_ITSELF ||
+            selection.front().indirection_type == Editor::Selector::CELL_ENTITIES) {
+            auto ent = selection.front().into->entities[item];
             switch (column) {
                 case 0:
                     return wxString(std::to_string(ent->id));
@@ -529,8 +531,8 @@ public:
                 default:
                     return wxString("benis");
             }
-        } else if (selected_transition) {
-            auto point = selected_transition->points[item];
+        } else if (selection.front().indirection_type == Editor::Selector::TRANSITION) {
+            auto point = selection.front().trans->points[item];
             switch (column) {
                 case 0:
                     return wxString(std::to_string(point->location.x));
@@ -544,6 +546,11 @@ public:
         } else {
             return wxString("nil");
         }
+    }
+    
+    void SetSelectionToDisplay(Editor::Selector select) {
+        //this->selection = selection;
+        //selection = select;
     }
     
     void SetClear() {
@@ -654,10 +661,19 @@ public:
     }
     
     void RefreshAllItems () {
-        if (selected_worldcell) {
-            SetItemCount(selected_worldcell->entities.size());
-        } else if (selected_transition) {
-            SetItemCount(selected_transition->points.size());
+        DeleteAllColumns();
+        if (selection.front().indirection_type == Editor::Selector::CELL_ITSELF) {
+            InsertColumn(0, L"ID");
+            InsertColumn(1, L"Nosaukums");
+            InsertColumn(2, L"Lokācija");
+            InsertColumn(3, L"Rotācija");
+            InsertColumn(4, L"Darbība");
+            SetItemCount(selection.front().into->entities.size());
+        } else if (selection.front().indirection_type == Editor::Selector::TRANSITION) {
+            InsertColumn(0, L"X");
+            InsertColumn(1, L"Y");
+            InsertColumn(2, L"Z");
+            SetItemCount(selection.front().trans->points.size());
         } else if (selected_group) {
             
         } else if (selected_transition) {
@@ -675,6 +691,9 @@ public:
     Editor::Transition* selected_transition;
     Editor::Path* selected_path;
     Editor::Navmesh* selected_navmesh;
+    
+    MainFrame* parent_frame;
+    std::vector<Editor::Selector>& selection;
 };
  
 MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā programma", wxDefaultPosition, wxSize(800, 600), wxDEFAULT_FRAME_STYLE) {
@@ -711,22 +730,25 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā progra
     // --- POP-UP MENUS ---
     world_tree_cell_popup = new wxMenu;
     world_tree_cell_is_visible_checkbox = world_tree_cell_popup->AppendCheckItem(ID_World_Tree_Show, L"Rādīt", L"Parāda šūnas saturu 3D skatā.");
+    world_tree_cell_popup->Append(ID_World_Tree_New, L"Pievienot entītiju", L"Pievieno jaunu šūnu");
     world_tree_cell_popup->Append(ID_World_Tree_Edit, L"Rediģēt", L"Rediģēt šūnu.");
-    //world_tree_cell_popup->Append(ID_World_Tree_Hide, L"Slēpt", L"Paslēpj šūnas saturu 3D skatā.");
     world_tree_cell_popup->Append(ID_World_Tree_Begonis, L"Begonizēt", L"Begonizē šūnas saturu.");
     world_tree_cell_popup->Append(ID_World_Tree_Delete, L"Dzēst", L"Dzēš šūnu.");
+    
     world_tree_item_popup = new wxMenu;
     world_tree_item_is_visible_checkbox = world_tree_item_popup->AppendCheckItem(ID_World_Tree_Show, L"Rādīt", L"Parāda šūnas apakšsadaļas saturu 3D skatā.");
-    world_tree_item_popup->Append(ID_World_Tree_New, L"Pievienot jaunu", L"Pievieno jaunu šūnu");
-    //world_tree_item_popup->Append(ID_World_Tree_Hide, L"Slēpt", L"Paslēpj šūnas apakšsadaļas saturu 3D skatā.");
+    world_tree_item_add_selection = world_tree_item_popup->Append(ID_World_Tree_New, L"Pievienot jaunu", L"Pievieno jaunu šūnu");
+    world_tree_item_edit_selection = world_tree_item_popup->Append(ID_World_Tree_Edit, L"Rediģēt", L"Rediģēt šūnu.");
+    world_tree_item_delete_selection = world_tree_item_popup->Append(ID_World_Tree_Delete, L"Dzēst", L"Pievieno jaunu šūnu");
+    
     world_tree_root_popup = new wxMenu;
     world_tree_root_popup->Append(ID_World_Tree_New, L"Pievienot jaunu", L"Pievieno jaunu šūnu");
-    Bind(wxEVT_MENU, &MainFrame::OnWorldCellTreePopupSelect, this, ID_World_Tree_New);
-    Bind(wxEVT_MENU, &MainFrame::OnWorldCellTreePopupSelect, this, ID_World_Tree_Show);
-    Bind(wxEVT_MENU, &MainFrame::OnWorldCellTreePopupSelect, this, ID_World_Tree_Edit);
-    //Bind(wxEVT_MENU, &MainFrame::OnWorldCellTreePopupSelect, this, ID_World_Tree_Hide);
-    Bind(wxEVT_MENU, &MainFrame::OnWorldCellTreePopupSelect, this, ID_World_Tree_Begonis);
-    Bind(wxEVT_MENU, &MainFrame::OnWorldCellTreePopupSelect, this, ID_World_Tree_Delete);
+    
+    Bind(wxEVT_MENU, &MainFrame::OnWorldCellTreePopupClick, this, ID_World_Tree_New);
+    Bind(wxEVT_MENU, &MainFrame::OnWorldCellTreePopupClick, this, ID_World_Tree_Show);
+    Bind(wxEVT_MENU, &MainFrame::OnWorldCellTreePopupClick, this, ID_World_Tree_Edit);
+    Bind(wxEVT_MENU, &MainFrame::OnWorldCellTreePopupClick, this, ID_World_Tree_Begonis);
+    Bind(wxEVT_MENU, &MainFrame::OnWorldCellTreePopupClick, this, ID_World_Tree_Delete);
     
     
     entity_list_change_type_popup = new wxMenu;
@@ -748,20 +770,13 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā progra
      // notify wxAUI which frame to use
     m_mgr.SetManagedWindow(this);
 
-    
-    world_tree = new wxTreeCtrl(this, -1, wxDefaultPosition, wxSize(200, 150));
-    
-    property_panel = new wxPropertyGrid(this, -1);
-
-    entity_list = new EntityList(this, -1, wxDefaultPosition, wxSize(200,150), wxLC_REPORT | wxLC_VIRTUAL | wxLC_HRULES | wxLC_VRULES);
-    
-    wxTextCtrl* output_text_ctrl = new wxTextCtrl(this, -1, "",
-    wxDefaultPosition, wxSize(200,150),
-    wxNO_BORDER | wxTE_READONLY | wxTE_MULTILINE);
-    
+    wxTextCtrl* output_text_ctrl = new wxTextCtrl(this, -1, "", wxDefaultPosition, wxSize(200,150), wxNO_BORDER | wxTE_READONLY | wxTE_MULTILINE);
     std_cout_redirect = new wxStreamToTextRedirector(output_text_ctrl);
-
+    world_tree = new wxTreeCtrl(this, -1, wxDefaultPosition, wxSize(200, 150));
+    property_panel = new wxPropertyGrid(this, -1);
+    entity_list = new EntityList(this, -1, wxDefaultPosition, wxSize(200,150), wxLC_REPORT | wxLC_VIRTUAL | wxLC_HRULES | wxLC_VRULES);
     viewport = new Viewport(this, wxID_ANY, nullptr, { 0, 0 }, { 800, 800 });
+
     m_mgr.AddPane(world_tree, wxLEFT, L"Pasaule");
     m_mgr.AddPane(property_panel, wxLEFT, L"Īpašības");
     m_mgr.AddPane(entity_list, wxBOTTOM, L"Saturs");
@@ -772,18 +787,17 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā progra
     m_mgr.GetPane(property_panel).CloseButton(false);
     m_mgr.GetPane(entity_list).CloseButton(false);
     m_mgr.GetPane(output_text_ctrl).CloseButton(false);
-    //m_mgr.GetPane(canvas).CloseButton(false);
     
     world_tree_root_node = world_tree->AddRoot(L"Pasaule un viss tajā iekšā");
     RebuildWorldCellTree();
-    world_tree->Bind(wxEVT_TREE_ITEM_RIGHT_CLICK, &MainFrame::OnWorldCellTreeSelect, this);
-    world_tree->Bind(wxEVT_TREE_ITEM_ACTIVATED, &MainFrame::OnWorldCellTreeActivate, this);
+    world_tree->Bind(wxEVT_TREE_ITEM_RIGHT_CLICK, &MainFrame::OnWorldCellTreeRightClick, this);
+    world_tree->Bind(wxEVT_TREE_ITEM_ACTIVATED, &MainFrame::OnWorldCellTreeDoubleClick, this);
     
     property_panel->Bind(wxEVT_PG_CHANGED, &MainFrame::OnPropertyPanelChanged, this);
 
     entity_list->Bind(wxEVT_LIST_ITEM_RIGHT_CLICK, &MainFrame::OnEntityListSelect, this);
     entity_list->Bind(wxEVT_LIST_ITEM_SELECTED, &MainFrame::OnEntityListSelect1, this);
-    entity_list->Bind(wxEVT_LIST_ITEM_ACTIVATED, &MainFrame::OnEntityListActivate, this);
+    entity_list->Bind(wxEVT_LIST_ITEM_ACTIVATED, &MainFrame::OnEntityListDoubleClick, this);
 
     // --- AUI FLAGS ---
     unsigned int flags = m_mgr.GetFlags();
@@ -842,8 +856,13 @@ void MainFrame::OnSaveCells(wxCommandEvent& event) {
     std::cout << "Saved cells." << std::endl;
 }
 
+void MainFrame::SetSingleSelection(Editor::Selector select) {
+    selection.clear();
+    selection.push_back(select);
+}
 
 void MainFrame::RebuildWorldCellTree() {
+    std::cout << "rebuilding!" << std::endl;
     world_tree->DeleteChildren(world_tree_root_node);
     world_tree_map.clear();
     
@@ -855,20 +874,35 @@ void MainFrame::RebuildWorldCellTree() {
         auto nav_node = world_tree->AppendItem(cell_node, L"Navigācija");
         
         using namespace Editor; using Ind = WorldCellIndirector;
-        world_tree_map[cell_node.GetID()] = WorldCellIndirector { Ind::CELL_ITSELF, it };
-        world_tree_map[ent_node.GetID()] = WorldCellIndirector { Ind::CELL_ENTITIES, it };
-        world_tree_map[trans_node.GetID()] = WorldCellIndirector { Ind::CELL_TRANSITIONS, it };
-        world_tree_map[path_node.GetID()] = WorldCellIndirector { Ind::CELL_PATHS, it };
-        world_tree_map[nav_node.GetID()] = WorldCellIndirector { Ind::CELL_NAVMESH, it };
+        world_tree_map[cell_node.GetID()] = WorldCellIndirector { .indirection_type = Ind::CELL_ITSELF, .into = it };
+        world_tree_map[ent_node.GetID()] = WorldCellIndirector { .indirection_type = Ind::CELL_ENTITIES, .into =  it };
+        world_tree_map[trans_node.GetID()] = WorldCellIndirector { .indirection_type = Ind::CELL_TRANSITIONS, .into =  it };
+        world_tree_map[path_node.GetID()] = WorldCellIndirector { .indirection_type = Ind::CELL_PATHS, .into =  it };
+        world_tree_map[nav_node.GetID()] = WorldCellIndirector { .indirection_type = Ind::CELL_NAVMESHES, .into =  it };
+        
+        for (auto gr : it->groups) {
+            auto node = world_tree->AppendItem(ent_node, gr->name);
+            world_tree_map[node.GetID()] = WorldCellIndirector { .indirection_type = Ind::ENTITY_GROUP, .group = gr };
+        }
         
         for (auto tr : it->transitions) {
             auto node = world_tree->AppendItem(trans_node, tr->name);
-            world_tree_map[node.GetID()] = WorldCellIndirector { Ind::TRANSITION, it, tr };
+            world_tree_map[node.GetID()] = WorldCellIndirector { .indirection_type = Ind::TRANSITION, .trans = tr };
+        }
+        
+        for (auto pt : it->paths) {
+            auto node = world_tree->AppendItem(path_node, pt->name);
+            world_tree_map[node.GetID()] = WorldCellIndirector { .indirection_type = Ind::PATH, .path = pt };
+        }
+        
+        for (auto nd : it->navmeshes) {
+            auto node = world_tree->AppendItem(nav_node, nd->name);
+            world_tree_map[node.GetID()] = WorldCellIndirector { .indirection_type = Ind::NAVMESH, .navmesh = nd };
         }
     }
 }
 
-void MainFrame::OnWorldCellTreeSelect(wxTreeEvent& event) {
+void MainFrame::OnWorldCellTreeRightClick(wxTreeEvent& event) {
     if (event.GetItem() == world_tree_root_node) {
         world_tree_selected_item = world_tree_root_node;
         PopupMenu(world_tree_root_popup);
@@ -881,14 +915,15 @@ void MainFrame::OnWorldCellTreeSelect(wxTreeEvent& event) {
             PopupMenu(world_tree_cell_popup);
         } else {
             world_tree_item_is_visible_checkbox->Check(indirect.IsVisible());
+            world_tree_item_add_selection->Enable(indirect.IsNewable());
+            world_tree_item_edit_selection->Enable(indirect.IsEditable());
+            world_tree_item_delete_selection->Enable(indirect.IsDeletable());
             PopupMenu(world_tree_item_popup);
         }
     }
-    
-    //std::cout << "open menu for: " << event.GetItem() << std::endl;
 }
 
-void MainFrame::OnWorldCellTreePopupSelect(wxCommandEvent& event) {
+void MainFrame::OnWorldCellTreePopupClick(wxCommandEvent& event) {
     if (world_tree_selected_item == world_tree_root_node) {
         switch (event.GetId()) {
             case ID_World_Tree_New:
@@ -909,63 +944,45 @@ void MainFrame::OnWorldCellTreePopupSelect(wxCommandEvent& event) {
             }
             
             break;
-            case ID_World_Tree_New:
-                if (indirect.indirection_type == Editor::WorldCellIndirector::CELL_ENTITIES) {
-                    PropertyPanelSetEntity(indirect.into->NewEntity());
-                    entity_list->SetWorldCell(indirect.into);
-                } else if (indirect.indirection_type == Editor::WorldCellIndirector::CELL_TRANSITIONS) {
-                    auto new_trans = indirect.into->NewTransition();
-                    PropertyPanelSetTransition(new_trans);
-                    entity_list->SetTransition(new_trans);
-                    RebuildWorldCellTree();
-                } else if (indirect.indirection_type == Editor::WorldCellIndirector::CELL_PATHS) {
-                    
-                } else if (indirect.indirection_type == Editor::WorldCellIndirector::CELL_NAVMESH) {
-                    
-                } else if (indirect.indirection_type == Editor::WorldCellIndirector::TRANSITION) {
-                    auto new_point = indirect.trans->NewPoint();
-                    PropertyPanelSetTransitionPoint(new_point);
-                } else if (indirect.indirection_type == Editor::WorldCellIndirector::ENTITY_GROUP) {
-                    
-                } else if (indirect.indirection_type == Editor::WorldCellIndirector::PATH) {
-                    
-                } else if (indirect.indirection_type == Editor::WorldCellIndirector::NAVMESH) {
-                    
-                }
+            case ID_World_Tree_New: {
+                std::cout << "NEW!" << std::endl;
+                auto new_selection = indirect.New();
+                SetSingleSelection(new_selection);
+                PropertyPanelRebuild();
+                RebuildWorldCellTree();
+                entity_list->RefreshAllItems();
+            }
             break;
             case ID_World_Tree_Edit:
-                if (indirect.indirection_type == Editor::WorldCellIndirector::CELL_ENTITIES) {
-                    PropertyPanelSetWorldCell(indirect.into);
-                } else if (indirect.indirection_type == Editor::WorldCellIndirector::TRANSITION) {
-                    PropertyPanelSetTransition(indirect.trans);
-                } else if (indirect.indirection_type == Editor::WorldCellIndirector::ENTITY_GROUP) {
-                    
-                } else if (indirect.indirection_type == Editor::WorldCellIndirector::PATH) {
-                    
-                } else if (indirect.indirection_type == Editor::WorldCellIndirector::NAVMESH) {
-                    
-                }
-            
+                SetSingleSelection(indirect);
+                RebuildWorldCellTree();
+                PropertyPanelRebuild();
+                entity_list->SetSelectionToDisplay(indirect);
             break;
             case ID_World_Tree_Begonis:
             indirect.Begonis();
             break;
-            case ID_World_Tree_Delete:
+            case ID_World_Tree_Delete: {
+                wxString delete_message (L"Tiešām dzēst");
                 if (indirect.indirection_type == Editor::WorldCellIndirector::CELL_ITSELF) {
-
+                    delete_message += L" šūnu \""; delete_message += indirect.into->name + L"\"?";
                 } else if (indirect.indirection_type == Editor::WorldCellIndirector::TRANSITION) {
-
+                    delete_message += L" pāreju \""; delete_message += indirect.trans->name + L"\"?";
                 } else if (indirect.indirection_type == Editor::WorldCellIndirector::ENTITY_GROUP) {
-                    
+                    delete_message += L" grupu \""; delete_message += indirect.group->name + L"\"?";
                 } else if (indirect.indirection_type == Editor::WorldCellIndirector::PATH) {
-                    
+                    delete_message += L" ceļu \""; delete_message += indirect.path->name + L"\"?";
                 } else if (indirect.indirection_type == Editor::WorldCellIndirector::NAVMESH) {
-                    
+                    delete_message += L" navigāciju \""; delete_message += indirect.navmesh->name + L"\"?";
+                } else {
+                    delete_message += L"?";
                 }
-            wxMessageDialog delete_confirmation(this, wxString(L"Tiešām dzēst šūnu ") + indirect.into->name + "?", L"Dzēst šūnu", wxYES_NO | wxCANCEL | wxCANCEL_DEFAULT | wxICON_EXCLAMATION);
-            if(delete_confirmation.ShowModal() == wxID_YES) {
-                indirect.Delete();
-                RebuildWorldCellTree();
+                
+                wxMessageDialog delete_confirmation (this, delete_message, L"Vai tiešām dzēst?", wxYES_NO | wxCANCEL | wxCANCEL_DEFAULT | wxICON_EXCLAMATION);
+                if(delete_confirmation.ShowModal() == wxID_YES) {
+                    indirect.Delete();
+                    RebuildWorldCellTree();
+                }
             }
             break;
         }
@@ -1017,7 +1034,10 @@ void MainFrame::PropertyPanelSetNavmesh(Editor::Navmesh* navmesh) {
 
 void MainFrame::PropertyPanelRebuild() {
     property_panel->Clear();
-    if(selected_entity){
+    if (selection.size() < 1) {
+        
+    } else if (selection.front().indirection_type == Editor::Selector::ENTITY) {
+        auto selected_entity = selection.front().entity;
         auto gen_props = property_panel->Append(new wxPropertyCategory(L"Vispārīgās īpašības"));
         auto spec_props = property_panel->Append(new wxPropertyCategory(L"Īpašās īpašības"));
         //std::cout << "spec props: " << spec_props << std::endl;
@@ -1047,7 +1067,8 @@ void MainFrame::PropertyPanelRebuild() {
                 }
             }
         }
-    } else if (selected_worldcell) {
+    } else if (selection.front().indirection_type == Editor::Selector::CELL_ITSELF) {
+        auto selected_worldcell = selection.front().into;
         property_panel->Append(new wxPropertyCategory(L"Pasaules šūna"));
         property_panel->Append(new wxStringProperty(L"Nosaukums", "worldcell-name", selected_worldcell->name.data()));
         auto chkprop1 = new wxBoolProperty(L"Iekštelpa", "worldcell-int", selected_worldcell->is_interior);
@@ -1056,10 +1077,12 @@ void MainFrame::PropertyPanelRebuild() {
         chkprop2->SetAttribute("UseCheckbox", 1); // <-- DO NOT design your libraries like that
         property_panel->Append(chkprop1);
         property_panel->Append(chkprop2);
-    } else if (selected_transition) {
+    } else if (selection.front().indirection_type == Editor::Selector::TRANSITION) {
+        auto selected_transition = selection.front().trans;
         property_panel->Append(new wxPropertyCategory(L"Šūnas pāreja"));
         property_panel->Append(new wxStringProperty(L"Nosaukums", "transition-name", selected_transition->name.data()));
-    }  else if (selected_transition_point) {
+    }  else if (selection.front().indirection_type == Editor::Selector::TRANSITION_POINT) {
+        auto selected_transition_point = selection.front().point;
         property_panel->Append(new wxPropertyCategory(L"Šūnas punkts"));
         property_panel->Append(new wxFloatProperty(L"X", "transition-point-x", selected_transition_point->location.x));
         property_panel->Append(new wxFloatProperty(L"Y", "transition-point-y", selected_transition_point->location.y));
@@ -1106,20 +1129,23 @@ void MainFrame::OnPropertyPanelChanged(wxPropertyGridEvent& event) {
         }
         
     } else {
-        //std::cout << "changing regular prop" << std::endl;
         updates[std::string(event.GetPropertyName())](event, this);
     }
     
     viewport->Refresh();
-    //std::cout << "PROPERTY PANEL CHANGED!!!" << event.GetPropertyName() << std::endl;
 }
 
-void MainFrame::OnWorldCellTreeActivate(wxTreeEvent& event) {
+void MainFrame::OnWorldCellTreeDoubleClick(wxTreeEvent& event) {
     if (event.GetItem() == world_tree_root_node) {
         auto alert = wxMessageDialog(this, L"Tev biksēs skudras!", L"Skudru uzbrukums!", wxOK | wxICON_EXCLAMATION);
         alert.SetExtendedMessage(L"Ir noticis skudru uzbrukums jūsu biksēm. Programma pēc šī uzbrukuma nespēs atkopties. Skatīt lietošanas instrukcijas nodaļu \"7.6.3 Negaidīts skudru uzbrukums\" (431. lpp).");
         alert.ShowModal();
     } else {
+        auto& indirect = world_tree_map[event.GetItem().GetID()];
+        SetSingleSelection(indirect);
+        PropertyPanelRebuild();
+        entity_list->RefreshAllItems();
+        /*
         auto& indirect = world_tree_map[event.GetItem().GetID()];
         if (indirect.indirection_type == Editor::WorldCellIndirector::CELL_ITSELF) {
             PropertyPanelSetWorldCell(indirect.into);
@@ -1135,7 +1161,7 @@ void MainFrame::OnWorldCellTreeActivate(wxTreeEvent& event) {
             //entity_list->SetWorldCell(indirect.into);
         } else if (indirect.indirection_type == Editor::WorldCellIndirector::NAVMESH) {
             //entity_list->SetWorldCell(indirect.into);
-        }
+        }*/
     }
 }
 
@@ -1171,7 +1197,7 @@ void MainFrame::OnEntityListSelect1(wxListEvent& event) {
     viewport->Refresh();
 }
 
-void MainFrame::OnEntityListActivate(wxListEvent& event) {
+void MainFrame::OnEntityListDoubleClick(wxListEvent& event) {
     entity_list_selected_item = event.GetIndex();
     entity_list->Edit(this, entity_list_selected_item);
 }

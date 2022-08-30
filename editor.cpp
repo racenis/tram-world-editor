@@ -56,17 +56,197 @@ namespace Editor {
         }
     }
     
+    bool WorldCellIndirector::IsNewable() {
+        switch (indirection_type) {
+            case NONE:
+            case CELL_ITSELF:
+            case CELL_ENTITIES:
+            case CELL_ENTITY_GROUPS:
+            case CELL_TRANSITIONS:
+            case CELL_PATHS:
+            case CELL_NAVMESHES:
+                return true;
+            case ENTITY_GROUP:
+            case TRANSITION:
+            case PATH:
+            case NAVMESH:
+            case ENTITY:
+            case TRANSITION_POINT:
+            case PATH_CURVE:
+            case NAVMESH_NODE:
+                return false;
+        }
+        return false;
+    }
+    
+    bool WorldCellIndirector::IsEditable() {
+        switch (indirection_type) {
+            case NONE:
+            case CELL_ENTITIES:
+            case CELL_ENTITY_GROUPS:
+            case CELL_TRANSITIONS:
+            case CELL_PATHS:
+            case CELL_NAVMESHES:
+                return false;
+            case CELL_ITSELF:
+            case ENTITY_GROUP:
+            case TRANSITION:
+            case PATH:
+            case NAVMESH:
+            case ENTITY:
+            case TRANSITION_POINT:
+            case PATH_CURVE:
+            case NAVMESH_NODE:
+                return true;
+        }
+        return false;
+    }
+    
+    bool WorldCellIndirector::IsDeletable() {
+        switch (indirection_type) {
+            case NONE:
+            case CELL_ENTITIES:
+            case CELL_ENTITY_GROUPS:
+            case CELL_TRANSITIONS:
+            case CELL_PATHS:
+            case CELL_NAVMESHES:
+                return false;
+            case CELL_ITSELF:
+            case ENTITY_GROUP:
+            case TRANSITION:
+            case PATH:
+            case NAVMESH:
+            case ENTITY:
+            case TRANSITION_POINT:
+            case PATH_CURVE:
+            case NAVMESH_NODE:
+                return true;
+        }
+        return false;
+    }
+    
     void WorldCellIndirector::Begonis() {
         std::cout << "BEGONISING CELL: " << into->name << std::endl;
     }
     
+    WorldCellIndirector WorldCellIndirector::New() {
+        WorldCellIndirector new_indirect;
+        switch(indirection_type) {
+            case NONE:
+                new_indirect.indirection_type = CELL_ITSELF;
+                new_indirect.into = new WorldCell { "jauns" };
+                worldCells.push_back(new_indirect.into);
+                break;
+            case CELL_ITSELF:
+                new_indirect.indirection_type = ENTITY;
+                new_indirect.entity = new Entity {.id = 0, .name = "name", .action = "none", .parent = into };
+                into->entities.push_back(new_indirect.entity);
+            case CELL_ENTITIES:
+                new_indirect.indirection_type = ENTITY_GROUP;
+                new_indirect.group = new EntityGroup { .name = "name", .parent = into };
+                into->groups.push_back(new_indirect.group);
+                break;
+            case CELL_ENTITY_GROUPS:
+                break;
+            case CELL_TRANSITIONS:
+                new_indirect.indirection_type = TRANSITION;
+                new_indirect.trans = new Transition { .name = "name", .parent = into };
+                into->transitions.push_back(new_indirect.trans);
+                break;
+            case CELL_PATHS:
+                new_indirect.indirection_type = PATH;
+                new_indirect.path = new Path { .name = "name", .parent = into };
+                into->paths.push_back(new_indirect.path);
+                break;
+            case CELL_NAVMESHES:
+                new_indirect.indirection_type = NAVMESH;
+                new_indirect.navmesh = new Navmesh { .name = "name", .parent = into };
+                into->navmeshes.push_back(new_indirect.navmesh);
+                break;
+            case ENTITY:
+                break;
+            case ENTITY_GROUP:
+                new_indirect.indirection_type = ENTITY;
+                new_indirect.entity = new Entity {.id = 0, .name = "name", .action = "none", .parent = group->parent, .group = group };
+                group->entities.push_back(new_indirect.entity);
+                group->parent->entities.push_back(new_indirect.entity);
+                break;
+            case TRANSITION:
+                new_indirect.indirection_type = TRANSITION_POINT;
+                new_indirect.trans = trans;
+                new_indirect.point = new Transition::Point { .parent = trans };
+                trans->points.push_back(new_indirect.point);
+                break;
+            case PATH:
+                new_indirect.indirection_type = PATH_CURVE;
+                new_indirect.path = path;
+                new_indirect.curve = new Path::Curve { .parent = path };
+                path->curves.push_back(new_indirect.curve);
+                break;
+            case NAVMESH:
+                new_indirect.indirection_type = NAVMESH_NODE;
+                new_indirect.navmesh = navmesh;
+                new_indirect.node = new Navmesh::Node { .parent = navmesh };
+                navmesh->nodes.push_back(new_indirect.node);
+                break;
+            case TRANSITION_POINT:
+                break;
+            case PATH_CURVE:
+                break;
+            case NAVMESH_NODE:
+                break;
+
+        }
+        return new_indirect;
+    }
+    
+
+    
+
+    
     void WorldCellIndirector::Delete() {
-        std::cout << "YEETING CELL: " << into->name << std::endl;
-        for (auto it = worldCells.begin(); it < worldCells.end(); it++) {
-            if (*it == into) {
-                worldCells.erase(it);
-                return;
-            }
+        switch(indirection_type) {
+            case NONE:
+
+                break;
+            case CELL_ITSELF:
+
+            case CELL_ENTITIES:
+                break;
+            case CELL_ENTITY_GROUPS:
+                break;
+            case CELL_TRANSITIONS:
+                break;
+            case CELL_PATHS:
+                break;
+            case CELL_NAVMESHES:
+                break;
+            case ENTITY:
+                if (entity->group) entity->group->entities.erase(std::find(entity->group->entities.begin(), entity->group->entities.end(), entity));
+                entity->parent->entities.erase(std::find(entity->parent->entities.begin(), entity->parent->entities.end(), entity));
+                break;
+            case ENTITY_GROUP:
+                group->parent->groups.erase(std::find(group->parent->groups.begin(), group->parent->groups.end(), group));
+                break;
+            case TRANSITION:
+                trans->parent->transitions.erase(std::find(trans->parent->transitions.begin(), trans->parent->transitions.end(), trans));
+                break;
+            case PATH:
+                path->parent->paths.erase(std::find(path->parent->paths.begin(), path->parent->paths.end(), path));
+                break;
+            case NAVMESH:
+                navmesh->parent->navmeshes.erase(std::find(navmesh->parent->navmeshes.begin(), navmesh->parent->navmeshes.end(), navmesh));
+                break;
+            case TRANSITION_POINT:
+                point->parent->points.erase(std::find(point->parent->points.begin(), point->parent->points.end(), point));
+                break;
+            case PATH_CURVE:
+                curve->parent->curves.erase(std::find(curve->parent->curves.begin(), curve->parent->curves.end(), curve));
+                break;
+            case NAVMESH_NODE:
+                node->parent->nodes.erase(std::find(node->parent->nodes.begin(), node->parent->nodes.end(), node));
+                break;
+
         }
     }
     

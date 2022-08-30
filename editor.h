@@ -33,6 +33,7 @@ namespace Editor {
     struct Transition {
         struct Point {
             glm::vec3 location;
+            Transition* parent;
         };
         
         Point* NewPoint();
@@ -45,8 +46,10 @@ namespace Editor {
     };
     
     struct EntityGroup {
+        std::string name;
         std::vector<Entity*> entities;
         WorldCell* parent;
+        
         
         Entity* NewEntity();
         void DeleteEntity(Entity* entity);
@@ -58,6 +61,7 @@ namespace Editor {
             glm::vec3 location2;
             glm::vec3 location3;
             glm::vec3 location4;
+            Path* parent;
         };
         
         Curve* NewCurve();
@@ -72,6 +76,7 @@ namespace Editor {
     struct Navmesh {
         struct Node {
             glm::vec3 location;
+            Navmesh* parent;
         };
         
         Node* NewNode();
@@ -111,28 +116,45 @@ namespace Editor {
     
     struct WorldCellIndirector {
         enum {
+            NONE,
             CELL_ITSELF,
             CELL_ENTITIES,
+            CELL_ENTITY_GROUPS,
             CELL_TRANSITIONS,
             CELL_PATHS,
-            CELL_NAVMESH,
-            TRANSITION,
+            CELL_NAVMESHES,
+            ENTITY,
             ENTITY_GROUP,
+            TRANSITION,
             PATH,
-            NAVMESH
-        } indirection_type;
+            NAVMESH,
+            TRANSITION_POINT,
+            PATH_CURVE,
+            NAVMESH_NODE
+        } indirection_type = NONE;
         WorldCell* into = nullptr;
+        Entity* entity = nullptr;
         Transition* trans = nullptr;
         EntityGroup* group = nullptr;
         Path* path = nullptr;
         Navmesh* navmesh = nullptr;
+        Transition::Point* point = nullptr;
+        Path::Curve* curve = nullptr;
+        Navmesh::Node* node = nullptr;
+
         
-        bool IsVisible();
         void Show();
         void Hide();
         void Begonis();
         void Delete();
+        bool IsVisible();
+        bool IsNewable();
+        bool IsEditable();
+        bool IsDeletable();
+        WorldCellIndirector New();
     };
+    
+    using Selector = WorldCellIndirector;
     
     WorldCell* NewWorldCell();
     
