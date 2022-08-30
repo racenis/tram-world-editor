@@ -5,6 +5,7 @@
 #include <components/rendercomponent.h>
 
 #include <entities/crate.h>
+#include <entities/lamp.h>
 #include <entities/staticworldobject.h>
 
 namespace Editor {
@@ -20,15 +21,39 @@ namespace Editor {
     }
     
     void WorldCellIndirector::Show() {
-        //std::cout << "SHOWING CELL: " << into->name << std::endl;
-        for (auto ent : into->entities) ent->Show();
-        into->is_visible = true;
+        switch (indirection_type) {
+            case CELL_ITSELF:
+            case CELL_ENTITIES:
+                for (auto ent : into->entities) ent->Show();
+                into->is_visible = true;
+                break;
+            default:
+                std::cout << "'Show' is not implemented for this type" << std::endl;
+        }
     }
     
     void WorldCellIndirector::Hide() {
-        //std::cout << "HIDING CELL: " << into->name << std::endl;
-        for (auto ent : into->entities) ent->Hide();
-        into->is_visible = true;
+        switch (indirection_type) {
+            case CELL_ITSELF:
+            case CELL_ENTITIES:
+                for (auto ent : into->entities) ent->Hide();
+                into->is_visible = false;
+                break;
+            default:
+                std::cout << "'Hide' is not implemented for this type" << std::endl;
+        }
+    }
+    
+    bool WorldCellIndirector::IsVisible() {
+        switch (indirection_type) {
+            case CELL_ITSELF:
+            case CELL_ENTITIES:
+                return into->is_visible;
+                break;
+            default:
+                std::cout << "'IsVisible' is not implemented for this type" << std::endl;
+                return false;
+        }
     }
     
     void WorldCellIndirector::Begonis() {
@@ -52,14 +77,97 @@ namespace Editor {
     }
     
     Entity* WorldCell::NewEntity() {
-        auto ent = new Entity {.id = 0, .name = "name", .action = "none", .parent = this};
+        auto ent = new Entity {.id = 0, .name = "name", .action = "none", .parent = this };
         entities.push_back(ent);
         return ent;
+    }
+    
+    Transition* WorldCell::NewTransition() {
+        auto trans = new Transition { .name = "transition", .parent = this };
+        transitions.push_back(trans);
+        return trans;
+    }
+    
+    Transition::Point* Transition::NewPoint() {
+        auto point = new Point;
+        points.push_back(point);
+        return point;
+    }
+    
+    EntityGroup* WorldCell::NewEntityGroup() {
+        auto group = new EntityGroup;
+        groups.push_back(group);
+        return group;
+    }
+    
+    Entity* EntityGroup::NewEntity() {
+        auto entity = parent->NewEntity();
+        entities.push_back(entity);
+        entity->group = this;
+        return entity;
+    }
+    
+    Path* WorldCell::NewPath() {
+        auto path = new Path { .name = "path", .parent = this };
+        paths.push_back(path);
+        return path;
+    }
+    
+    Path::Curve* Path::NewCurve() {
+        auto curve = new Curve;
+        curves.push_back(curve);
+        return curve;
+    }
+    
+    Navmesh* WorldCell::NewNavmesh() {
+        auto navmesh = new Navmesh { .name = "navmesh", .parent = this };
+        navmeshes.push_back(navmesh);
+        return navmesh;
+    }
+    
+    Navmesh::Node* Navmesh::NewNode() {
+        auto node = new Node;
+        nodes.push_back(node);
+        return node;
     }
     
     void WorldCell::DeleteEntity(size_t id) {
         entities.erase(entities.begin() + id);
     }
+    
+    void WorldCell::DeleteTransition(Transition* transition) {
+        transitions.erase(std::find(transitions.begin(), transitions.end(), transition));
+    }
+    
+    void WorldCell::DeleteEntityGroup(EntityGroup* group) {
+        groups.erase(std::find(groups.begin(), groups.end(), group));
+    }
+    
+    void WorldCell::DeletePath(Path* path) {
+        paths.erase(std::find(paths.begin(), paths.end(), path));
+    }
+    
+    void WorldCell::DeleteNavmesh(Navmesh* navmesh) {
+        navmeshes.erase(std::find(navmeshes.begin(), navmeshes.end(), navmesh));
+    }
+    
+    void Transition::DeletePoint(Transition::Point* point) {
+        points.erase(std::find(points.begin(), points.end(), point));
+    }
+    
+    void EntityGroup::DeleteEntity(Entity* entity) {
+        entities.erase(std::find(entities.begin(), entities.end(), entity));
+        parent->entities.erase(std::find(entities.begin(), entities.end(), entity));
+    }
+    
+    void Path::DeleteCurve(Curve* curve) {
+        curves.erase(std::find(curves.begin(), curves.end(), curve));
+    }
+    
+    void Navmesh::DeleteNode(Node* node) {
+        nodes.erase(std::find(nodes.begin(), nodes.end(), node));
+    }
+    
     
     void Entity::Show () {
         if (model || !ent_data) return;
@@ -179,6 +287,7 @@ namespace Editor {
         //cell2->entities.push_back(new Entity{1, "benisoner"});
         
         entityDatas[(new Core::Crate::Data)->GetDataName()] = []() -> Core::SerializedEntityData* { auto d = new Core::Crate::Data; d->collmodel = 0; d->model = 0; return d; };
+        entityDatas[(new Core::Lamp::Data)->GetDataName()] = []() -> Core::SerializedEntityData* { auto d = new Core::Lamp::Data; return d; };
         entityDatas[(new Core::StaticWorldObject::Data)->GetDataName()] = []() -> Core::SerializedEntityData* { auto d = new Core::StaticWorldObject::Data; d->lightmap = 0; d->model = 0; return d; };
         
         //entityDatasSorted.push_back(std::pair(Core::Crate::data_name, []() -> Core::SerializedEntityData* { auto d = new Core::Crate::Data; d->collmodel = 0; d->model = 0; return d; }));
