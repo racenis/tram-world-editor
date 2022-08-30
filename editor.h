@@ -57,6 +57,11 @@ namespace Editor {
     
     struct Path {
         struct Curve {
+            uint64_t id;
+            uint64_t next_id;
+            uint64_t prev_id;
+            uint64_t left_id;
+            uint64_t right_id;
             glm::vec3 location1;
             glm::vec3 location2;
             glm::vec3 location3;
@@ -75,6 +80,11 @@ namespace Editor {
     
     struct Navmesh {
         struct Node {
+            uint64_t id;
+            uint64_t next_id;
+            uint64_t prev_id;
+            uint64_t left_id;
+            uint64_t right_id;
             glm::vec3 location;
             Navmesh* parent;
         };
@@ -152,6 +162,7 @@ namespace Editor {
         bool IsEditable();
         bool IsDeletable();
         WorldCellIndirector New();
+        WorldCellIndirector Index(long index);
     };
     
     using Selector = WorldCellIndirector;

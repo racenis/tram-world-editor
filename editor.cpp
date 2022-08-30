@@ -65,11 +65,11 @@ namespace Editor {
             case CELL_TRANSITIONS:
             case CELL_PATHS:
             case CELL_NAVMESHES:
-                return true;
             case ENTITY_GROUP:
             case TRANSITION:
             case PATH:
             case NAVMESH:
+                return true;
             case ENTITY:
             case TRANSITION_POINT:
             case PATH_CURVE:
@@ -248,6 +248,62 @@ namespace Editor {
                 break;
 
         }
+    }
+    
+    WorldCellIndirector WorldCellIndirector::Index(long index) {
+        WorldCellIndirector new_indirect;
+        switch(indirection_type) {
+            case NONE:
+                break;
+            case CELL_ITSELF:
+                new_indirect.indirection_type = ENTITY;
+                new_indirect.entity = into->entities[index];
+                break;
+            case ENTITY:
+                new_indirect.indirection_type = ENTITY;
+                if (entity->group) new_indirect.entity = entity->group->entities[index];
+                else new_indirect.entity = entity->parent->entities[index];
+                break;
+            case CELL_ENTITIES:
+                break;
+            case CELL_ENTITY_GROUPS:
+                break;
+            case CELL_TRANSITIONS:
+                break;
+            case CELL_PATHS:
+                break;
+            case CELL_NAVMESHES:
+                break;
+            case ENTITY_GROUP:
+                new_indirect.indirection_type = ENTITY;
+                new_indirect.entity = group->entities[index];
+                break;
+            case TRANSITION:
+                new_indirect.indirection_type = TRANSITION_POINT;
+                new_indirect.point = trans->points[index];
+                break;
+            case PATH:
+                new_indirect.indirection_type = PATH_CURVE;
+                new_indirect.curve = path->curves[index];
+                break;
+            case NAVMESH:
+                new_indirect.indirection_type = NAVMESH_NODE;
+                new_indirect.node = navmesh->nodes[index];
+                break;
+            case TRANSITION_POINT:
+                new_indirect.indirection_type = TRANSITION_POINT;
+                new_indirect.point = point->parent->points[index];
+                break;
+            case PATH_CURVE:
+                new_indirect.indirection_type = PATH_CURVE;
+                new_indirect.curve = curve->parent->curves[index];
+                break;
+            case NAVMESH_NODE:
+                new_indirect.indirection_type = NAVMESH_NODE;
+                new_indirect.node = node->parent->nodes[index];
+                break;
+        }
+        return new_indirect;
     }
     
     WorldCell* NewWorldCell() {
