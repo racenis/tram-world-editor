@@ -1149,11 +1149,53 @@ void MainFrame::PropertyPanelRebuild() {
     } else if (selection.front().indirection_type == Editor::Selector::TRANSITION) {
         property_panel->Append(new wxPropertyCategory(L"Šūnas pāreja"));
         property_panel->Append(new wxStringProperty(L"Nosaukums", "transition-name", selection.front().trans->name.data()));
-    }  else if (selection.front().indirection_type == Editor::Selector::TRANSITION_POINT) {
+    } else if (selection.front().indirection_type == Editor::Selector::TRANSITION_POINT) {
         property_panel->Append(new wxPropertyCategory(L"Šūnas punkts"));
         property_panel->Append(new wxFloatProperty(L"X", "transition-point-x", selection.front().point->location.x));
         property_panel->Append(new wxFloatProperty(L"Y", "transition-point-y", selection.front().point->location.y));
         property_panel->Append(new wxFloatProperty(L"Z", "transition-point-z", selection.front().point->location.z));
+    } else if (selection.front().indirection_type == Editor::Selector::ENTITY_GROUP) {
+        property_panel->Append(new wxPropertyCategory(L"Entītiju grupa"));
+        property_panel->Append(new wxStringProperty(L"Nosaukums", "entity-group-name", selection.front().group->name.data()));
+    } else if (selection.front().indirection_type == Editor::Selector::NAVMESH) {
+        property_panel->Append(new wxPropertyCategory(L"Navigācijas grafs"));
+        property_panel->Append(new wxStringProperty(L"Nosaukums", "navmesh-name", selection.front().navmesh->name.data()));
+    }  else if (selection.front().indirection_type == Editor::Selector::NAVMESH_NODE) {
+        property_panel->Append(new wxPropertyCategory(L"Navigācijas grafa punkts"));
+        property_panel->Append(new wxUIntProperty(L"X", "node-id", selection.front().node->id));
+        property_panel->Append(new wxUIntProperty(L"X", "node-next-id", selection.front().node->next_id));
+        property_panel->Append(new wxUIntProperty(L"X", "node-prev-id", selection.front().node->prev_id));
+        property_panel->Append(new wxUIntProperty(L"X", "node-left-id", selection.front().node->left_id));
+        property_panel->Append(new wxUIntProperty(L"X", "node-right-id", selection.front().node->right_id));
+        property_panel->Append(new wxFloatProperty(L"X", "node-x", selection.front().node->location.x));
+        property_panel->Append(new wxFloatProperty(L"Y", "node-y", selection.front().node->location.y));
+        property_panel->Append(new wxFloatProperty(L"Z", "node-z", selection.front().node->location.z));
+    } else if (selection.front().indirection_type == Editor::Selector::PATH) {
+        property_panel->Append(new wxPropertyCategory(L"Ceļš / sliede"));
+        property_panel->Append(new wxStringProperty(L"Nosaukums", "path-name", selection.front().path->name.data()));
+    } else if (selection.front().indirection_type == Editor::Selector::PATH_CURVE) {
+        property_panel->Append(new wxPropertyCategory(L"Ceļasliedes punkts"));
+        property_panel->Append(new wxUIntProperty(L"X", "curve-id", selection.front().curve->id));
+        property_panel->Append(new wxUIntProperty(L"X", "curve-next-id", selection.front().curve->next_id));
+        property_panel->Append(new wxUIntProperty(L"X", "curve-prev-id", selection.front().curve->prev_id));
+        property_panel->Append(new wxUIntProperty(L"X", "curve-left-id", selection.front().curve->left_id));
+        property_panel->Append(new wxUIntProperty(L"X", "curve-right-id", selection.front().curve->right_id));
+        auto point1 = property_panel->Append(new wxPropertyCategory(L"1. punkts"));
+        auto point2 = property_panel->Append(new wxPropertyCategory(L"2. punkts"));
+        auto point3 = property_panel->Append(new wxPropertyCategory(L"3. punkts"));
+        auto point4 = property_panel->Append(new wxPropertyCategory(L"4. punkts"));
+        property_panel->AppendIn(point1, new wxFloatProperty(L"X", "curve-point1-x", selection.front().curve->location1.x));
+        property_panel->AppendIn(point1, new wxFloatProperty(L"Y", "curve-point1-y", selection.front().curve->location1.y));
+        property_panel->AppendIn(point1, new wxFloatProperty(L"Z", "curve-point1-z", selection.front().curve->location1.z));
+        property_panel->AppendIn(point2, new wxFloatProperty(L"X", "curve-point2-x", selection.front().curve->location2.x));
+        property_panel->AppendIn(point2, new wxFloatProperty(L"Y", "curve-point2-y", selection.front().curve->location2.y));
+        property_panel->AppendIn(point2, new wxFloatProperty(L"Z", "curve-point2-z", selection.front().curve->location2.z));
+        property_panel->AppendIn(point3, new wxFloatProperty(L"X", "curve-point3-x", selection.front().curve->location3.x));
+        property_panel->AppendIn(point3, new wxFloatProperty(L"Y", "curve-point3-y", selection.front().curve->location3.y));
+        property_panel->AppendIn(point3, new wxFloatProperty(L"Z", "curve-point3-z", selection.front().curve->location3.z));
+        property_panel->AppendIn(point4, new wxFloatProperty(L"X", "curve-point4-x", selection.front().curve->location4.x));
+        property_panel->AppendIn(point4, new wxFloatProperty(L"Y", "curve-point4-y", selection.front().curve->location4.y));
+        property_panel->AppendIn(point4, new wxFloatProperty(L"Z", "curve-point4-z", selection.front().curve->location4.z));
     }
 }
 
@@ -1179,6 +1221,38 @@ void MainFrame::OnPropertyPanelChanged(wxPropertyGridEvent& event) {
         {"transition-point-x", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().point->location.x = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
         {"transition-point-y", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().point->location.y = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
         {"transition-point-z", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().point->location.z = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        
+        {"path-name", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().path->name = event.GetPropertyValue().GetString(); frame->RebuildWorldCellTree(); }},
+        
+        {"node-id", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().node->id = event.GetPropertyValue().GetULongLong().GetValue(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"node-next-id", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().node->next_id = event.GetPropertyValue().GetULongLong().GetValue(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"node-prev-id", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().node->prev_id = event.GetPropertyValue().GetULongLong().GetValue(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"node-left-id", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().node->left_id = event.GetPropertyValue().GetULongLong().GetValue(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"node-right-id", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().node->right_id = event.GetPropertyValue().GetULongLong().GetValue(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"node-x", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().node->location.x = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"node-y", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().node->location.y = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"node-z", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().node->location.z = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        
+        {"navmesh-name", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().navmesh->name = event.GetPropertyValue().GetString(); frame->RebuildWorldCellTree(); }},
+        
+        {"curve-id", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->id = event.GetPropertyValue().GetULongLong().GetValue(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"curve-next-id", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->next_id = event.GetPropertyValue().GetULongLong().GetValue(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"curve-prev-id", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->prev_id = event.GetPropertyValue().GetULongLong().GetValue(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"curve-left-id", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->left_id = event.GetPropertyValue().GetULongLong().GetValue(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"curve-right-id", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->right_id = event.GetPropertyValue().GetULongLong().GetValue(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"curve-point1-x", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->location1.x = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"curve-point1-y", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->location1.y = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"curve-point1-z", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->location1.z = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"curve-point2-x", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->location2.x = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"curve-point2-y", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->location2.y = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"curve-point2-z", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->location2.z = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"curve-point3-x", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->location3.x = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"curve-point3-y", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->location3.y = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"curve-point3-z", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->location3.z = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"curve-point4-x", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->location4.x = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"curve-point4-y", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->location4.y = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        {"curve-point4-z", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->location4.z = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
+        
         };
     
     using namespace Core;
