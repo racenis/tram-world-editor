@@ -27,6 +27,38 @@ namespace Editor {
                 for (auto ent : into->entities) ent->Show();
                 into->is_visible = true;
                 break;
+            case CELL_ENTITY_GROUPS:
+                for (auto gr : into->groups) for (auto ent : gr->entities) ent->Show();
+                for (auto gr : into->groups) gr->is_visible = true;
+                break;
+            case CELL_TRANSITIONS:
+                for (auto trans : into->transitions) trans->is_visible = true;
+                into->is_transitions_visible = true;
+                break;
+            case CELL_PATHS:
+                for (auto path : into->paths) path->is_visible = true;
+                into->is_paths_visible = true;
+                break;
+            case CELL_NAVMESHES:
+                for (auto navmesh : into->navmeshes) navmesh->is_visible = true;
+                into->is_navmeshes_visible = true;
+                break;
+            case ENTITY_GROUP:
+                for (auto ent : group->entities) ent->Show();
+                group->is_visible = true;
+                break;
+            case TRANSITION:
+                trans->is_visible = true;
+                break;
+            case PATH:
+                path->is_visible = true;
+                break;
+            case NAVMESH:
+                navmesh->is_visible = true;
+                break;
+            case ENTITY:
+                entity->Show();
+                break;
             default:
                 std::cout << "'Show' is not implemented for this type" << std::endl;
         }
@@ -35,9 +67,42 @@ namespace Editor {
     void WorldCellIndirector::Hide() {
         switch (indirection_type) {
             case CELL_ITSELF:
-            case CELL_ENTITIES:
                 for (auto ent : into->entities) ent->Hide();
                 into->is_visible = false;
+            case CELL_ENTITIES:
+
+                break;
+            case CELL_ENTITY_GROUPS:
+                for (auto gr : into->groups) for (auto ent : gr->entities) ent->Hide();
+                for (auto gr : into->groups) gr->is_visible = false;
+                break;
+            case CELL_TRANSITIONS:
+                for (auto trans : into->transitions) trans->is_visible = false;
+                into->is_transitions_visible = false;
+                break;
+            case CELL_PATHS:
+                for (auto path : into->paths) path->is_visible = false;
+                into->is_paths_visible = false;
+                break;
+            case CELL_NAVMESHES:
+                for (auto navmesh : into->navmeshes) navmesh->is_visible = false;
+                into->is_navmeshes_visible = false;
+                break;
+            case ENTITY_GROUP:
+                for (auto ent : group->entities) ent->Hide();
+                group->is_visible = false;
+                break;
+            case TRANSITION:
+                trans->is_visible = false;
+                break;
+            case PATH:
+                path->is_visible = false;
+                break;
+            case NAVMESH:
+                navmesh->is_visible = false;
+                break;
+            case ENTITY:
+                entity->Hide();
                 break;
             default:
                 std::cout << "'Hide' is not implemented for this type" << std::endl;
@@ -48,8 +113,30 @@ namespace Editor {
         switch (indirection_type) {
             case CELL_ITSELF:
             case CELL_ENTITIES:
+            case CELL_ENTITY_GROUPS:
                 return into->is_visible;
-                break;
+            case CELL_TRANSITIONS:
+                return into->is_transitions_visible;
+            case CELL_PATHS:
+                return into->is_paths_visible;
+            case CELL_NAVMESHES:
+                return into->is_navmeshes_visible;
+            case ENTITY_GROUP:
+                return group->is_visible;
+            case TRANSITION:
+                return trans->is_visible;
+            case PATH:
+                return path->is_visible;
+            case NAVMESH:
+                return navmesh->is_visible;
+            case ENTITY:
+                return entity->model;
+            case TRANSITION_POINT:
+                return point->parent->is_visible;
+            case PATH_CURVE:
+                return curve->parent->is_visible;
+            case NAVMESH_NODE:
+                return node->parent->is_visible;
             default:
                 std::cout << "'IsVisible' is not implemented for this type" << std::endl;
                 return false;
@@ -164,12 +251,15 @@ namespace Editor {
                 into->navmeshes.push_back(new_indirect.navmesh);
                 break;
             case ENTITY:
+                new_indirect.indirection_type = ENTITY;
+                new_indirect.entity = new Entity {.id = 0, .name = "name", .action = "none", .parent = entity->parent, .group = entity->group };
+                if (!entity->group) entity->parent->entities.push_back(new_indirect.entity);
+                if (entity->group) entity->group->entities.push_back(new_indirect.entity);
                 break;
             case ENTITY_GROUP:
                 new_indirect.indirection_type = ENTITY;
                 new_indirect.entity = new Entity {.id = 0, .name = "name", .action = "none", .parent = group->parent, .group = group };
                 group->entities.push_back(new_indirect.entity);
-                group->parent->entities.push_back(new_indirect.entity);
                 break;
             case TRANSITION:
                 new_indirect.indirection_type = TRANSITION_POINT;
@@ -210,7 +300,9 @@ namespace Editor {
 
                 break;
             case CELL_ITSELF:
-
+                worldCells.erase(std::find(worldCells.begin(), worldCells.end(), into));
+                into->is_deleted = true;
+                break;
             case CELL_ENTITIES:
                 break;
             case CELL_ENTITY_GROUPS:

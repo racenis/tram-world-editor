@@ -39,6 +39,7 @@ namespace Editor {
         Point* NewPoint();
         void DeletePoint(Point* point);
         
+        bool is_visible = false;
         std::string name;
         WorldCell* parent;
         std::vector<Point*> points;
@@ -50,7 +51,7 @@ namespace Editor {
         std::vector<Entity*> entities;
         WorldCell* parent;
         
-        
+        bool is_visible = false;
         Entity* NewEntity();
         void DeleteEntity(Entity* entity);
     };
@@ -72,6 +73,7 @@ namespace Editor {
         Curve* NewCurve();
         void DeleteCurve(Curve* curve);
         
+        bool is_visible = false;
         std::string name;
         WorldCell* parent;
         std::vector<Curve*> curves;
@@ -91,6 +93,7 @@ namespace Editor {
         
         Node* NewNode();
         void DeleteNode(Node* node);
+        bool is_visible = false;
         
         std::string name;
         WorldCell* parent;
@@ -103,6 +106,11 @@ namespace Editor {
         bool is_interior_lighting = false;
         
         bool is_visible = false;
+        bool is_deleted = false;
+        
+        bool is_transitions_visible = false;
+        bool is_paths_visible = false;
+        bool is_navmeshes_visible = false;
         std::vector<Entity*> entities;
         std::vector<Transition*> transitions;
         std::vector<EntityGroup*> groups;
@@ -156,7 +164,7 @@ namespace Editor {
         void Show();
         void Hide();
         void Begonis();
-        void Delete();
+        void Delete(); // delete should return something, just like new does
         bool IsVisible();
         bool IsNewable();
         bool IsEditable();
