@@ -562,17 +562,101 @@ namespace Editor {
     void WorldCell::Load() {
         std::ifstream file(std::string("data/") + name + ".cell");
         entities.clear();
+        groups.clear();
+        transitions.clear();
+        paths.clear();
+        navmeshes.clear();
+        EntityGroup* current_group = nullptr;
         
         if (file.is_open()) {
             std::string line;
             while (std::getline(file, line)) {
+                if (line.size() < 3) continue;
                 std::string_view str (line);
                 std::string ent_name = Core::ReverseUID(Core::SerializedEntityData::Field<Core::name_t>().FromStringAsName(str));
-                auto ent = new Entity {.id = 0, .parent = this};
-                ent->FromString(str);
-                ent->ent_data = entityDatas[ent_name]();
-                ent->ent_data->FromString(str);
-                entities.push_back(ent);
+                if (ent_name == "#") {
+                    std::string annotation_name = Core::ReverseUID(Core::SerializedEntityData::Field<Core::name_t>().FromStringAsName(str));
+                    if (annotation_name == "cell") {
+                        is_interior = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
+                        is_interior_lighting = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
+                    } else if (annotation_name == "group") {
+                        current_group = new EntityGroup;
+                        current_group->name = Core::ReverseUID(Core::SerializedEntityData::Field<Core::name_t>().FromStringAsName(str));
+                        current_group->parent = this;
+                        groups.push_back(current_group);
+                    }
+                } else if (ent_name == "transition") {
+                    Transition* trans = new Transition;
+                    trans->name = Core::ReverseUID(Core::SerializedEntityData::Field<Core::name_t>().FromStringAsName(str));
+                    trans->parent = this;
+                    uint64_t point_count = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
+                    for (uint64_t i = 0; i < point_count; i++) {
+                        Transition::Point* p = new Transition::Point;
+                        p->location.x = Core::SerializedEntityData::Field<float>().FromString(str);
+                        p->location.y = Core::SerializedEntityData::Field<float>().FromString(str);
+                        p->location.z = Core::SerializedEntityData::Field<float>().FromString(str);
+                        p->parent = trans;
+                        trans->points.push_back(p);
+                    }
+                    transitions.push_back(trans);
+                } else if (ent_name == "path") {
+                    Path* path = new Path;
+                    path->name = Core::ReverseUID(Core::SerializedEntityData::Field<Core::name_t>().FromStringAsName(str));
+                    path->parent = this;
+                    uint64_t curve_count = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
+                    for (uint64_t i = 0; i < curve_count; i++) {
+                        Path::Curve* c = new Path::Curve;
+                        c->id = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
+                        c->next_id = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
+                        c->prev_id = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
+                        c->left_id = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
+                        c->right_id = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
+                        c->location1.x = Core::SerializedEntityData::Field<float>().FromString(str);
+                        c->location1.y = Core::SerializedEntityData::Field<float>().FromString(str);
+                        c->location1.z = Core::SerializedEntityData::Field<float>().FromString(str);
+                        c->location2.x = Core::SerializedEntityData::Field<float>().FromString(str);
+                        c->location2.y = Core::SerializedEntityData::Field<float>().FromString(str);
+                        c->location2.z = Core::SerializedEntityData::Field<float>().FromString(str);
+                        c->location3.x = Core::SerializedEntityData::Field<float>().FromString(str);
+                        c->location3.y = Core::SerializedEntityData::Field<float>().FromString(str);
+                        c->location3.z = Core::SerializedEntityData::Field<float>().FromString(str);
+                        c->location4.x = Core::SerializedEntityData::Field<float>().FromString(str);
+                        c->location4.y = Core::SerializedEntityData::Field<float>().FromString(str);
+                        c->location4.z = Core::SerializedEntityData::Field<float>().FromString(str);
+                        c->parent = path;
+                        path->curves.push_back(c);
+                    }
+                    paths.push_back(path);
+                } else if (ent_name == "navmesh") {
+                    Navmesh* navmesh = new Navmesh;
+                    navmesh->name = Core::ReverseUID(Core::SerializedEntityData::Field<Core::name_t>().FromStringAsName(str));
+                    navmesh->parent = this;
+                    uint64_t node_count = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
+                    for (uint64_t i = 0; i < node_count; i++) {
+                        Navmesh::Node* n = new Navmesh::Node;
+                        n->id = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
+                        n->next_id = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
+                        n->prev_id = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
+                        n->left_id = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
+                        n->right_id = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
+                        n->location.x = Core::SerializedEntityData::Field<float>().FromString(str);
+                        n->location.y = Core::SerializedEntityData::Field<float>().FromString(str);
+                        n->location.z = Core::SerializedEntityData::Field<float>().FromString(str);
+                        n->parent = navmesh;
+                        navmesh->nodes.push_back(n);
+                    }
+                    navmeshes.push_back(navmesh);
+                } else {
+                    auto ent = new Entity {.id = 0, .parent = this, .group = current_group};
+                    ent->FromString(str);
+                    ent->ent_data = entityDatas[ent_name]();
+                    ent->ent_data->FromString(str);
+                    if (current_group) {
+                        current_group->entities.push_back(ent);
+                    } else {
+                        entities.push_back(ent);
+                    }
+                }
             }
         } else {
             std::cout << "Can't find the cell file " << name << ".cell." << std::endl;
@@ -584,13 +668,86 @@ namespace Editor {
         std::ofstream file (std::string("data/") + name + ".cell");
         
         if (file.is_open()) {
-            std::string line;
+            std::string output_line = "# cell";
+            output_line += " " + std::to_string(is_interior);
+            output_line += " " + std::to_string(is_interior_lighting);
+            file << output_line << std::endl;
+            
             for (auto ent : entities) {
                 std::string output_line = ent->ent_data->GetDataName();
                 ent->ToString(output_line);
                 if (ent->ent_data) ent->ent_data->ToString(output_line);
                 file << output_line << std::endl;
             }
+            
+            for (auto group : groups) {
+                std::string output_line = "# group ";
+                output_line += group->name;
+                file << output_line << std::endl;
+                
+                for (auto ent : group->entities) {
+                    std::string output_line = ent->ent_data->GetDataName();
+                    ent->ToString(output_line);
+                    if (ent->ent_data) ent->ent_data->ToString(output_line);
+                    file << output_line << std::endl;
+                }
+            }
+            
+            for (auto trans : transitions) {
+                std::string output_line = "transition";
+                output_line += " " + trans->name;
+                output_line += " " + std::to_string(trans->points.size());
+                for (auto point : trans->points) {
+                    output_line += " " + std::to_string(point->location.x);
+                    output_line += " " + std::to_string(point->location.y);
+                    output_line += " " + std::to_string(point->location.z);
+                } 
+                file << output_line << std::endl;
+            }
+            
+            for (auto path : paths) {
+                std::string output_line = "path";
+                output_line += " " + path->name;
+                output_line += " " + std::to_string(path->curves.size());
+                for (auto curve : path->curves) {
+                    output_line += " " + std::to_string(curve->id);
+                    output_line += " " + std::to_string(curve->next_id);
+                    output_line += " " + std::to_string(curve->prev_id);
+                    output_line += " " + std::to_string(curve->left_id);
+                    output_line += " " + std::to_string(curve->right_id);
+                    output_line += " " + std::to_string(curve->location1.x);
+                    output_line += " " + std::to_string(curve->location1.y);
+                    output_line += " " + std::to_string(curve->location1.z);
+                    output_line += " " + std::to_string(curve->location2.x);
+                    output_line += " " + std::to_string(curve->location2.y);
+                    output_line += " " + std::to_string(curve->location2.z);
+                    output_line += " " + std::to_string(curve->location3.x);
+                    output_line += " " + std::to_string(curve->location3.y);
+                    output_line += " " + std::to_string(curve->location3.z);
+                    output_line += " " + std::to_string(curve->location4.x);
+                    output_line += " " + std::to_string(curve->location4.y);
+                    output_line += " " + std::to_string(curve->location4.z);
+                }
+                file << output_line << std::endl;
+            }
+            
+            for (auto navmesh : navmeshes) {
+                std::string output_line = "navmesh";
+                output_line += " " + navmesh->name;
+                output_line += " " + std::to_string(navmesh->nodes.size());
+                for (auto node : navmesh->nodes) {
+                    output_line += " " + std::to_string(node->id);
+                    output_line += " " + std::to_string(node->next_id);
+                    output_line += " " + std::to_string(node->prev_id);
+                    output_line += " " + std::to_string(node->left_id);
+                    output_line += " " + std::to_string(node->right_id);
+                    output_line += " " + std::to_string(node->location.x);
+                    output_line += " " + std::to_string(node->location.y);
+                    output_line += " " + std::to_string(node->location.z);
+                }
+                file << output_line << std::endl;
+            }
+            
         } else {
             std::cout << "Can't write to the cell file " << name << ".cell." << std::endl;
         }

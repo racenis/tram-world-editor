@@ -899,6 +899,7 @@ void MainFrame::OnLoadCells(wxCommandEvent& event) {
         cell->Load();
         progress += progress_increment;
     }
+    BuildWorldCellTree();
     PropertyPanelRebuild();
     entity_list->RefreshAllItems();
     progress_dialog.Update(100, L"Pabeigts");
