@@ -41,6 +41,7 @@ namespace Editor {
         
         bool is_visible = false;
         std::string name;
+        std::string cell_into_name;
         WorldCell* parent;
         std::vector<Point*> points;
         Core::WorldCell::Transition* v_transition = nullptr;

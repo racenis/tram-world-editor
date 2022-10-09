@@ -23,12 +23,13 @@
         <IncludePath Value="C:\Users\Poga\Desktop\miskaste\wxwidgets\include"/>
         <IncludePath Value="C:\Users\Poga\Desktop\painis\tram-sdk\libraries"/>
         <IncludePath Value="C:\Users\Poga\Desktop\painis\tram-sdk\src"/>
+        <IncludePath Value="C:\Users\Poga\Desktop\painis\jam-game\src"/>
       </Compiler>
       <Linker Options="-mwindows;-pipe -lwxmsw31u_gl -lwxmsw31u_propgrid -lwxmsw31u_aui -lwxmsw31u_xrc -lwxmsw31u_webview -lwxmsw31u_html -lwxmsw31u_adv -lwxmsw31u_core -lwxbase31u_xml -lwxbase31u_net -lwxbase31u" Required="yes">
         <LibraryPath Value="C:\Users\Poga\Desktop\miskaste\wxwidgets\lib\gcc_dll"/>
       </Linker>
       <ResourceCompiler Options="$(shell wx-config --rcflags)" Required="no"/>
-      <General OutputFile="$(ProjectName).exe" IntermediateDirectory="" Command="$(WorkspacePath)/build-$(WorkspaceConfiguration)/bin/$(OutputFile)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="../tram-sdk" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <General OutputFile="$(ProjectName).exe" IntermediateDirectory="" Command="$(WorkspacePath)/build-$(WorkspaceConfiguration)/bin/$(OutputFile)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="../jam-game" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
       <BuildSystem Name="CodeLite Makefile Generator"/>
       <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
         <![CDATA[]]>

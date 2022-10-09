@@ -7,6 +7,8 @@
 #include <entities/crate.h>
 #include <entities/lamp.h>
 #include <entities/staticworldobject.h>
+#include <moshkis.h>
+#include <pickup.h>
 
 namespace Editor {
     std::vector<WorldCell*> worldCells;
@@ -228,6 +230,7 @@ namespace Editor {
                 new_indirect.indirection_type = ENTITY;
                 new_indirect.entity = new Entity {.id = 0, .name = "name", .action = "none", .parent = into };
                 into->entities.push_back(new_indirect.entity);
+                break;
             case CELL_ENTITIES:
                 new_indirect.indirection_type = ENTITY_GROUP;
                 new_indirect.group = new EntityGroup { .name = "name", .parent = into };
@@ -237,7 +240,7 @@ namespace Editor {
                 break;
             case CELL_TRANSITIONS:
                 new_indirect.indirection_type = TRANSITION;
-                new_indirect.trans = new Transition { .name = "name", .parent = into };
+                new_indirect.trans = new Transition { .name = "name", .cell_into_name = "none", .parent = into };
                 into->transitions.push_back(new_indirect.trans);
                 break;
             case CELL_PATHS:
@@ -502,7 +505,7 @@ namespace Editor {
         model = Core::PoolProxy<Core::RenderComponent>::New();
         model->SetModel(ent_data->GetEditorModel());
         model->SetLightmap(Core::UID("fullbright"));
-        model->SetPose(Core::Render::poseList.begin());
+        model->SetPose(Core::Render::poseList.begin().ptr);
         model->UpdateLocation(location);
         model->UpdateRotation(glm::quat(rotation));
         model->Init();
@@ -588,6 +591,7 @@ namespace Editor {
                 } else if (ent_name == "transition") {
                     Transition* trans = new Transition;
                     trans->name = Core::ReverseUID(Core::SerializedEntityData::Field<Core::name_t>().FromStringAsName(str));
+                    trans->cell_into_name = Core::ReverseUID(Core::SerializedEntityData::Field<Core::name_t>().FromStringAsName(str));
                     trans->parent = this;
                     uint64_t point_count = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
                     for (uint64_t i = 0; i < point_count; i++) {
@@ -696,6 +700,7 @@ namespace Editor {
             for (auto trans : transitions) {
                 std::string output_line = "transition";
                 output_line += " " + trans->name;
+                output_line += " " + trans->cell_into_name;
                 output_line += " " + std::to_string(trans->points.size());
                 for (auto point : trans->points) {
                     output_line += " " + std::to_string(point->location.x);
@@ -774,6 +779,8 @@ namespace Editor {
         entityDatas[(new Core::Crate::Data)->GetDataName()] = []() -> Core::SerializedEntityData* { auto d = new Core::Crate::Data; d->collmodel = 0; d->model = 0; return d; };
         entityDatas[(new Core::Lamp::Data)->GetDataName()] = []() -> Core::SerializedEntityData* { auto d = new Core::Lamp::Data; return d; };
         entityDatas[(new Core::StaticWorldObject::Data)->GetDataName()] = []() -> Core::SerializedEntityData* { auto d = new Core::StaticWorldObject::Data; d->lightmap = 0; d->model = 0; return d; };
+        entityDatas[(new Core::Moshkis::Data)->GetDataName()] = []() -> Core::SerializedEntityData* { auto d = new Core::Moshkis::Data; return d; };
+        entityDatas[(new Core::Pickup::Data)->GetDataName()] = []() -> Core::SerializedEntityData* { auto d = new Core::Pickup::Data; return d; };
         
         //entityDatasSorted.push_back(std::pair(Core::Crate::data_name, []() -> Core::SerializedEntityData* { auto d = new Core::Crate::Data; d->collmodel = 0; d->model = 0; return d; }));
         //entityDatasSorted.push_back(std::pair(Core::StaticWorldObject::data_name, []() -> Core::SerializedEntityData* { auto d = new Core::StaticWorldObject::Data; d->lightmap = 0; d->model = 0; return d; }));

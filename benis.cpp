@@ -1,7 +1,7 @@
+#define ENGINE_EDITOR_MODE
 #include <core.cpp>
 #include <async.cpp>
-#include <worldcell.cpp>
-#include <entity.cpp>
+#include <entities/entity.cpp>
 
 #include <render/armature.cpp>
 #include <render/armaturecomponent.cpp>

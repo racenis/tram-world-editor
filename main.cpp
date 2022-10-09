@@ -15,7 +15,7 @@
 #include <wx/glcanvas.h>
 #include <core.h>
 #include <async.h>
-#include <render.h>
+#include <render/render.h>
 
 #include <components/rendercomponent.h>
 
@@ -206,17 +206,17 @@ Viewport::Viewport(wxWindow* parent, wxWindowID id,
     Material::LoadMaterialInfo("data/texture.list");
     
     // transition for the demo level
-    auto demo_trans = PoolProxy<WorldCell::Transition>::New();
-    demo_trans->AddPoint(glm::vec3(-5.0f, 0.0f, -5.0f));
-    demo_trans->AddPoint(glm::vec3(5.0f, 0.0f, -5.0f));
-    demo_trans->AddPoint(glm::vec3(-5.0f, 0.0f, 5.0f));
-    demo_trans->AddPoint(glm::vec3(5.0f, 0.0f, 5.0f));
-    demo_trans->AddPoint(glm::vec3(-5.0f, 5.0f, -5.0f));
-    demo_trans->AddPoint(glm::vec3(5.0f, 5.0f, -5.0f));
-    demo_trans->AddPoint(glm::vec3(-5.0f, 5.0f, 5.0f));
-    demo_trans->AddPoint(glm::vec3(5.0f, 5.0f, 5.0f));
+    //auto demo_trans = PoolProxy<WorldCell::Transition>::New();
+    //demo_trans->AddPoint(glm::vec3(-5.0f, 0.0f, -5.0f));
+    //demo_trans->AddPoint(glm::vec3(5.0f, 0.0f, -5.0f));
+    //demo_trans->AddPoint(glm::vec3(-5.0f, 0.0f, 5.0f));
+    //demo_trans->AddPoint(glm::vec3(5.0f, 0.0f, 5.0f));
+    //demo_trans->AddPoint(glm::vec3(-5.0f, 5.0f, -5.0f));
+    //demo_trans->AddPoint(glm::vec3(5.0f, 5.0f, -5.0f));
+    //demo_trans->AddPoint(glm::vec3(-5.0f, 5.0f, 5.0f));
+    //demo_trans->AddPoint(glm::vec3(5.0f, 5.0f, 5.0f));
     
-    demo_trans->GeneratePlanes();
+    //demo_trans->GeneratePlanes();
     
     // create the mongus model
     //monguser = PoolProxy<RenderComponent>::New();
@@ -268,9 +268,19 @@ void Viewport::OnRightClick(wxMouseEvent& event) {
         entity_operation = 0;
         entity_axis = 0;
         move_mode = true;
-        parent_frame->selection.front().entity->location = location_restore;
-        parent_frame->selection.front().entity->rotation = rotation_restore;
-        parent_frame->selection.front().entity->ModelUpdate();
+        // add more stuff
+        if (parent_frame->selection.front().indirection_type == Editor::Selector::ENTITY) {
+            parent_frame->selection.front().entity->location = location_restore;
+            parent_frame->selection.front().entity->rotation = rotation_restore;
+            parent_frame->selection.front().entity->ModelUpdate();
+        } else if (parent_frame->selection.front().indirection_type == Editor::Selector::TRANSITION_POINT) {
+            parent_frame->selection.front().point->location = location_restore;
+        } else if (parent_frame->selection.front().indirection_type == Editor::Selector::PATH_CURVE) {
+            parent_frame->selection.front().curve->location1 = location_restore;
+        } else if (parent_frame->selection.front().indirection_type == Editor::Selector::NAVMESH_NODE) {
+            parent_frame->selection.front().node->location = location_restore;
+        }
+
         ReleaseMouse();
         Refresh();
     }
@@ -290,8 +300,8 @@ void Viewport::OnMouseMove(wxMouseEvent& event) {
         
         Refresh();
     } else if (mouse_captured) {
-        auto selected_entity = parent_frame->selection.front().entity;
-        if (entity_operation && entity_axis && selected_entity) {
+        if (entity_operation && entity_axis && parent_frame->selection.front().indirection_type == Editor::Selector::ENTITY) {
+            auto selected_entity = parent_frame->selection.front().entity;
             float delta_x = cursor_x - event.GetX();
             float delta_y = cursor_y - event.GetY();
             float new_val = ((delta_x + delta_y) * 0.01f) + transf_val;
@@ -301,12 +311,12 @@ void Viewport::OnMouseMove(wxMouseEvent& event) {
             
             if (entity_operation == 'G') {
                 if (entity_axis == 'X') transform_location = glm::vec3(1.0f, 0.0f, 0.0f) * new_val;
-                if (entity_axis == 'Y') transform_location = glm::vec3(0.0f, 0.0f, 1.0f) * new_val;
-                if (entity_axis == 'Z') transform_location = glm::vec3(0.0f, 1.0f, 0.0f) * new_val;
+                if (entity_axis == 'Y') transform_location = glm::vec3(0.0f, 1.0f, 0.0f) * new_val;
+                if (entity_axis == 'Z') transform_location = glm::vec3(0.0f, 0.0f, 1.0f) * new_val;
             } else {
                 if (entity_axis == 'X') transform_rotation = glm::vec3(1.0f, 0.0f, 0.0f) * new_val;
-                if (entity_axis == 'Y') transform_rotation = glm::vec3(0.0f, 0.0f, 1.0f) * new_val;
-                if (entity_axis == 'Z') transform_rotation = glm::vec3(0.0f, 1.0f, 0.0f) * new_val;
+                if (entity_axis == 'Y') transform_rotation = glm::vec3(0.0f, 1.0f, 0.0f) * new_val;
+                if (entity_axis == 'Z') transform_rotation = glm::vec3(0.0f, 0.0f, 1.0f) * new_val;
             }
             
             if (space_world) {
@@ -320,6 +330,33 @@ void Viewport::OnMouseMove(wxMouseEvent& event) {
             }
             
             selected_entity->ModelUpdate();
+            Refresh();
+        } else if (entity_operation && entity_axis) {
+            glm::vec3* location;
+            if (parent_frame->selection.front().indirection_type == Editor::Selector::TRANSITION_POINT) {
+                location = &parent_frame->selection.front().point->location;
+            } else if (parent_frame->selection.front().indirection_type == Editor::Selector::PATH_CURVE) {
+                location = &parent_frame->selection.front().curve->location1;
+            } else if (parent_frame->selection.front().indirection_type == Editor::Selector::NAVMESH_NODE) {
+                location = &parent_frame->selection.front().node->location;
+            } else {
+                return;
+            }
+            
+            float delta_x = cursor_x - event.GetX();
+            float delta_y = cursor_y - event.GetY();
+            float new_val = ((delta_x + delta_y) * 0.01f) + transf_val;
+            
+            glm::vec3 transform_location = glm::vec3(0.0f);
+            
+            if (entity_operation == 'G') {
+                if (entity_axis == 'X') transform_location = glm::vec3(1.0f, 0.0f, 0.0f) * new_val;
+                if (entity_axis == 'Y') transform_location = glm::vec3(0.0f, 1.0f, 0.0f) * new_val;
+                if (entity_axis == 'Z') transform_location = glm::vec3(0.0f, 0.0f, 1.0f) * new_val;
+            }
+            
+            *location = location_restore + transform_location;
+
             Refresh();
         }
     }
@@ -359,7 +396,6 @@ void Viewport::OnKeydown(wxKeyEvent& event) {
     if (parent_frame->selection.front().indirection_type == Editor::Selector::ENTITY) {
         auto selected_entity = parent_frame->selection.front().entity;
         if (is_operation || is_axis) {            
-            //std::cout << "is_op " << is_operation << " is_axis " << is_axis << " keycode " << (char)keycode << std::endl;
             if (entity_operation && entity_axis) {
                  selected_entity->location = location_restore;
                  selected_entity->rotation = rotation_restore;
@@ -376,7 +412,6 @@ void Viewport::OnKeydown(wxKeyEvent& event) {
             location_restore = selected_entity->location;
             rotation_restore = selected_entity->rotation;
             
-            
             move_mode = false;
             cursor_x = event.GetX();
             cursor_y = event.GetY();
@@ -386,6 +421,41 @@ void Viewport::OnKeydown(wxKeyEvent& event) {
                 CaptureMouse();
             }
         }
+    } else {
+         if (is_operation || is_axis) {
+            glm::vec3* location;
+
+            if (parent_frame->selection.front().indirection_type == Editor::Selector::TRANSITION_POINT) {
+                location = &parent_frame->selection.front().point->location;
+            } else if (parent_frame->selection.front().indirection_type == Editor::Selector::PATH_CURVE) {
+                location = &parent_frame->selection.front().curve->location1;
+            } else if (parent_frame->selection.front().indirection_type == Editor::Selector::NAVMESH_NODE) {
+                location = &parent_frame->selection.front().node->location;
+            } else {
+                return;
+            }
+
+            if (entity_operation && entity_axis) {
+                *location = location_restore;
+            }
+            
+            if (is_operation) {
+                entity_operation = keycode;
+            } else {
+                entity_axis = keycode;
+            }
+             
+            location_restore = *location;    
+
+            move_mode = false;
+            cursor_x = event.GetX();
+            cursor_y = event.GetY();
+
+            if (!mouse_captured) {
+                mouse_captured = true;
+                CaptureMouse();
+            }
+         }
     }
 }
 
@@ -451,16 +521,27 @@ void Viewport::OnPaint(wxPaintEvent& event)
     if (parent_frame->selection.size() > 0 && parent_frame->selection.front().indirection_type == Editor::Selector::ENTITY) {
         auto& ent = *parent_frame->selection.front().entity;
         AddLine(ent.location, ent.location + space * glm::vec3(1.0f, 0.0f, 0.0f), COLOR_RED);
-        AddLine(ent.location, ent.location + space * glm::vec3(0.0f, 0.0f, 1.0f), COLOR_GREEN);
-        AddLine(ent.location, ent.location + space * glm::vec3(0.0f, 1.0f, 0.0f), COLOR_BLUE);
-        
+        AddLine(ent.location, ent.location + space * glm::vec3(0.0f, 1.0f, 0.0f), COLOR_GREEN);
+        AddLine(ent.location, ent.location + space * glm::vec3(0.0f, 0.0f, 1.0f), COLOR_BLUE);
+    } else if (parent_frame->selection.size() > 0) {
+        glm::vec3 gizmo_location;
+        if (parent_frame->selection.front().indirection_type == Editor::Selector::TRANSITION_POINT) gizmo_location = parent_frame->selection.front().point->location;
+        if (parent_frame->selection.front().indirection_type == Editor::Selector::NAVMESH_NODE) gizmo_location = parent_frame->selection.front().node->location;
+        if (parent_frame->selection.front().indirection_type == Editor::Selector::PATH_CURVE) gizmo_location = parent_frame->selection.front().curve->location1;
+        AddLine(gizmo_location, gizmo_location + glm::vec3(1.0f, 0.0f, 0.0f), COLOR_RED);
+        AddLine(gizmo_location, gizmo_location + glm::vec3(0.0f, 1.0f, 0.0f), COLOR_GREEN);
+        AddLine(gizmo_location, gizmo_location + glm::vec3(0.0f, 0.0f, 1.0f), COLOR_BLUE);
     }
     
     if (entity_axis) {
-        auto& ent = *parent_frame->selection.front().entity;
-        if (entity_axis == 'X') AddLine(ent.location - space * glm::vec3(100.0f, 0.0f, 0.0f), ent.location + space * glm::vec3(100.0f, 0.0f, 0.0f), COLOR_RED);
-        if (entity_axis == 'Y') AddLine(ent.location - space * glm::vec3(0.0f, 0.0f, 100.0f), ent.location + space * glm::vec3(0.0f, 0.0f, 100.0f), COLOR_GREEN);
-        if (entity_axis == 'Z') AddLine(ent.location - space * glm::vec3(0.0f, 100.0f, 0.0f), ent.location + space * glm::vec3(0.0f, 100.0f, 0.0f), COLOR_BLUE);
+        glm::vec3 axis_location;
+        if (parent_frame->selection.front().indirection_type == Editor::Selector::TRANSITION_POINT) axis_location = parent_frame->selection.front().point->location;
+        if (parent_frame->selection.front().indirection_type == Editor::Selector::NAVMESH_NODE) axis_location = parent_frame->selection.front().node->location;
+        if (parent_frame->selection.front().indirection_type == Editor::Selector::PATH_CURVE) axis_location = parent_frame->selection.front().curve->location1;
+        if (parent_frame->selection.front().indirection_type == Editor::Selector::ENTITY) axis_location = parent_frame->selection.front().entity->location;
+        if (entity_axis == 'X') AddLine(axis_location - space * glm::vec3(100.0f, 0.0f, 0.0f), axis_location + space * glm::vec3(100.0f, 0.0f, 0.0f), COLOR_RED);
+        if (entity_axis == 'Y') AddLine(axis_location - space * glm::vec3(0.0f, 100.0f, 0.0f), axis_location + space * glm::vec3(0.0f, 100.0f, 0.0f), COLOR_GREEN);
+        if (entity_axis == 'Z') AddLine(axis_location - space * glm::vec3(0.0f, 0.0f, 100.0f), axis_location + space * glm::vec3(0.0f, 0.0f, 100.0f), COLOR_BLUE);
     }
     
     for (auto cell : Editor::worldCells) {
@@ -1151,6 +1232,7 @@ void MainFrame::PropertyPanelRebuild() {
         auto trans_props = property_panel->Append(new wxPropertyCategory(L"Šūnas pāreja"));
         trans_props->ChangeFlag(wxPG_PROP_COLLAPSED, property_collapsed[std::string(trans_props->GetName())]);
         property_panel->Append(new wxStringProperty(L"Nosaukums", "transition-name", selection.front().trans->name.data()));
+        property_panel->Append(new wxStringProperty(L"Pāreja uz", "transition-into", selection.front().trans->cell_into_name.data()));
     } else if (selection.front().indirection_type == Editor::Selector::TRANSITION_POINT) {
         auto point_props = property_panel->Append(new wxPropertyCategory(L"Šūnas punkts"));
         point_props->ChangeFlag(wxPG_PROP_COLLAPSED, property_collapsed[std::string(point_props->GetName())]);
@@ -1230,6 +1312,7 @@ void MainFrame::OnPropertyPanelChanged(wxPropertyGridEvent& event) {
         {"entity-group-name", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().group->name = event.GetPropertyValue().GetString(); frame->RebuildWorldCellTree(); }},
         
         {"transition-name", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().trans->name = event.GetPropertyValue().GetString(); frame->RebuildWorldCellTree(); }},
+        {"transition-into", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().trans->cell_into_name = event.GetPropertyValue().GetString(); }},
         
         {"transition-point-x", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().point->location.x = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
         {"transition-point-y", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().point->location.y = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
