@@ -11,8 +11,11 @@
 #include <pickup.h>
 
 namespace Editor {
+    
+    std::list<std::shared_ptr<Object>> selection;
+    std::list<std::shared_ptr<WorldCell>> worldcells;
+    /*
     std::vector<WorldCell*> worldCells;
-    //std::vector<std::pair<std::string, Core::SerializedEntityData* (*)(void)>> entityDatasSorted;
     std::unordered_map<std::string, Core::SerializedEntityData* (*)(void)> entityDatas;
     
     void BENIS () {
@@ -756,46 +759,33 @@ namespace Editor {
         } else {
             std::cout << "Can't write to the cell file " << name << ".cell." << std::endl;
         }
-    }
+    }*/
     
     void Init(){
         Core::Init();
-        //auto cell1 = new WorldCell{"chongon"};
-        //auto cell2 = new WorldCell{"benigon"};
-        //auto cell3 = new WorldCell{"dongon"};
-        //auto cell4 = new WorldCell{"dingodongo"};
         
-        //worldCells.push_back(cell1);
-        //worldCells.push_back(cell2);
-        //worldCells.push_back(cell3);
-        //worldCells.push_back(cell4);
         
-        //cell1->entities.push_back(new Entity{0, "benis"});
-        //cell1->entities.push_back(new Entity{4, "impressive"});
-        //cell1->entities.push_back(new Entity{5, "nice"});
+        std::shared_ptr<WorldCell> wcell1 = std::make_shared<WorldCell>();
         
-        //cell2->entities.push_back(new Entity{1, "benisoner"});
+        worldcells.push_back(wcell1);
         
+/*
         entityDatas[(new Core::Crate::Data)->GetDataName()] = []() -> Core::SerializedEntityData* { auto d = new Core::Crate::Data; d->collmodel = 0; d->model = 0; return d; };
         entityDatas[(new Core::Lamp::Data)->GetDataName()] = []() -> Core::SerializedEntityData* { auto d = new Core::Lamp::Data; return d; };
         entityDatas[(new Core::StaticWorldObject::Data)->GetDataName()] = []() -> Core::SerializedEntityData* { auto d = new Core::StaticWorldObject::Data; d->lightmap = 0; d->model = 0; return d; };
         entityDatas[(new Core::Moshkis::Data)->GetDataName()] = []() -> Core::SerializedEntityData* { auto d = new Core::Moshkis::Data; return d; };
         entityDatas[(new Core::Pickup::Data)->GetDataName()] = []() -> Core::SerializedEntityData* { auto d = new Core::Pickup::Data; return d; };
         
-        //entityDatasSorted.push_back(std::pair(Core::Crate::data_name, []() -> Core::SerializedEntityData* { auto d = new Core::Crate::Data; d->collmodel = 0; d->model = 0; return d; }));
-        //entityDatasSorted.push_back(std::pair(Core::StaticWorldObject::data_name, []() -> Core::SerializedEntityData* { auto d = new Core::StaticWorldObject::Data; d->lightmap = 0; d->model = 0; return d; }));
-        
         std::ifstream file("data/editor_data.txt");
         
         if (file.is_open()) {
             std::string line;
             while (std::getline(file, line)) {
-                //std::string_view str (line);
-                //std::string ent_name = Core::ReverseUID(Core::SerializedEntityData::Field<Core::name_t>().FromStringAsName(str));
+
                 worldCells.push_back(new WorldCell {line});
             }
         } else {
             std::cout << "Can't find the editor config file." << std::endl;
-        }
+        }*/
     }
 }

@@ -1,8 +1,10 @@
 #ifndef EDITOR_H
 #define EDITOR_H
 
+#include <list>
 #include <string>
 #include <vector>
+#include <memory>
 #include <unordered_map>
 #include <serializeddata.h>
 
@@ -11,7 +13,135 @@ namespace Core {
 }
 
 namespace Editor {
-    struct WorldCell;
+    typedef void* worldTreeID_t;
+    void Init();
+    void Yeet();
+
+    class Action {
+    public:
+        virtual void Perform() = 0;
+        virtual void Unperform() = 0;
+    };
+    
+    class Object {
+    public:
+        bool hidden = true;
+        std::shared_ptr<Object> parent;
+        
+        virtual std::list<std::shared_ptr<Object>> GetChildren() { printf("GetChildren() not implemented\n"); abort(); }
+        virtual std::string_view GetName() { printf("GetName() not implemented\n"); abort(); }
+    };
+    
+    extern std::list<std::shared_ptr<Object>> selection;
+}
+
+namespace Editor {
+    class Entity : public Object {
+    public:
+        
+    };
+    
+    class EntityGroup : public Object {
+    public:
+        EntityGroup(std::string name) : name(name) {}
+        std::string name;
+        std::list<std::shared_ptr<Entity>> entities;
+    };
+
+    class Transition : public Object {
+    public:
+        class Node : public Object {
+            glm::vec3 location;
+            Transition* parent;
+        };
+
+        std::string name;
+        std::string cell_into_name;
+        std::list<std::shared_ptr<Node>> nodes;
+    };
+
+    class Path : public Object {
+        class Node : public Object {
+            uint64_t id;
+            uint64_t next_id;
+            uint64_t prev_id;
+            uint64_t left_id;
+            uint64_t right_id;
+            glm::vec3 location1;
+            glm::vec3 location2;
+            glm::vec3 location3;
+            glm::vec3 location4;
+        };
+
+        std::string name;
+        std::list<std::shared_ptr<Node>> nodes;
+    };
+
+    class Navmesh : public Object {
+        class Node : public Object {
+            uint64_t id;
+            uint64_t next_id;
+            uint64_t prev_id;
+            uint64_t left_id;
+            uint64_t right_id;
+            glm::vec3 location;
+            Navmesh* parent;
+        };
+
+        std::string name;
+        std::list<std::shared_ptr<Node>> nodes;
+    };
+
+
+
+    class EntityGroupManager : public Object {
+    public:
+        EntityGroupManager() {
+            auto default_group = std::make_shared<EntityGroup>("[default]");
+            groups.push_back(default_group);
+        }
+        
+        std::list<std::shared_ptr<Object>> GetChildren() { return std::list<std::shared_ptr<Object>>(groups.begin(), groups.end()); }
+        std::string_view GetName() { return "Entities"; }
+    
+        std::list<std::shared_ptr<EntityGroup>> groups;
+    };
+
+    class WorldCell : public Object {
+    public:
+        std::shared_ptr<EntityGroupManager> group_manager;
+        WorldCell() : group_manager(std::make_shared<EntityGroupManager>()) {}
+        
+        std::list<std::shared_ptr<Object>> GetChildren() { return std::list<std::shared_ptr<Object>> { group_manager }; }
+        std::string_view GetName() { return name; }
+        
+        std::string name = "untitled worldcell";
+    };
+    
+    extern std::list<std::shared_ptr<WorldCell>> worldcells;
+}
+
+
+namespace Editor {
+    namespace WorldTree {
+        worldTreeID_t Add();
+        void Remove(worldTreeID_t id);
+        void Rename (worldTreeID_t id, std::string new_name);
+        void Rebuild();
+    }
+    
+    namespace PropertyPanel {
+        
+    }
+    
+    namespace ObjectList {
+        
+        
+    }
+    
+    
+    
+    /*struct WorldCell;
     struct EntityGroup;
     struct Entity {
         uint64_t id;
@@ -179,13 +309,7 @@ namespace Editor {
     WorldCell* NewWorldCell();
     
     extern std::vector<WorldCell*> worldCells;
-    extern std::unordered_map<std::string, Core::SerializedEntityData* (*)(void)> entityDatas;
-    //extern std::vector<std::pair<std::string, Core::SerializedEntityData* (*)(void)>> entityDatasSorted;
-    
-    
-    
-    void Init();
-    
+    extern std::unordered_map<std::string, Core::SerializedEntityData* (*)(void)> entityDatas;*/
 }
 
 #endif // EDITOR_H
