@@ -13,7 +13,7 @@
 namespace Editor {
     
     std::list<std::shared_ptr<Object>> selection;
-    std::list<std::shared_ptr<WorldCell>> worldcells;
+    WorldCellManager* worldcells = nullptr;
     /*
     std::vector<WorldCell*> worldCells;
     std::unordered_map<std::string, Core::SerializedEntityData* (*)(void)> entityDatas;
@@ -761,13 +761,25 @@ namespace Editor {
         }
     }*/
     
+    
+    void ProduceTestData() {
+        std::cout << "Creating some test data..." << std::endl;
+        try {
+            std::shared_ptr<WorldCell> wcell1 = std::make_shared<WorldCell>();
+            worldcells->cells.push_back(wcell1);
+            
+            std::cout << "Finished creating some test data!" << std::endl;
+        } catch (const std::exception& e) {
+            std::cout << "Exception occured while creating some test data: \n" << e.what() << std::endl;
+        } catch (...) {
+            std::cout << "Unknown exception occured while creating some test data!";
+        }
+    }
+    
     void Init(){
         Core::Init();
         
-        
-        std::shared_ptr<WorldCell> wcell1 = std::make_shared<WorldCell>();
-        
-        worldcells.push_back(wcell1);
+        worldcells = new WorldCellManager (nullptr);
         
 /*
         entityDatas[(new Core::Crate::Data)->GetDataName()] = []() -> Core::SerializedEntityData* { auto d = new Core::Crate::Data; d->collmodel = 0; d->model = 0; return d; };

@@ -16,6 +16,7 @@ namespace Editor {
     typedef void* worldTreeID_t;
     void Init();
     void Yeet();
+    void ProduceTestData();
 
     class Action {
     public:
@@ -25,8 +26,11 @@ namespace Editor {
     
     class Object {
     public:
+        Object() {}
+        Object(Object* parent) : parent(parent) {}
+    
         bool hidden = true;
-        std::shared_ptr<Object> parent;
+        Object* parent = nullptr;
         
         virtual std::list<std::shared_ptr<Object>> GetChildren() { printf("GetChildren() not implemented\n"); abort(); }
         virtual std::string_view GetName() { printf("GetName() not implemented\n"); abort(); }
@@ -43,9 +47,12 @@ namespace Editor {
     
     class EntityGroup : public Object {
     public:
-        EntityGroup(std::string name) : name(name) {}
+        EntityGroup(Object* parent, std::string name) : Object(parent), name(name) {}
         std::string name;
         std::list<std::shared_ptr<Entity>> entities;
+        
+        std::list<std::shared_ptr<Object>> GetChildren() { return std::list<std::shared_ptr<Object>>(); }
+        std::string_view GetName() { return name; }
     };
 
     class Transition : public Object {
@@ -96,8 +103,8 @@ namespace Editor {
 
     class EntityGroupManager : public Object {
     public:
-        EntityGroupManager() {
-            auto default_group = std::make_shared<EntityGroup>("[default]");
+        EntityGroupManager(Object* parent) : Object(parent) {
+            auto default_group = std::make_shared<EntityGroup>(this, "[default]");
             groups.push_back(default_group);
         }
         
@@ -110,7 +117,7 @@ namespace Editor {
     class WorldCell : public Object {
     public:
         std::shared_ptr<EntityGroupManager> group_manager;
-        WorldCell() : group_manager(std::make_shared<EntityGroupManager>()) {}
+        WorldCell() : Object(nullptr), group_manager(std::make_shared<EntityGroupManager>(this)) { }
         
         std::list<std::shared_ptr<Object>> GetChildren() { return std::list<std::shared_ptr<Object>> { group_manager }; }
         std::string_view GetName() { return name; }
@@ -118,15 +125,25 @@ namespace Editor {
         std::string name = "untitled worldcell";
     };
     
-    extern std::list<std::shared_ptr<WorldCell>> worldcells;
+    class WorldCellManager : public Object {
+    public:
+        WorldCellManager(Object* parent) {}
+        
+        std::list<std::shared_ptr<Object>> GetChildren() { return std::list<std::shared_ptr<Object>>(cells.begin(), cells.end()); }
+        std::string_view GetName() { return "Pasaule"; }
+    
+        std::list<std::shared_ptr<WorldCell>> cells;
+    };
+    
+    extern WorldCellManager* worldcells;
 }
 
 
 namespace Editor {
     namespace WorldTree {
-        worldTreeID_t Add();
-        void Remove(worldTreeID_t id);
-        void Rename (worldTreeID_t id, std::string new_name);
+        void Add (Object* object);
+        void Remove (Object* object);
+        void Rename (Object* object);
         void Rebuild();
     }
     

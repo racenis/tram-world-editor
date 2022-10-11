@@ -18,10 +18,10 @@ class Viewport;
 // and only one instance of each widget. that means that we can just declare
 // them as globals, as to make programming easier. this app is so small
 // that it will not be a problem
-MainFrame* main_frame = nullptr;
-wxTreeCtrl* world_tree = nullptr;
-EntityList* entity_list = nullptr;
-wxPropertyGrid* property_panel = nullptr;
+extern MainFrame* main_frame;
+extern wxTreeCtrl* world_tree;
+extern EntityList* entity_list;
+extern wxPropertyGrid* property_panel;
 
 // this is the main window class of the app
 class MainFrame : public wxFrame {

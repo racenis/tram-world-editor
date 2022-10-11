@@ -2,28 +2,47 @@
 #include <widgets.h>
 
 namespace Editor::WorldTree {
-    std::unordered_map<worldTreeID_t, std::shared_ptr<Object>> obj_to_treeId;
-    std::unordered_map<std::shared_ptr<Object>, worldTreeID_t> treeId_to_obj;
+    std::unordered_map<worldTreeID_t, Object*> treeId_to_obj;
+    std::unordered_map<Object*, worldTreeID_t> obj_to_treeId;
+    wxTreeItemId root_node;
     
-    
-    worldTreeID_t Add() {
+    // TODO: I think that we should actually recursively add all of the object's children as well
+    void Add (Object* object) {
+        assert(world_tree);
         
+        auto node_to_parent_to = object->parent ? wxTreeItemId(obj_to_treeId[object->parent]) : root_node;
+        auto new_node = world_tree->AppendItem(node_to_parent_to, std::string(object->GetName()));
+        
+        obj_to_treeId[object] = new_node.GetID();
+        treeId_to_obj[new_node.GetID()] = object;
     }
     
-    void Remove(worldTreeID_t id) {
-        
+    void Remove (Object* object) {
+        world_tree->Delete(obj_to_treeId[object]);
     }
     
-    void Rename (worldTreeID_t id, std::string new_name) {
+    void Rename (Object* object) {
+        world_tree->SetItemText(obj_to_treeId[object], std::string(object->GetName()));
+    }
+    
+    void AddChildren (wxTreeItemId parent_tree_node, Object* object) {
+        auto tree_node = world_tree->AppendItem(parent_tree_node, std::string(object->GetName()));
         
+        obj_to_treeId[object] = tree_node.GetID();
+        treeId_to_obj[tree_node.GetID()] = object;
+        
+        auto childrens = object->GetChildren();
+        if (childrens.size()) {
+            for (auto child : childrens) AddChildren(tree_node, child.get());
+        }
     }
     
     void Rebuild() {
         world_tree->DeleteAllItems();
-        auto root = world_tree->AddRoot(wxString("Pasaule"));
+        root_node = world_tree->AddRoot(std::string(worldcells->GetName()));
         
-        for (auto cell : worldcells) {
-            
+        for (auto cell : worldcells->cells) {
+            AddChildren(root_node, cell.get());
         }
     }
 }

@@ -3,7 +3,10 @@
 
 #include <widgets.h>
 
-
+MainFrame* main_frame = nullptr;
+wxTreeCtrl* world_tree = nullptr;
+EntityList* entity_list = nullptr;
+wxPropertyGrid* property_panel = nullptr;
 
 #include <editor.h>
 
@@ -694,6 +697,10 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā progra
     flags = flags | wxAUI_MGR_RECTANGLE_HINT;
     m_mgr.SetFlags(flags);
     m_mgr.Update();
+    
+    // --- PANEL INITS ---
+    Editor::ProduceTestData();
+    Editor::WorldTree::Rebuild();
 }
 
 void MainFrame::OnExit(wxCommandEvent& event)

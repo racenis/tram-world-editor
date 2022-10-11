@@ -14,7 +14,7 @@ CurrentFileName        :=
 CurrentFilePath        :=
 CurrentFileFullPath    :=
 User                   :=Poga
-Date                   :=10/10/2022
+Date                   :=11/10/2022
 CodeLitePath           :="C:/Program Files/CodeLite"
 MakeDirCommand         :=mkdir
 LinkerName             :=C:/mingw64/bin/g++.exe
@@ -66,7 +66,7 @@ AS       := C:/mingw64/bin/as.exe
 CodeLiteDir:=C:\Program Files\CodeLite
 WXWIN:=C:\Users\Poga\Desktop\miskaste\wxwidgets
 WXCFG:=gcc_dll\mswu
-Objects0=$(IntermediateDirectory)/worldtree.cpp$(ObjectSuffix) $(IntermediateDirectory)/main.cpp$(ObjectSuffix) $(IntermediateDirectory)/editor.cpp$(ObjectSuffix) $(IntermediateDirectory)/benis.cpp$(ObjectSuffix) 
+Objects0=$(IntermediateDirectory)/main.cpp$(ObjectSuffix) $(IntermediateDirectory)/benis.cpp$(ObjectSuffix) $(IntermediateDirectory)/editor.cpp$(ObjectSuffix) $(IntermediateDirectory)/worldtree.cpp$(ObjectSuffix) 
 
 
 
@@ -97,14 +97,6 @@ PreBuild:
 ##
 ## Objects
 ##
-$(IntermediateDirectory)/worldtree.cpp$(ObjectSuffix): worldtree.cpp $(IntermediateDirectory)/worldtree.cpp$(DependSuffix)
-	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/worldtree.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/worldtree.cpp$(ObjectSuffix) $(IncludePath)
-$(IntermediateDirectory)/worldtree.cpp$(DependSuffix): worldtree.cpp
-	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/worldtree.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/worldtree.cpp$(DependSuffix) -MM worldtree.cpp
-
-$(IntermediateDirectory)/worldtree.cpp$(PreprocessSuffix): worldtree.cpp
-	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/worldtree.cpp$(PreprocessSuffix) worldtree.cpp
-
 $(IntermediateDirectory)/main.cpp$(ObjectSuffix): main.cpp $(IntermediateDirectory)/main.cpp$(DependSuffix)
 	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/main.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/main.cpp$(ObjectSuffix) $(IncludePath)
 $(IntermediateDirectory)/main.cpp$(DependSuffix): main.cpp
@@ -112,6 +104,14 @@ $(IntermediateDirectory)/main.cpp$(DependSuffix): main.cpp
 
 $(IntermediateDirectory)/main.cpp$(PreprocessSuffix): main.cpp
 	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/main.cpp$(PreprocessSuffix) main.cpp
+
+$(IntermediateDirectory)/benis.cpp$(ObjectSuffix): benis.cpp $(IntermediateDirectory)/benis.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/benis.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/benis.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/benis.cpp$(DependSuffix): benis.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/benis.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/benis.cpp$(DependSuffix) -MM benis.cpp
+
+$(IntermediateDirectory)/benis.cpp$(PreprocessSuffix): benis.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/benis.cpp$(PreprocessSuffix) benis.cpp
 
 $(IntermediateDirectory)/editor.cpp$(ObjectSuffix): editor.cpp $(IntermediateDirectory)/editor.cpp$(DependSuffix)
 	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/editor.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/editor.cpp$(ObjectSuffix) $(IncludePath)
@@ -121,13 +121,13 @@ $(IntermediateDirectory)/editor.cpp$(DependSuffix): editor.cpp
 $(IntermediateDirectory)/editor.cpp$(PreprocessSuffix): editor.cpp
 	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/editor.cpp$(PreprocessSuffix) editor.cpp
 
-$(IntermediateDirectory)/benis.cpp$(ObjectSuffix): benis.cpp $(IntermediateDirectory)/benis.cpp$(DependSuffix)
-	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/benis.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/benis.cpp$(ObjectSuffix) $(IncludePath)
-$(IntermediateDirectory)/benis.cpp$(DependSuffix): benis.cpp
-	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/benis.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/benis.cpp$(DependSuffix) -MM benis.cpp
+$(IntermediateDirectory)/worldtree.cpp$(ObjectSuffix): worldtree.cpp $(IntermediateDirectory)/worldtree.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/worldtree.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/worldtree.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/worldtree.cpp$(DependSuffix): worldtree.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/worldtree.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/worldtree.cpp$(DependSuffix) -MM worldtree.cpp
 
-$(IntermediateDirectory)/benis.cpp$(PreprocessSuffix): benis.cpp
-	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/benis.cpp$(PreprocessSuffix) benis.cpp
+$(IntermediateDirectory)/worldtree.cpp$(PreprocessSuffix): worldtree.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/worldtree.cpp$(PreprocessSuffix) worldtree.cpp
 
 
 -include $(IntermediateDirectory)/*$(DependSuffix)
