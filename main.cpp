@@ -7,8 +7,10 @@ MainFrame* main_frame = nullptr;
 wxTreeCtrl* world_tree = nullptr;
 EntityList* entity_list = nullptr;
 wxPropertyGrid* property_panel = nullptr;
+wxMenu* world_tree_popup = nullptr;
 
 #include <editor.h>
+#include <actions.h>
 
 
 #include <wx/glcanvas.h>
@@ -522,7 +524,73 @@ void Viewport::OnPaint(wxPaintEvent& event)
 }
 
 
+class EditorObjectMenu : public wxMenu {
+public:
+    EditorObjectMenu () : wxMenu() {
+        is_visible_checkbox = AppendCheckItem(1, L"Jauns", L"Parāda šūnas apakšsadaļas saturu 3D skatā.");
+        add_selection = Append(2, L"Pievienot jaunu", L"Pievieno jaunu šūnu");
+        edit_selection = Append(3, L"Rediģēt", L"Rediģēt šūnu.");
+        delete_selection = Append(4, L"Dzēst", L"Pievieno jaunu šūnu");
+        
+        this->Bind(wxEVT_MENU, &EditorObjectMenu::OnIsVisibleCheckboxClick, this, 1);
+        this->Bind(wxEVT_MENU, &EditorObjectMenu::OnAddSelection, this, 2);
+        this->Bind(wxEVT_MENU, &EditorObjectMenu::OnEditSelection, this, 3);
+        this->Bind(wxEVT_MENU, &EditorObjectMenu::OnDeleteSelection, this, 4);
+    }
+    
+    void OnIsVisibleCheckboxClick(wxCommandEvent& event) {
+        std::cout << "Clicked on is visible!" << std::endl;
+    }
+    
+    void OnAddSelection(wxCommandEvent& event) {
+        std::cout << "Clicked on add selection!" << std::endl;
+    }
+    
+    void OnEditSelection(wxCommandEvent& event) {
+        std::cout << "Clicked on edit selection!" << std::endl;
+    }
+    
+    void OnDeleteSelection(wxCommandEvent& event) {
+        std::cout << "Clicked on delete selection!" << std::endl;
+    }
+    
+    wxMenuItem* is_visible_checkbox = nullptr;
+    wxMenuItem* add_selection = nullptr;
+    wxMenuItem* edit_selection = nullptr;
+    wxMenuItem* delete_selection = nullptr;
+    
+};
 
+class WorldTree : public wxTreeCtrl {
+public:
+    WorldTree (wxWindow* parent) : wxTreeCtrl(parent, -1, wxDefaultPosition, wxSize(200, 150), wxTR_DEFAULT_STYLE | wxTR_MULTIPLE) {
+        Bind(wxEVT_TREE_ITEM_MENU, &WorldTree::OnMenuOpen, this);
+        Bind(wxEVT_TREE_SEL_CHANGED, &WorldTree::OnSelectionChanged, this);
+        
+    }
+    
+    void OnMenuOpen (wxTreeEvent& event) {
+        std::cout << "Opened tree menu!" << std::endl;
+        main_frame->PopupMenu(world_tree_popup);
+    }
+    
+    void OnSelectionChanged (wxTreeEvent& event) {
+        std::cout << "Selection changed!" << std::endl;
+        // if you select more than 25 items, then the program *might* crash
+        wxArrayTreeItemIds selected_ids;
+        size_t selected_count = GetSelections(selected_ids);
+        
+        auto new_selection = std::make_shared<Editor::Selection>();
+        for (size_t i = 0; i < selected_count; i++) {
+            auto ob = Editor::WorldTree::GetObject(selected_ids[i].GetID());
+            new_selection->objects.push_back(ob);
+        }
+        
+        //for (auto& obj : Editor::selection.objects) std::cout << obj->GetName() << std::endl;
+        
+        Editor::PerformAction<Editor::ActionChangeSelection>(new_selection);
+    }
+};
 
 
 
@@ -566,8 +634,6 @@ public:
 };
 
 wxIMPLEMENT_APP(TramEditor);
-
-
  
 MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā programma", wxDefaultPosition, wxSize(800, 600), wxDEFAULT_FRAME_STYLE) {
     Editor::Init();
@@ -618,27 +684,28 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā progra
     Bind(wxEVT_MENU, &MainFrame::OnSettingsChange, this, ID_Settings_Space_Group);
     
     // --- POP-UP MENUS ---
-    world_tree_cell_popup = new wxMenu;
-    world_tree_cell_is_visible_checkbox = world_tree_cell_popup->AppendCheckItem(ID_World_Tree_Show, L"Rādīt", L"Parāda šūnas saturu 3D skatā.");
-    world_tree_cell_popup->Append(ID_World_Tree_New, L"Pievienot entītiju", L"Pievieno jaunu šūnu");
-    world_tree_cell_popup->Append(ID_World_Tree_Edit, L"Rediģēt", L"Rediģēt šūnu.");
-    world_tree_cell_popup->Append(ID_World_Tree_Begonis, L"Begonizēt", L"Begonizē šūnas saturu.");
-    world_tree_cell_popup->Append(ID_World_Tree_Delete, L"Dzēst", L"Dzēš šūnu.");
+    world_tree_popup = new EditorObjectMenu;
+    //world_tree_cell_popup = new wxMenu;
+    //world_tree_cell_is_visible_checkbox = world_tree_cell_popup->AppendCheckItem(ID_World_Tree_Show, L"Rādīt", L"Parāda šūnas saturu 3D skatā.");
+    //world_tree_cell_popup->Append(ID_World_Tree_New, L"Pievienot entītiju", L"Pievieno jaunu šūnu");
+    //world_tree_cell_popup->Append(ID_World_Tree_Edit, L"Rediģēt", L"Rediģēt šūnu.");
+    //world_tree_cell_popup->Append(ID_World_Tree_Begonis, L"Begonizēt", L"Begonizē šūnas saturu.");
+    //world_tree_cell_popup->Append(ID_World_Tree_Delete, L"Dzēst", L"Dzēš šūnu.");
     
-    world_tree_item_popup = new wxMenu;
-    world_tree_item_is_visible_checkbox = world_tree_item_popup->AppendCheckItem(ID_World_Tree_Show, L"Rādīt", L"Parāda šūnas apakšsadaļas saturu 3D skatā.");
-    world_tree_item_add_selection = world_tree_item_popup->Append(ID_World_Tree_New, L"Pievienot jaunu", L"Pievieno jaunu šūnu");
-    world_tree_item_edit_selection = world_tree_item_popup->Append(ID_World_Tree_Edit, L"Rediģēt", L"Rediģēt šūnu.");
-    world_tree_item_delete_selection = world_tree_item_popup->Append(ID_World_Tree_Delete, L"Dzēst", L"Pievieno jaunu šūnu");
+    //world_tree_item_popup = new wxMenu;
+    //world_tree_item_is_visible_checkbox = world_tree_item_popup->AppendCheckItem(ID_World_Tree_Show, L"Rādīt", L"Parāda šūnas apakšsadaļas saturu 3D skatā.");
+    //world_tree_item_add_selection = world_tree_item_popup->Append(ID_World_Tree_New, L"Pievienot jaunu", L"Pievieno jaunu šūnu");
+    //world_tree_item_edit_selection = world_tree_item_popup->Append(ID_World_Tree_Edit, L"Rediģēt", L"Rediģēt šūnu.");
+    //world_tree_item_delete_selection = world_tree_item_popup->Append(ID_World_Tree_Delete, L"Dzēst", L"Pievieno jaunu šūnu");
     
-    world_tree_root_popup = new wxMenu;
-    world_tree_root_popup->Append(ID_World_Tree_New, L"Pievienot jaunu", L"Pievieno jaunu šūnu");
+    //world_tree_root_popup = new wxMenu;
+    //world_tree_root_popup->Append(ID_World_Tree_New, L"Pievienot jaunu", L"Pievieno jaunu šūnu");
     
-    Bind(wxEVT_MENU, &MainFrame::OnWorldCellTreePopupClick, this, ID_World_Tree_New);
-    Bind(wxEVT_MENU, &MainFrame::OnWorldCellTreePopupClick, this, ID_World_Tree_Show);
-    Bind(wxEVT_MENU, &MainFrame::OnWorldCellTreePopupClick, this, ID_World_Tree_Edit);
-    Bind(wxEVT_MENU, &MainFrame::OnWorldCellTreePopupClick, this, ID_World_Tree_Begonis);
-    Bind(wxEVT_MENU, &MainFrame::OnWorldCellTreePopupClick, this, ID_World_Tree_Delete);
+    //Bind(wxEVT_MENU, &MainFrame::OnWorldCellTreePopupClick, this, ID_World_Tree_New);
+    //Bind(wxEVT_MENU, &MainFrame::OnWorldCellTreePopupClick, this, ID_World_Tree_Show);
+    //Bind(wxEVT_MENU, &MainFrame::OnWorldCellTreePopupClick, this, ID_World_Tree_Edit);
+    //Bind(wxEVT_MENU, &MainFrame::OnWorldCellTreePopupClick, this, ID_World_Tree_Begonis);
+    //Bind(wxEVT_MENU, &MainFrame::OnWorldCellTreePopupClick, this, ID_World_Tree_Delete);
     
     
     entity_list_change_type_popup = new wxMenu;
@@ -662,7 +729,8 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā progra
 
     wxTextCtrl* output_text_ctrl = new wxTextCtrl(this, -1, "", wxDefaultPosition, wxSize(200,150), wxNO_BORDER | wxTE_READONLY | wxTE_MULTILINE);
     std_cout_redirect = new wxStreamToTextRedirector(output_text_ctrl);
-    world_tree = new wxTreeCtrl(this, -1, wxDefaultPosition, wxSize(200, 150));
+    //world_tree = new wxTreeCtrl(this, -1, wxDefaultPosition, wxSize(200, 150));
+    world_tree = new WorldTree(this);
     property_panel = new wxPropertyGrid(this, -1);
     entity_list = new EntityList(this, -1, wxDefaultPosition, wxSize(200,150), wxLC_REPORT | wxLC_VIRTUAL | wxLC_HRULES | wxLC_VRULES);
     viewport = new Viewport(this, wxID_ANY, nullptr, { 0, 0 }, { 800, 800 });
@@ -678,10 +746,10 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā progra
     m_mgr.GetPane(entity_list).CloseButton(false);
     m_mgr.GetPane(output_text_ctrl).CloseButton(false);
     
-    world_tree_root_node = world_tree->AddRoot(L"Pasaule un viss tajā iekšā");
-    BuildWorldCellTree();
-    world_tree->Bind(wxEVT_TREE_ITEM_RIGHT_CLICK, &MainFrame::OnWorldCellTreeRightClick, this);
-    world_tree->Bind(wxEVT_TREE_ITEM_ACTIVATED, &MainFrame::OnWorldCellTreeDoubleClick, this);
+    //world_tree_root_node = world_tree->AddRoot(L"Pasaule un viss tajā iekšā");
+    //BuildWorldCellTree();
+    //world_tree->Bind(wxEVT_TREE_ITEM_RIGHT_CLICK, &MainFrame::OnWorldCellTreeRightClick, this);
+    //world_tree->Bind(wxEVT_TREE_ITEM_ACTIVATED, &MainFrame::OnWorldCellTreeDoubleClick, this);
     
     property_panel->Bind(wxEVT_PG_CHANGED, &MainFrame::OnPropertyPanelChanged, this);
     property_panel->Bind(wxEVT_PG_ITEM_COLLAPSED, &MainFrame::OnPropertyPanelChanged, this);
@@ -759,7 +827,7 @@ void MainFrame::OnLoadCells(wxCommandEvent& event) {
         cell->Load();
         progress += progress_increment;
     }*/
-    BuildWorldCellTree();
+    //BuildWorldCellTree();
     PropertyPanelRebuild();
     entity_list->RefreshAllItems();
     progress_dialog.Update(100, L"Pabeigts");
@@ -784,8 +852,8 @@ void MainFrame::OnSaveCells(wxCommandEvent& event) {
     selection.push_back(select);
 }*/
 
-void MainFrame::BuildWorldCellTree() {
-    /*
+/*void MainFrame::BuildWorldCellTree() {
+    
     world_tree->DeleteChildren(world_tree_root_node);
     world_tree_map.clear();
     
@@ -822,11 +890,11 @@ void MainFrame::BuildWorldCellTree() {
             auto node = world_tree->AppendItem(nav_node, nd->name);
             world_tree_map[node.GetID()] = WorldCellIndirector { .indirection_type = Ind::NAVMESH, .navmesh = nd };
         }
-    }*/
-}
+    }
+}*/
 
-void MainFrame::RebuildWorldCellTree() {
-    /*
+/*void MainFrame::RebuildWorldCellTree() {
+    
     using namespace Editor; using Ind = WorldCellIndirector;
     int benis_implementation;
     int benis_implementation2;
@@ -870,10 +938,12 @@ void MainFrame::RebuildWorldCellTree() {
             }
         }
             
-    }*/
-}
+    }
+}*/
 
 void MainFrame::OnWorldCellTreeRightClick(wxTreeEvent& event) {
+    PopupMenu(world_tree_popup);
+    
     /*
     if (event.GetItem() == world_tree_root_node) {
         world_tree_selected_item = world_tree_root_node;
@@ -895,8 +965,9 @@ void MainFrame::OnWorldCellTreeRightClick(wxTreeEvent& event) {
     }*/
 }
 
-void MainFrame::OnWorldCellTreePopupClick(wxCommandEvent& event) {
-    /*
+/*void MainFrame::OnWorldCellTreePopupClick(wxCommandEvent& event) {
+    //std::cout << "SEEELEECTEED!" << std::endl;
+    
     if (world_tree_selected_item == world_tree_root_node) {
         switch (event.GetId()) {
             case ID_World_Tree_New:
@@ -958,8 +1029,8 @@ void MainFrame::OnWorldCellTreePopupClick(wxCommandEvent& event) {
             }
             break;
         }
-    }*/
-}
+    }
+}*/
 
 void MainFrame::PropertyPanelRebuild() {
     property_panel->Clear();
@@ -1164,8 +1235,8 @@ void MainFrame::OnPropertyPanelChanged(wxPropertyGridEvent& event) {
     }*/
 }
 
-void MainFrame::OnWorldCellTreeDoubleClick(wxTreeEvent& event) {
-    /*if (event.GetItem() == world_tree_root_node) {
+/*void MainFrame::OnWorldCellTreeDoubleClick(wxTreeEvent& event) {
+    if (event.GetItem() == world_tree_root_node) {
         auto alert = wxMessageDialog(this, L"Tev biksēs skudras!", L"Skudru uzbrukums!", wxOK | wxICON_EXCLAMATION);
         alert.SetExtendedMessage(L"Ir noticis skudru uzbrukums jūsu biksēm. Programma pēc šī uzbrukuma nespēs atkopties. Skatīt lietošanas instrukcijas nodaļu \"7.6.3 Negaidīts skudru uzbrukums\" (431. lpp).");
         alert.ShowModal();
@@ -1175,8 +1246,8 @@ void MainFrame::OnWorldCellTreeDoubleClick(wxTreeEvent& event) {
         PropertyPanelRebuild();
         entity_list->RefreshAllItems();
         
-    }*/
-}
+    }
+}*/
 
 void MainFrame::OnEntityListRightClick(wxListEvent& event) {
     /*

@@ -22,6 +22,7 @@ extern MainFrame* main_frame;
 extern wxTreeCtrl* world_tree;
 extern EntityList* entity_list;
 extern wxPropertyGrid* property_panel;
+extern wxMenu* world_tree_popup;
 
 // this is the main window class of the app
 class MainFrame : public wxFrame {
@@ -45,22 +46,22 @@ protected:
     
     // world/worldcell tree is the tree in the top-left pane
     // that contains a list of all of the world-cells
-    wxMenu* world_tree_cell_popup;
-    wxMenu* world_tree_item_popup;
-    wxMenu* world_tree_root_popup;
-    wxMenuItem* world_tree_cell_is_visible_checkbox;
-    wxMenuItem* world_tree_item_is_visible_checkbox;
-    wxMenuItem* world_tree_item_add_selection;
-    wxMenuItem* world_tree_item_edit_selection;
-    wxMenuItem* world_tree_item_delete_selection;
-    wxTreeItemId world_tree_selected_item;
-    wxTreeItemId world_tree_root_node;
+    //wxMenu* world_tree_cell_popup;
+    //wxMenu* world_tree_item_popup;
+    //wxMenu* world_tree_root_popup;
+    //wxMenuItem* world_tree_cell_is_visible_checkbox;
+    //wxMenuItem* world_tree_item_is_visible_checkbox;
+    //wxMenuItem* world_tree_item_add_selection;
+    //wxMenuItem* world_tree_item_edit_selection;
+    //wxMenuItem* world_tree_item_delete_selection;
+    //wxTreeItemId world_tree_selected_item;
+    //wxTreeItemId world_tree_root_node;
     //std::unordered_map<void*, Editor::WorldCellIndirector> world_tree_map;
-    void BuildWorldCellTree();
-    void RebuildWorldCellTree();
+    //void BuildWorldCellTree();
+    //void RebuildWorldCellTree();
     void OnWorldCellTreeRightClick(wxTreeEvent& event);
-    void OnWorldCellTreeDoubleClick(wxTreeEvent& event);
-    void OnWorldCellTreePopupClick(wxCommandEvent& event);
+    //void OnWorldCellTreeDoubleClick(wxTreeEvent& event);
+    //void OnWorldCellTreePopupClick(wxCommandEvent& event);
     
     // property panel stuff
     

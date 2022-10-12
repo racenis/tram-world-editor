@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <typeinfo>
 #include <unordered_map>
 #include <serializeddata.h>
 
@@ -24,36 +25,89 @@ namespace Editor {
         virtual void Unperform() = 0;
     };
     
-    class Object {
+    extern std::list<std::unique_ptr<Action>> performed_actions;
+    
+    template <typename action, typename ...Args> void PerformAction (Args && ...args) {
+        // TODO: check if performed_actions list isn't too full!
+        performed_actions.push_back(std::make_unique<action>(std::forward<Args>(args)...));
+    }
+    
+    class Object : public std::enable_shared_from_this<Object> {
     public:
-        Object() {}
-        Object(Object* parent) : parent(parent) {}
+        Object() = default;
+        Object(Object* parent) : parent(parent) {};
+        virtual ~Object() {}
+        
+        std::shared_ptr<Object> GetPointer() { return shared_from_this(); }
     
         bool hidden = true;
         Object* parent = nullptr;
         
-        virtual std::list<std::shared_ptr<Object>> GetChildren() { printf("GetChildren() not implemented\n"); abort(); }
-        virtual std::string_view GetName() { printf("GetName() not implemented\n"); abort(); }
+        virtual std::list<std::shared_ptr<Object>> GetChildren() { std::cout << "GetChildren() not implemented for " << typeid(*this).name() << std::endl; abort(); }
+        virtual std::string_view GetName() { std::cout << "GetName() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+        virtual bool IsChildrenListable() { std::cout << "IsChildrenListable() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+        virtual void SetHidden(bool is_hidden) { std::cout << "SetHidden() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+        virtual std::shared_ptr<Object> AddChild() { std::cout << "AddChild(void) not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+        virtual void AddChild(std::shared_ptr<Object>) { std::cout << "AddChild(std::shared_ptr) not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+        virtual void RemoveChild(std::shared_ptr<Object>) { std::cout << "RemoveChild() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
     };
     
-    extern std::list<std::shared_ptr<Object>> selection;
+    class Selection {
+    public:
+        std::list<std::shared_ptr<Object>> objects;
+    };
+    
+    extern std::shared_ptr<Selection> selection;
 }
 
 namespace Editor {
     class Entity : public Object {
     public:
+        Entity(Object* parent) : Object(parent), name("untitled entity") {}
+        Entity(Object* parent, std::string name) : Object(parent), name(name) {}
+    
+        std::string_view GetName() { return name; }
+        bool IsChildrenListable() { return false; }
         
+        std::string name;
     };
     
     class EntityGroup : public Object {
     public:
+        EntityGroup(Object* parent) : Object(parent), name("untitled entitygroup") {}
         EntityGroup(Object* parent, std::string name) : Object(parent), name(name) {}
         std::string name;
         std::list<std::shared_ptr<Entity>> entities;
         
         std::list<std::shared_ptr<Object>> GetChildren() { return std::list<std::shared_ptr<Object>>(); }
         std::string_view GetName() { return name; }
+        bool IsChildrenListable() { return false; }
+        
+        std::shared_ptr<Object> AddChild() { auto child = std::make_shared<Entity>(this); entities.push_back(child); return child; }
+        void AddChild(std::shared_ptr<Object> child) { entities.push_back(std::dynamic_pointer_cast<Entity>(child)); }
+        void RemoveChild(std::shared_ptr<Object> child) { entities.remove(std::dynamic_pointer_cast<Entity>(child)); }
     };
+    
+    class EntityGroupManager : public Object {
+    public:
+        EntityGroupManager(Object* parent) : Object(parent) {
+            auto default_group = std::make_shared<EntityGroup>(this, "[default]");
+            groups.push_back(default_group);
+        }
+        
+        std::list<std::shared_ptr<Object>> GetChildren() { return std::list<std::shared_ptr<Object>>(groups.begin(), groups.end()); }
+        std::string_view GetName() { return "Entities"; }
+        bool IsChildrenListable() { return true; }
+        
+        std::shared_ptr<Object> AddChild() { auto child = std::make_shared<EntityGroup>(this); groups.push_back(child); return child; }
+        void AddChild(std::shared_ptr<Object> child) { groups.push_back(std::dynamic_pointer_cast<EntityGroup>(child)); }
+        void RemoveChild(std::shared_ptr<Object> child) { groups.remove(std::dynamic_pointer_cast<EntityGroup>(child)); }
+    
+        std::list<std::shared_ptr<EntityGroup>> groups;
+    };
+    
+    
+    
 
     class Transition : public Object {
     public:
@@ -62,10 +116,28 @@ namespace Editor {
             Transition* parent;
         };
 
+        Transition(Object* parent) : Transition(parent, "untitled transition", "none") {}
+        Transition(Object* parent, std::string_view name, std::string_view cell_into) : Object(parent), name(name), cell_into_name(cell_into) {}
+        
+        bool IsChildrenListable() { return true; }
+
         std::string name;
         std::string cell_into_name;
         std::list<std::shared_ptr<Node>> nodes;
     };
+    
+    class TransitionManager : public Object {
+    public:
+        TransitionManager(Object* parent) : Object(parent) {}
+        
+        std::list<std::shared_ptr<Object>> GetChildren() { return std::list<std::shared_ptr<Object>>(transitions.begin(), transitions.end()); }
+        std::string_view GetName() { return "Transitions"; }
+    
+        std::list<std::shared_ptr<Transition>> transitions;
+    };
+    
+    
+    
 
     class Path : public Object {
         class Node : public Object {
@@ -79,10 +151,25 @@ namespace Editor {
             glm::vec3 location3;
             glm::vec3 location4;
         };
+        
+        Path(Object* parent) : Path(parent, "untitled path") {}
+        Path(Object* parent, std::string_view name) : Object(parent), name(name) {}
 
         std::string name;
         std::list<std::shared_ptr<Node>> nodes;
     };
+    
+    class PathManager : public Object {
+    public:
+        PathManager(Object* parent) : Object(parent) {}
+        
+        std::list<std::shared_ptr<Object>> GetChildren() { return std::list<std::shared_ptr<Object>>(paths.begin(), paths.end()); }
+        std::string_view GetName() { return "Paths"; }
+    
+        std::list<std::shared_ptr<Path>> paths;
+    };
+    
+    
 
     class Navmesh : public Object {
         class Node : public Object {
@@ -98,21 +185,20 @@ namespace Editor {
         std::string name;
         std::list<std::shared_ptr<Node>> nodes;
     };
-
-
-
-    class EntityGroupManager : public Object {
-    public:
-        EntityGroupManager(Object* parent) : Object(parent) {
-            auto default_group = std::make_shared<EntityGroup>(this, "[default]");
-            groups.push_back(default_group);
-        }
-        
-        std::list<std::shared_ptr<Object>> GetChildren() { return std::list<std::shared_ptr<Object>>(groups.begin(), groups.end()); }
-        std::string_view GetName() { return "Entities"; }
     
-        std::list<std::shared_ptr<EntityGroup>> groups;
+    class NavmeshManager : public Object {
+    public:
+        NavmeshManager(Object* parent) : Object(parent) {}
+        
+        std::list<std::shared_ptr<Object>> GetChildren() { return std::list<std::shared_ptr<Object>>(navmeshes.begin(), navmeshes.end()); }
+        std::string_view GetName() { return "Navmeshes"; }
+    
+        std::list<std::shared_ptr<Navmesh>> navmeshes;
     };
+
+
+
+
 
     class WorldCell : public Object {
     public:
@@ -135,7 +221,7 @@ namespace Editor {
         std::list<std::shared_ptr<WorldCell>> cells;
     };
     
-    extern WorldCellManager* worldcells;
+    extern std::shared_ptr<WorldCellManager> worldcells;
 }
 
 
@@ -145,6 +231,7 @@ namespace Editor {
         void Remove (Object* object);
         void Rename (Object* object);
         void Rebuild();
+        std::shared_ptr<Object> GetObject(void* Id);
     }
     
     namespace PropertyPanel {

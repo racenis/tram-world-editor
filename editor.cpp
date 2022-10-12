@@ -12,8 +12,9 @@
 
 namespace Editor {
     
-    std::list<std::shared_ptr<Object>> selection;
-    WorldCellManager* worldcells = nullptr;
+    std::shared_ptr<Selection> selection;
+    std::shared_ptr<WorldCellManager> worldcells;
+    std::list<std::unique_ptr<Action>> performed_actions;
     /*
     std::vector<WorldCell*> worldCells;
     std::unordered_map<std::string, Core::SerializedEntityData* (*)(void)> entityDatas;
@@ -779,7 +780,9 @@ namespace Editor {
     void Init(){
         Core::Init();
         
-        worldcells = new WorldCellManager (nullptr);
+        //worldcells = new WorldCellManager (nullptr);
+        worldcells = std::make_shared<WorldCellManager>(nullptr);
+        selection = std::make_shared<Selection>();
         
 /*
         entityDatas[(new Core::Crate::Data)->GetDataName()] = []() -> Core::SerializedEntityData* { auto d = new Core::Crate::Data; d->collmodel = 0; d->model = 0; return d; };

@@ -41,8 +41,15 @@ namespace Editor::WorldTree {
         world_tree->DeleteAllItems();
         root_node = world_tree->AddRoot(std::string(worldcells->GetName()));
         
+        obj_to_treeId[worldcells.get()] = root_node.GetID();
+        treeId_to_obj[root_node.GetID()] = worldcells.get();
+        
         for (auto cell : worldcells->cells) {
             AddChildren(root_node, cell.get());
         }
+    }
+    
+    std::shared_ptr<Object> GetObject(void* Id) {
+        return treeId_to_obj[Id]->GetPointer();
     }
 }
