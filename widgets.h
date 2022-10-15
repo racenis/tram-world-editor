@@ -59,7 +59,7 @@ protected:
     //std::unordered_map<void*, Editor::WorldCellIndirector> world_tree_map;
     //void BuildWorldCellTree();
     //void RebuildWorldCellTree();
-    void OnWorldCellTreeRightClick(wxTreeEvent& event);
+    //void OnWorldCellTreeRightClick(wxTreeEvent& event);
     //void OnWorldCellTreeDoubleClick(wxTreeEvent& event);
     //void OnWorldCellTreePopupClick(wxCommandEvent& event);
     
@@ -98,72 +98,22 @@ protected:
 
 class EntityList : public wxListCtrl {
 public:
-    EntityList (wxWindow* parent, wxWindowID id, const wxPoint& pos=wxDefaultPosition, const wxSize& size=wxDefaultSize, long style=wxLC_ICON) : wxListCtrl(parent, id, pos, size, style), parent_frame((MainFrame*)parent) {}
+    EntityList (wxWindow* parent, wxWindowID id, const wxPoint& pos=wxDefaultPosition, const wxSize& size=wxDefaultSize, long style=wxLC_ICON) : 
+        wxListCtrl(parent, id, pos, size, style), parent_frame((MainFrame*)parent) {
+            Bind(wxEVT_LIST_ITEM_RIGHT_CLICK, &EntityList::OnMenuOpen, this);
+            Bind(wxEVT_LIST_ITEM_SELECTED, &EntityList::OnSelectionChanged, this);
+            Bind(wxEVT_LIST_ITEM_ACTIVATED, &EntityList::OnItemActivated, this);
+        }
 
-    wxString OnGetItemText (long item, long column) const override {
-        return wxString("nil");
-    }
+    wxString OnGetItemText (long item, long column) const override;
+    
+    void RefreshAllItems ();
+    
+    void OnMenuOpen(wxListEvent& event);
+    void OnSelectionChanged(wxListEvent& event);
+    void OnItemActivated(wxListEvent& event);
     
     
-    void RefreshAllItems () {
-        DeleteAllColumns();
-        /*if (selection.front().indirection_type == Editor::Selector::CELL_ITSELF ||
-            selection.front().indirection_type == Editor::Selector::CELL_ENTITIES) {
-            InsertColumn(0, L"ID");
-            InsertColumn(1, L"Nosaukums");
-            InsertColumn(2, L"Lokācija");
-            InsertColumn(3, L"Rotācija");
-            InsertColumn(4, L"Darbība");
-            SetItemCount(selection.front().into->entities.size());
-        } else if (selection.front().indirection_type == Editor::Selector::TRANSITION) {
-            InsertColumn(0, L"X");
-            InsertColumn(1, L"Y");
-            InsertColumn(2, L"Z");
-            SetItemCount(selection.front().trans->points.size());
-        } else if (selection.front().indirection_type == Editor::Selector::TRANSITION_POINT) {
-            InsertColumn(0, L"X");
-            InsertColumn(1, L"Y");
-            InsertColumn(2, L"Z");
-            SetItemCount(selection.front().point->parent->points.size());
-        } else if (selection.front().indirection_type == Editor::Selector::ENTITY_GROUP) {
-            InsertColumn(0, L"ID");
-            InsertColumn(1, L"Nosaukums");
-            InsertColumn(2, L"Lokācija");
-            InsertColumn(3, L"Rotācija");
-            InsertColumn(4, L"Darbība");
-            SetItemCount(selection.front().group->entities.size());
-        } else if (selection.front().indirection_type == Editor::Selector::PATH) {
-            InsertColumn(0, L"ID");
-            InsertColumn(1, L"⇧ ");
-            InsertColumn(2, L"⇩");
-            InsertColumn(3, L"⇦");
-            InsertColumn(4, L"⇨");
-            SetItemCount(selection.front().path->curves.size());
-        } else if (selection.front().indirection_type == Editor::Selector::PATH_CURVE) {
-            InsertColumn(0, L"ID");
-            InsertColumn(1, L"⇧ ");
-            InsertColumn(2, L"⇩");
-            InsertColumn(3, L"⇦");
-            InsertColumn(4, L"⇨");
-            SetItemCount(selection.front().curve->parent->curves.size());
-        } else if (selection.front().indirection_type == Editor::Selector::NAVMESH) {
-            InsertColumn(0, L"ID");
-            InsertColumn(1, L"⇧ ");
-            InsertColumn(2, L"⇩");
-            InsertColumn(3, L"⇦");
-            InsertColumn(4, L"⇨");
-            SetItemCount(selection.front().navmesh->nodes.size());
-        } else if (selection.front().indirection_type == Editor::Selector::NAVMESH_NODE) {
-            InsertColumn(0, L"ID");
-            InsertColumn(1, L"⇧");
-            InsertColumn(2, L"⇩");
-            InsertColumn(3, L"⇦");
-            InsertColumn(4, L"⇨");
-            SetItemCount(selection.front().node->parent->nodes.size());
-        } else {
-             SetItemCount(0);
-        }*/
-    }
     
     MainFrame* parent_frame;
 };

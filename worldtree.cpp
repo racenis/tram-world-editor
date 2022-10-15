@@ -9,8 +9,9 @@ namespace Editor::WorldTree {
     // TODO: I think that we should actually recursively add all of the object's children as well
     void Add (Object* object) {
         assert(world_tree);
+        assert(object->parent);
         
-        auto node_to_parent_to = object->parent ? wxTreeItemId(obj_to_treeId[object->parent]) : root_node;
+        auto node_to_parent_to =  wxTreeItemId(obj_to_treeId[object->parent]);
         auto new_node = world_tree->AppendItem(node_to_parent_to, std::string(object->GetName()));
         
         obj_to_treeId[object] = new_node.GetID();

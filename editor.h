@@ -23,6 +23,7 @@ namespace Editor {
     public:
         virtual void Perform() = 0;
         virtual void Unperform() = 0;
+        virtual ~Action() = default;
     };
     
     extern std::list<std::unique_ptr<Action>> performed_actions;
@@ -31,6 +32,23 @@ namespace Editor {
         // TODO: check if performed_actions list isn't too full!
         performed_actions.push_back(std::make_unique<action>(std::forward<Args>(args)...));
     }
+    
+    enum PropertyType {
+        PROPERTY_STRING,    // char*
+        PROPERTY_FLOAT,     // float
+        PROPERTY_INT,       // int64_t
+        PROPERTY_UINT,      // uint64_t
+        PROPERTY_CATEGORY
+    };
+    
+    // property name being a string is very inefficient, but it's the easier option
+    // when working with the wxWidgets property panel widget
+    struct PropertyDefinition {
+        std::string name;
+        std::string display_name;
+        std::string category_name;
+        PropertyType type;
+    };
     
     class Object : public std::enable_shared_from_this<Object> {
     public:
@@ -50,6 +68,23 @@ namespace Editor {
         virtual std::shared_ptr<Object> AddChild() { std::cout << "AddChild(void) not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
         virtual void AddChild(std::shared_ptr<Object>) { std::cout << "AddChild(std::shared_ptr) not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
         virtual void RemoveChild(std::shared_ptr<Object>) { std::cout << "RemoveChild() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+        virtual bool IsRemovable() { std::cout << "IsRemovable() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+        virtual bool IsRemovableChildren() { std::cout << "IsRemovableChildren() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+        virtual bool IsAddableChildren() { std::cout << "IsAddableChildren() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+        virtual bool IsHidden() { std::cout << "IsHidden() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+        
+        // these are the properties that will be shown in the object list
+        virtual std::vector<PropertyDefinition> GetListPropertyDefinitions() { std::cout << "GetListPropertyDefinitions() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+        
+        // these properties will be shown and will be editable from property panel
+        virtual std::vector<PropertyDefinition> GetFullPropertyDefinitions() { std::cout << "GetFullPropertyDefinitions() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+        
+        // takes in the property name and returns the value by copying it to the void* pointer
+        virtual bool GetProperty (std::string property_name, void* property) { std::cout << "GetProperty() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+        
+        // takes in the property name and copies the value from the void* pointer into it
+        virtual void SetProperty (std::string property_name, void* property) { std::cout << "SetProperty() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+        
     };
     
     class Selection {
@@ -70,22 +105,52 @@ namespace Editor {
         bool IsChildrenListable() { return false; }
         
         std::string name;
+        
+        bool GetProperty (std::string property_name, void* property) { 
+            if (property_name == "name-entity") {
+                *static_cast<char**>(property) = name.data(); return true;
+            } else {
+                return false;
+            }
+        }
+        
     };
     
     class EntityGroup : public Object {
     public:
-        EntityGroup(Object* parent) : Object(parent), name("untitled entitygroup") {}
+        EntityGroup(Object* parent) : Object(parent), name(std::string("Untitled EntityGroup ") + std::to_string(parent->GetChildren().size())) {}
         EntityGroup(Object* parent, std::string name) : Object(parent), name(name) {}
         std::string name;
         std::list<std::shared_ptr<Entity>> entities;
         
-        std::list<std::shared_ptr<Object>> GetChildren() { return std::list<std::shared_ptr<Object>>(); }
+        std::list<std::shared_ptr<Object>> GetChildren() { return std::list<std::shared_ptr<Object>>(entities.begin(), entities.end()); }
         std::string_view GetName() { return name; }
         bool IsChildrenListable() { return false; }
         
         std::shared_ptr<Object> AddChild() { auto child = std::make_shared<Entity>(this); entities.push_back(child); return child; }
         void AddChild(std::shared_ptr<Object> child) { entities.push_back(std::dynamic_pointer_cast<Entity>(child)); }
         void RemoveChild(std::shared_ptr<Object> child) { entities.remove(std::dynamic_pointer_cast<Entity>(child)); }
+        
+        std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
+            return std::vector<PropertyDefinition> {
+                {"name-entity", "Name", "", PROPERTY_STRING}
+            };
+        }
+        
+        std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
+            return std::vector<PropertyDefinition> {
+                {"group-entity-group", "Entity Group", "", PROPERTY_CATEGORY},
+                {"name-entity-group", "Name", "group-entity-group", PROPERTY_STRING}
+            };
+        }
+        
+        bool GetProperty (std::string property_name, void* property) { 
+            if (property_name == "name-entity-group") {
+                *static_cast<char**>(property) = name.data(); return true;
+            } else {
+                return false;
+            }
+        }
     };
     
     class EntityGroupManager : public Object {
@@ -235,12 +300,11 @@ namespace Editor {
     }
     
     namespace PropertyPanel {
-        
+        void SetCurrentSelection();
     }
     
     namespace ObjectList {
-        
-        
+        void SetCurrentSelection();
     }
     
     

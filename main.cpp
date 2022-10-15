@@ -527,7 +527,7 @@ void Viewport::OnPaint(wxPaintEvent& event)
 class EditorObjectMenu : public wxMenu {
 public:
     EditorObjectMenu () : wxMenu() {
-        is_visible_checkbox = AppendCheckItem(1, L"Jauns", L"Parāda šūnas apakšsadaļas saturu 3D skatā.");
+        is_visible_checkbox = AppendCheckItem(1, L"Rādīt", L"Parāda šūnas apakšsadaļas saturu 3D skatā.");
         add_selection = Append(2, L"Pievienot jaunu", L"Pievieno jaunu šūnu");
         edit_selection = Append(3, L"Rediģēt", L"Rediģēt šūnu.");
         delete_selection = Append(4, L"Dzēst", L"Pievieno jaunu šūnu");
@@ -544,14 +544,17 @@ public:
     
     void OnAddSelection(wxCommandEvent& event) {
         std::cout << "Clicked on add selection!" << std::endl;
+        Editor::PerformAction<Editor::ActionNew>();
     }
     
     void OnEditSelection(wxCommandEvent& event) {
         std::cout << "Clicked on edit selection!" << std::endl;
+        Editor::PropertyPanel::SetCurrentSelection();
     }
     
     void OnDeleteSelection(wxCommandEvent& event) {
         std::cout << "Clicked on delete selection!" << std::endl;
+        Editor::PerformAction<Editor::ActionRemove>();
     }
     
     wxMenuItem* is_visible_checkbox = nullptr;
@@ -566,7 +569,7 @@ public:
     WorldTree (wxWindow* parent) : wxTreeCtrl(parent, -1, wxDefaultPosition, wxSize(200, 150), wxTR_DEFAULT_STYLE | wxTR_MULTIPLE) {
         Bind(wxEVT_TREE_ITEM_MENU, &WorldTree::OnMenuOpen, this);
         Bind(wxEVT_TREE_SEL_CHANGED, &WorldTree::OnSelectionChanged, this);
-        
+        Bind(wxEVT_TREE_ITEM_ACTIVATED, &WorldTree::OnItemActivated, this);
     }
     
     void OnMenuOpen (wxTreeEvent& event) {
@@ -576,7 +579,6 @@ public:
     
     void OnSelectionChanged (wxTreeEvent& event) {
         std::cout << "Selection changed!" << std::endl;
-        // if you select more than 25 items, then the program *might* crash
         wxArrayTreeItemIds selected_ids;
         size_t selected_count = GetSelections(selected_ids);
         
@@ -589,6 +591,11 @@ public:
         //for (auto& obj : Editor::selection.objects) std::cout << obj->GetName() << std::endl;
         
         Editor::PerformAction<Editor::ActionChangeSelection>(new_selection);
+    }
+    
+    void OnItemActivated (wxTreeEvent& event) {
+        Editor::PropertyPanel::SetCurrentSelection();
+        Editor::ObjectList::SetCurrentSelection();
     }
 };
 
@@ -755,9 +762,9 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā progra
     property_panel->Bind(wxEVT_PG_ITEM_COLLAPSED, &MainFrame::OnPropertyPanelChanged, this);
     property_panel->Bind(wxEVT_PG_ITEM_EXPANDED, &MainFrame::OnPropertyPanelChanged, this);
 
-    entity_list->Bind(wxEVT_LIST_ITEM_RIGHT_CLICK, &MainFrame::OnEntityListRightClick, this);
-    entity_list->Bind(wxEVT_LIST_ITEM_SELECTED, &MainFrame::OnEntityListClick, this);
-    entity_list->Bind(wxEVT_LIST_ITEM_ACTIVATED, &MainFrame::OnEntityListDoubleClick, this);
+    //entity_list->Bind(wxEVT_LIST_ITEM_RIGHT_CLICK, &MainFrame::OnEntityListRightClick, this);
+    //entity_list->Bind(wxEVT_LIST_ITEM_SELECTED, &MainFrame::OnEntityListClick, this);
+    //entity_list->Bind(wxEVT_LIST_ITEM_ACTIVATED, &MainFrame::OnEntityListDoubleClick, this);
 
     // --- AUI FLAGS ---
     unsigned int flags = m_mgr.GetFlags();
@@ -847,190 +854,6 @@ void MainFrame::OnSaveCells(wxCommandEvent& event) {
     std::cout << "Saved cells." << std::endl;
 }
 
-/*void MainFrame::SetSingleSelection(Editor::Selector select) {
-    selection.clear();
-    selection.push_back(select);
-}*/
-
-/*void MainFrame::BuildWorldCellTree() {
-    
-    world_tree->DeleteChildren(world_tree_root_node);
-    world_tree_map.clear();
-    
-    for (auto it : Editor::worldCells) {
-        auto cell_node = world_tree->AppendItem(world_tree_root_node, it->name);
-        auto ent_node = world_tree->AppendItem(cell_node, L"Entītijas");
-        auto trans_node = world_tree->AppendItem(cell_node, L"Pārejas");
-        auto path_node = world_tree->AppendItem(cell_node, L"Ceļi");
-        auto nav_node = world_tree->AppendItem(cell_node, L"Navigācija");
-        
-        using namespace Editor; using Ind = WorldCellIndirector;
-        world_tree_map[cell_node.GetID()] = WorldCellIndirector { .indirection_type = Ind::CELL_ITSELF, .into = it };
-        world_tree_map[ent_node.GetID()] = WorldCellIndirector { .indirection_type = Ind::CELL_ENTITIES, .into =  it };
-        world_tree_map[trans_node.GetID()] = WorldCellIndirector { .indirection_type = Ind::CELL_TRANSITIONS, .into =  it };
-        world_tree_map[path_node.GetID()] = WorldCellIndirector { .indirection_type = Ind::CELL_PATHS, .into =  it };
-        world_tree_map[nav_node.GetID()] = WorldCellIndirector { .indirection_type = Ind::CELL_NAVMESHES, .into =  it };
-        
-        for (auto gr : it->groups) {
-            auto node = world_tree->AppendItem(ent_node, gr->name);
-            world_tree_map[node.GetID()] = WorldCellIndirector { .indirection_type = Ind::ENTITY_GROUP, .group = gr };
-        }
-        
-        for (auto tr : it->transitions) {
-            auto node = world_tree->AppendItem(trans_node, tr->name);
-            world_tree_map[node.GetID()] = WorldCellIndirector { .indirection_type = Ind::TRANSITION, .trans = tr };
-        }
-        
-        for (auto pt : it->paths) {
-            auto node = world_tree->AppendItem(path_node, pt->name);
-            world_tree_map[node.GetID()] = WorldCellIndirector { .indirection_type = Ind::PATH, .path = pt };
-        }
-        
-        for (auto nd : it->navmeshes) {
-            auto node = world_tree->AppendItem(nav_node, nd->name);
-            world_tree_map[node.GetID()] = WorldCellIndirector { .indirection_type = Ind::NAVMESH, .navmesh = nd };
-        }
-    }
-}*/
-
-/*void MainFrame::RebuildWorldCellTree() {
-    
-    using namespace Editor; using Ind = WorldCellIndirector;
-    int benis_implementation;
-    int benis_implementation2;
-    void* benis = &benis_implementation;
-    void* benis2 = &benis_implementation2;
-    
-    std::vector<Editor::WorldCell*> wcells = Editor::worldCells;
-    
-    // remove deleted cells
-    for (wxTreeItemId cell = world_tree->GetFirstChild(world_tree_root_node, benis); cell.IsOk(); cell = world_tree->GetNextChild(world_tree_root_node, benis)) {
-        for (wxTreeItemId it = world_tree->GetFirstChild(cell, benis2); it.IsOk(); it = world_tree->GetNextChild(cell, benis2)) {
-            world_tree->DeleteChildren(it);
-            auto& ind = world_tree_map[it.GetID()];
-            switch (ind.indirection_type) {
-                case Ind::CELL_ENTITIES:
-                        for (auto gr : ind.into->groups) {
-            auto node = world_tree->AppendItem(it, gr->name);
-            world_tree_map[node.GetID()] = WorldCellIndirector { .indirection_type = Ind::ENTITY_GROUP, .group = gr };
-        }
-                break;
-                case Ind::CELL_TRANSITIONS:
-                        for (auto tr : ind.into->transitions) {
-            auto node = world_tree->AppendItem(it, tr->name);
-            world_tree_map[node.GetID()] = WorldCellIndirector { .indirection_type = Ind::TRANSITION, .trans = tr };
-        }
-                break;
-                case Ind::CELL_PATHS:
-                        for (auto pt : ind.into->paths) {
-            auto node = world_tree->AppendItem(it, pt->name);
-            world_tree_map[node.GetID()] = WorldCellIndirector { .indirection_type = Ind::PATH, .path = pt };
-        }
-                break;
-                case Ind::CELL_NAVMESHES:
-                        for (auto nd : ind.into->navmeshes) {
-            auto node = world_tree->AppendItem(it, nd->name);
-            world_tree_map[node.GetID()] = WorldCellIndirector { .indirection_type = Ind::NAVMESH, .navmesh = nd };
-        }
-                break;
-                default:
-                std::cout << "WorldTree rebuild error!" << std::endl;
-            }
-        }
-            
-    }
-}*/
-
-void MainFrame::OnWorldCellTreeRightClick(wxTreeEvent& event) {
-    PopupMenu(world_tree_popup);
-    
-    /*
-    if (event.GetItem() == world_tree_root_node) {
-        world_tree_selected_item = world_tree_root_node;
-        PopupMenu(world_tree_root_popup);
-    } else {
-        auto& indirect = world_tree_map[event.GetItem().GetID()];
-        world_tree_selected_item = event.GetItem();
-        
-        if (indirect.indirection_type == Editor::WorldCellIndirector::CELL_ITSELF) {
-            world_tree_cell_is_visible_checkbox->Check(indirect.IsVisible());
-            PopupMenu(world_tree_cell_popup);
-        } else {
-            world_tree_item_is_visible_checkbox->Check(indirect.IsVisible());
-            world_tree_item_add_selection->Enable(indirect.IsNewable());
-            world_tree_item_edit_selection->Enable(indirect.IsEditable());
-            world_tree_item_delete_selection->Enable(indirect.IsDeletable());
-            PopupMenu(world_tree_item_popup);
-        }
-    }*/
-}
-
-/*void MainFrame::OnWorldCellTreePopupClick(wxCommandEvent& event) {
-    //std::cout << "SEEELEECTEED!" << std::endl;
-    
-    if (world_tree_selected_item == world_tree_root_node) {
-        switch (event.GetId()) {
-            case ID_World_Tree_New:
-            SetSingleSelection(Editor::Selector().New());
-            BuildWorldCellTree();
-            PropertyPanelRebuild();
-            break;
-        }
-    } else {
-        auto& indirect = world_tree_map[world_tree_selected_item];
-        switch (event.GetId()) {
-            case ID_World_Tree_Show:
-            if ((indirect.indirection_type == Editor::WorldCellIndirector::CELL_ITSELF && world_tree_cell_is_visible_checkbox->IsChecked()) ||
-                (indirect.indirection_type != Editor::WorldCellIndirector::CELL_ITSELF && world_tree_item_is_visible_checkbox->IsChecked())) {
-                indirect.Show();
-            } else {
-                indirect.Hide();
-            }
-            
-            break;
-            case ID_World_Tree_New: {
-                auto new_selection = indirect.New();
-                SetSingleSelection(new_selection);
-                PropertyPanelRebuild();
-                if (indirect.indirection_type == Editor::Selector::CELL_ENTITIES || indirect.indirection_type == Editor::Selector::CELL_TRANSITIONS || indirect.indirection_type == Editor::Selector::CELL_PATHS || indirect.indirection_type == Editor::Selector::CELL_NAVMESHES) RebuildWorldCellTree();
-                if (indirect.indirection_type == Editor::Selector::CELL_ITSELF) BuildWorldCellTree();
-                entity_list->RefreshAllItems();
-            }
-            break;
-            case ID_World_Tree_Edit:
-                SetSingleSelection(indirect);
-                PropertyPanelRebuild();
-                entity_list->RefreshAllItems();
-            break;
-            case ID_World_Tree_Begonis:
-            indirect.Begonis();
-            break;
-            case ID_World_Tree_Delete: {
-                wxString delete_message (L"Tiešām dzēst");
-                if (indirect.indirection_type == Editor::WorldCellIndirector::CELL_ITSELF) {
-                    delete_message += L" šūnu \""; delete_message += indirect.into->name + L"\"?";
-                } else if (indirect.indirection_type == Editor::WorldCellIndirector::TRANSITION) {
-                    delete_message += L" pāreju \""; delete_message += indirect.trans->name + L"\"?";
-                } else if (indirect.indirection_type == Editor::WorldCellIndirector::ENTITY_GROUP) {
-                    delete_message += L" grupu \""; delete_message += indirect.group->name + L"\"?";
-                } else if (indirect.indirection_type == Editor::WorldCellIndirector::PATH) {
-                    delete_message += L" ceļu \""; delete_message += indirect.path->name + L"\"?";
-                } else if (indirect.indirection_type == Editor::WorldCellIndirector::NAVMESH) {
-                    delete_message += L" navigāciju \""; delete_message += indirect.navmesh->name + L"\"?";
-                } else {
-                    delete_message += L"?";
-                }
-                
-                wxMessageDialog delete_confirmation (this, delete_message, L"Vai tiešām dzēst?", wxYES_NO | wxCANCEL | wxCANCEL_DEFAULT | wxICON_EXCLAMATION);
-                if(delete_confirmation.ShowModal() == wxID_YES) {
-                    indirect.Delete();
-                    if (indirect.indirection_type == Editor::Selector::CELL_ENTITIES) BuildWorldCellTree(); else RebuildWorldCellTree();
-                }
-            }
-            break;
-        }
-    }
-}*/
 
 void MainFrame::PropertyPanelRebuild() {
     property_panel->Clear();
