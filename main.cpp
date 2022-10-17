@@ -600,6 +600,50 @@ public:
 };
 
 
+class PropertyPanel : public wxPropertyGrid {
+public:
+    PropertyPanel (wxWindow* parent) : wxPropertyGrid(parent, -1) {
+        Bind(wxEVT_PG_CHANGED, &PropertyPanel::OnChanged, this);
+        Bind(wxEVT_PG_ITEM_COLLAPSED, &PropertyPanel::OnCollapsed, this);
+        Bind(wxEVT_PG_ITEM_EXPANDED, &PropertyPanel::OnExpanded, this);
+    }
+    
+    void OnChanged (wxPropertyGridEvent& event) {
+        std::cout << "Something changed!" << std::endl;
+        auto val = event.GetValue();
+        
+        auto new_selection = std::make_shared<Editor::Selection>();
+        for (auto& object : Editor::selection->objects) {
+            auto new_object = object->GetCopy();
+            auto value_name = event.GetPropertyName().ToStdString();
+            new_selection->objects.push_back(new_object);
+            
+            if (val.GetType() == "longlong") {
+                new_object->SetProperty(value_name, val.GetLongLong().GetValue());
+            } else if (val.GetType() == "ulonglong") {
+                new_object->SetProperty(value_name, val.GetULongLong().GetValue());
+            } else if (val.GetType() == "double") {
+                new_object->SetProperty(value_name, (float)val.GetDouble());
+            } else if (val.GetType() == "string") {
+                new_object->SetProperty(value_name, val.GetString().ToStdString());
+            } else {
+                std::cout << "value type '" << val.GetType().c_str() << "' unrecognized!" << std::endl;
+            }
+        }
+        
+        Editor::PerformAction<Editor::ActionSwapSelection>(new_selection);
+    }
+    
+    void OnCollapsed (wxPropertyGridEvent& event) {
+        std::cout << "Something collapsed!" << std::endl;
+    }
+    
+    void OnExpanded (wxPropertyGridEvent& event) {
+        std::cout << "Something expanded!" << std::endl;
+    }
+};
+
+
 
 
 
@@ -738,7 +782,7 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā progra
     std_cout_redirect = new wxStreamToTextRedirector(output_text_ctrl);
     //world_tree = new wxTreeCtrl(this, -1, wxDefaultPosition, wxSize(200, 150));
     world_tree = new WorldTree(this);
-    property_panel = new wxPropertyGrid(this, -1);
+    property_panel = new PropertyPanel(this);
     entity_list = new EntityList(this, -1, wxDefaultPosition, wxSize(200,150), wxLC_REPORT | wxLC_VIRTUAL | wxLC_HRULES | wxLC_VRULES);
     viewport = new Viewport(this, wxID_ANY, nullptr, { 0, 0 }, { 800, 800 });
 
@@ -758,9 +802,9 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā progra
     //world_tree->Bind(wxEVT_TREE_ITEM_RIGHT_CLICK, &MainFrame::OnWorldCellTreeRightClick, this);
     //world_tree->Bind(wxEVT_TREE_ITEM_ACTIVATED, &MainFrame::OnWorldCellTreeDoubleClick, this);
     
-    property_panel->Bind(wxEVT_PG_CHANGED, &MainFrame::OnPropertyPanelChanged, this);
-    property_panel->Bind(wxEVT_PG_ITEM_COLLAPSED, &MainFrame::OnPropertyPanelChanged, this);
-    property_panel->Bind(wxEVT_PG_ITEM_EXPANDED, &MainFrame::OnPropertyPanelChanged, this);
+    //property_panel->Bind(wxEVT_PG_CHANGED, &MainFrame::OnPropertyPanelChanged, this);
+    //property_panel->Bind(wxEVT_PG_ITEM_COLLAPSED, &MainFrame::OnPropertyPanelChanged, this);
+    //property_panel->Bind(wxEVT_PG_ITEM_EXPANDED, &MainFrame::OnPropertyPanelChanged, this);
 
     //entity_list->Bind(wxEVT_LIST_ITEM_RIGHT_CLICK, &MainFrame::OnEntityListRightClick, this);
     //entity_list->Bind(wxEVT_LIST_ITEM_SELECTED, &MainFrame::OnEntityListClick, this);

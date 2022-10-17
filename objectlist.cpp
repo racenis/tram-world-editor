@@ -12,7 +12,8 @@ namespace Editor::ObjectList {
         columns.clear();
         
         if (selection->objects.size() == 1) {
-            selected_object = selection->objects.front();
+            auto object = selection->objects.front();
+            selected_object = object->IsChildrenListable() ? object : object->GetParent();
             columns = selected_object->GetListPropertyDefinitions();
             
             for (size_t i = 0; i < columns.size(); i++) {
@@ -33,28 +34,20 @@ namespace Editor::ObjectList {
         auto& info = columns[column];
         auto& object = *first_childrens;
         
-        switch (info.type) {
-            case PROPERTY_STRING: 
-                char* str;
-                if (object->GetProperty(info.name, &str)) return wxString(str);
-                break;
-            case PROPERTY_FLOAT:
-                float floot;
-                if (object->GetProperty(info.name, &floot)) return wxString(std::to_string(floot));
-                break;
-            case PROPERTY_INT:
-                int64_t integ;
-                if (object->GetProperty(info.name, &integ)) return wxString(std::to_string(integ));
-                break;
-            case PROPERTY_UINT:
-                uint64_t uinteg;
-                if (object->GetProperty(info.name, &uinteg)) return wxString(std::to_string(uinteg));
-                break;
-            default:
-                break;
-            }
+        PropertyValue value = object->GetProperty(info.name);
         
-        return wxString("nil");
+        switch (value.type) {
+            case PROPERTY_STRING: 
+                return wxString(value.str_value);
+            case PROPERTY_FLOAT:
+                return wxString(std::to_string(value.float_value));
+            case PROPERTY_INT:
+                return wxString(std::to_string(value.int_value));
+            case PROPERTY_UINT:
+                return wxString(std::to_string(value.uint_value));
+            default:
+                return wxString("nil");
+            }
     }
     
     void EntityList::OnMenuOpen(wxListEvent& event) {

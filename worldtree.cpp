@@ -45,7 +45,7 @@ namespace Editor::WorldTree {
         obj_to_treeId[worldcells.get()] = root_node.GetID();
         treeId_to_obj[root_node.GetID()] = worldcells.get();
         
-        for (auto cell : worldcells->cells) {
+        for (auto cell : worldcells->children) {
             AddChildren(root_node, cell.get());
         }
     }

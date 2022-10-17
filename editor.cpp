@@ -766,8 +766,9 @@ namespace Editor {
     void ProduceTestData() {
         std::cout << "Creating some test data..." << std::endl;
         try {
-            std::shared_ptr<WorldCell> wcell1 = std::make_shared<WorldCell>();
-            worldcells->cells.push_back(wcell1);
+            //std::shared_ptr<WorldCell> wcell1 = std::make_shared<WorldCell>();
+            //worldcells->children.push_back(wcell1);
+            worldcells->AddChild();
             
             std::cout << "Finished creating some test data!" << std::endl;
         } catch (const std::exception& e) {

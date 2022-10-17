@@ -38,7 +38,8 @@ namespace Editor {
         PROPERTY_FLOAT,     // float
         PROPERTY_INT,       // int64_t
         PROPERTY_UINT,      // uint64_t
-        PROPERTY_CATEGORY
+        PROPERTY_CATEGORY,
+        PROPERTY_NULL
     };
     
     // property name being a string is very inefficient, but it's the easier option
@@ -50,24 +51,78 @@ namespace Editor {
         PropertyType type;
     };
     
+    struct PropertyValue {
+        PropertyValue() { type = PROPERTY_NULL; }
+        PropertyValue(const std::string& value) : str_value(value) { type = PROPERTY_STRING; }
+        PropertyValue(const float& value) : float_value(value) { type = PROPERTY_FLOAT; }
+        PropertyValue(const int64_t& value) : int_value(value) { type = PROPERTY_INT; }
+        PropertyValue(const uint64_t& value) : uint_value(value) { type = PROPERTY_UINT; }
+        ~PropertyValue() { if (type == PROPERTY_STRING) str_value.~basic_string(); }
+        PropertyValue (const PropertyValue& value) : PropertyValue() { *this = value; }
+        PropertyValue& operator=(const PropertyValue& value) {
+            this->~PropertyValue();
+            switch (value.type) {
+                case PROPERTY_STRING:
+                    new (&str_value) std::string(value.str_value);
+                    //str_value = value.str_value;
+                    break;
+                case PROPERTY_FLOAT:
+                    float_value = value.float_value;
+                    break;
+                case PROPERTY_INT:
+                    int_value = value.int_value;
+                    break;
+                case PROPERTY_UINT:
+                    uint_value = value.uint_value;
+                    break;
+                default:
+                    break;
+            }
+            
+            type = value.type;
+            return *this;
+        }
+        
+        PropertyType type;
+        union {
+            std::string str_value;
+            float float_value;
+            int64_t int_value;
+            uint64_t uint_value;
+        };
+    };
+    
     class Object : public std::enable_shared_from_this<Object> {
     public:
         Object() = default;
         Object(Object* parent) : parent(parent) {};
         virtual ~Object() {}
         
+        std::list<std::shared_ptr<Object>> children;
+        std::unordered_map<std::string, PropertyValue> properties;
+        
         std::shared_ptr<Object> GetPointer() { return shared_from_this(); }
+        std::shared_ptr<Object> GetParent() { return parent->GetPointer(); }
+        std::shared_ptr<Object> GetCopy() { return GetPointer(); } // placeholder
+        
+        virtual std::string_view GetName() { return properties["name"].str_value; }
+        
+        void AddChild(std::shared_ptr<Object> child) { children.push_back(child); }
+        void RemoveChild(std::shared_ptr<Object> child) { children.remove(child); }
+        // TODO: add a SwapChild() method
+        virtual std::list<std::shared_ptr<Object>> GetChildren() { return children; }
     
         bool hidden = true;
         Object* parent = nullptr;
         
-        virtual std::list<std::shared_ptr<Object>> GetChildren() { std::cout << "GetChildren() not implemented for " << typeid(*this).name() << std::endl; abort(); }
-        virtual std::string_view GetName() { std::cout << "GetName() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+        //virtual std::list<std::shared_ptr<Object>> GetChildren() { std::cout << "GetChildren() not implemented for " << typeid(*this).name() << std::endl; abort(); }
+        //virtual std::string_view GetName() { std::cout << "GetName() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+        virtual bool IsChildrenTreeable() { std::cout << "IsChildrenTreeable() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
         virtual bool IsChildrenListable() { std::cout << "IsChildrenListable() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
         virtual void SetHidden(bool is_hidden) { std::cout << "SetHidden() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
         virtual std::shared_ptr<Object> AddChild() { std::cout << "AddChild(void) not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
-        virtual void AddChild(std::shared_ptr<Object>) { std::cout << "AddChild(std::shared_ptr) not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
-        virtual void RemoveChild(std::shared_ptr<Object>) { std::cout << "RemoveChild() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+        //virtual void AddChild(std::shared_ptr<Object>) { std::cout << "AddChild(std::shared_ptr) not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+        //virtual void RemoveChild(std::shared_ptr<Object>) { std::cout << "RemoveChild() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
         virtual bool IsRemovable() { std::cout << "IsRemovable() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
         virtual bool IsRemovableChildren() { std::cout << "IsRemovableChildren() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
         virtual bool IsAddableChildren() { std::cout << "IsAddableChildren() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
@@ -80,10 +135,12 @@ namespace Editor {
         virtual std::vector<PropertyDefinition> GetFullPropertyDefinitions() { std::cout << "GetFullPropertyDefinitions() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
         
         // takes in the property name and returns the value by copying it to the void* pointer
-        virtual bool GetProperty (std::string property_name, void* property) { std::cout << "GetProperty() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+        //virtual PropertyValue GetProperty (std::string property_name) { std::cout << "GetProperty() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+        PropertyValue GetProperty (std::string property_name) { return properties[property_name]; }
         
         // takes in the property name and copies the value from the void* pointer into it
-        virtual void SetProperty (std::string property_name, void* property) { std::cout << "SetProperty() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+        //virtual void SetProperty (std::string property_name, PropertyValue property_value) { std::cout << "SetProperty() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+        void SetProperty (std::string property_name, PropertyValue property_value) { properties[property_name] = property_value; }
         
     };
     
@@ -98,77 +155,82 @@ namespace Editor {
 namespace Editor {
     class Entity : public Object {
     public:
-        Entity(Object* parent) : Object(parent), name("untitled entity") {}
-        Entity(Object* parent, std::string name) : Object(parent), name(name) {}
+        Entity(Object* parent) : Entity(parent, "Unnamed entity") {}
+        Entity(Object* parent, std::string name) : Object(parent) {
+            properties["name"] = name;
+        }
     
-        std::string_view GetName() { return name; }
+        bool IsChildrenTreeable() { return false; }
         bool IsChildrenListable() { return false; }
         
-        std::string name;
-        
-        bool GetProperty (std::string property_name, void* property) { 
-            if (property_name == "name-entity") {
-                *static_cast<char**>(property) = name.data(); return true;
-            } else {
-                return false;
-            }
+        std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
+            return std::vector<PropertyDefinition> {
+                {"group-entity", "Entity", "", PROPERTY_CATEGORY},
+                {"name", "Name", "group-entity", PROPERTY_STRING},
+                {"group-position", "Location", "", PROPERTY_CATEGORY},
+                {"position-x", "X", "", PROPERTY_FLOAT},
+                {"position-y", "Y", "", PROPERTY_FLOAT},
+                {"position-z", "Z", "", PROPERTY_FLOAT}
+            };
         }
         
     };
     
     class EntityGroup : public Object {
     public:
-        EntityGroup(Object* parent) : Object(parent), name(std::string("Untitled EntityGroup ") + std::to_string(parent->GetChildren().size())) {}
-        EntityGroup(Object* parent, std::string name) : Object(parent), name(name) {}
-        std::string name;
-        std::list<std::shared_ptr<Entity>> entities;
+        EntityGroup(Object* parent) : EntityGroup(parent, std::string("Untitled EntityGroup ") + std::to_string(parent->GetChildren().size())) {}
+        EntityGroup(Object* parent, std::string name) : Object(parent) {
+            properties["name"] = name;
+        }
         
-        std::list<std::shared_ptr<Object>> GetChildren() { return std::list<std::shared_ptr<Object>>(entities.begin(), entities.end()); }
-        std::string_view GetName() { return name; }
-        bool IsChildrenListable() { return false; }
+        bool IsChildrenTreeable() { return false; }
+        bool IsChildrenListable() { return true; }
         
-        std::shared_ptr<Object> AddChild() { auto child = std::make_shared<Entity>(this); entities.push_back(child); return child; }
-        void AddChild(std::shared_ptr<Object> child) { entities.push_back(std::dynamic_pointer_cast<Entity>(child)); }
-        void RemoveChild(std::shared_ptr<Object> child) { entities.remove(std::dynamic_pointer_cast<Entity>(child)); }
+        std::shared_ptr<Object> AddChild() { auto child = std::make_shared<Entity>(this); children.push_back(child); return child; }
+
         
         std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
             return std::vector<PropertyDefinition> {
-                {"name-entity", "Name", "", PROPERTY_STRING}
+                {"name", "Name", "", PROPERTY_STRING},
+                {"position-x", "X", "", PROPERTY_FLOAT},
+                {"position-y", "Y", "", PROPERTY_FLOAT},
+                {"position-z", "Z", "", PROPERTY_FLOAT}
             };
         }
         
         std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
             return std::vector<PropertyDefinition> {
                 {"group-entity-group", "Entity Group", "", PROPERTY_CATEGORY},
-                {"name-entity-group", "Name", "group-entity-group", PROPERTY_STRING}
+                {"name", "Name", "group-entity-group", PROPERTY_STRING}
             };
         }
-        
-        bool GetProperty (std::string property_name, void* property) { 
-            if (property_name == "name-entity-group") {
-                *static_cast<char**>(property) = name.data(); return true;
-            } else {
-                return false;
-            }
-        }
-    };
+     };
     
     class EntityGroupManager : public Object {
     public:
         EntityGroupManager(Object* parent) : Object(parent) {
             auto default_group = std::make_shared<EntityGroup>(this, "[default]");
-            groups.push_back(default_group);
+            children.push_back(default_group);
+            
+            properties["name"] = std::string("Entities");
         }
         
-        std::list<std::shared_ptr<Object>> GetChildren() { return std::list<std::shared_ptr<Object>>(groups.begin(), groups.end()); }
-        std::string_view GetName() { return "Entities"; }
+        bool IsChildrenTreeable() { return true; }
         bool IsChildrenListable() { return true; }
         
-        std::shared_ptr<Object> AddChild() { auto child = std::make_shared<EntityGroup>(this); groups.push_back(child); return child; }
-        void AddChild(std::shared_ptr<Object> child) { groups.push_back(std::dynamic_pointer_cast<EntityGroup>(child)); }
-        void RemoveChild(std::shared_ptr<Object> child) { groups.remove(std::dynamic_pointer_cast<EntityGroup>(child)); }
-    
-        std::list<std::shared_ptr<EntityGroup>> groups;
+        std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
+            return std::vector<PropertyDefinition> {
+                {"name", "Name", "", PROPERTY_STRING}
+            };
+        }
+        
+        std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
+            return std::vector<PropertyDefinition> {
+                {"group-entity-group-manager", "Entity Group Manager", "", PROPERTY_CATEGORY}
+            };
+        }
+        
+        std::shared_ptr<Object> AddChild() { auto child = std::make_shared<EntityGroup>(this); children.push_back(child); return child; }
     };
     
     
@@ -181,24 +243,19 @@ namespace Editor {
             Transition* parent;
         };
 
-        Transition(Object* parent) : Transition(parent, "untitled transition", "none") {}
-        Transition(Object* parent, std::string_view name, std::string_view cell_into) : Object(parent), name(name), cell_into_name(cell_into) {}
+        Transition(Object* parent) : Object(parent) {}
+        //Transition(Object* parent) : Transition(parent, "untitled transition", "none") {}
+        //Transition(Object* parent, std::string_view name, std::string_view cell_into) : Object(parent){}
         
+        bool IsChildrenTreeable() { return true; }
         bool IsChildrenListable() { return true; }
-
-        std::string name;
-        std::string cell_into_name;
-        std::list<std::shared_ptr<Node>> nodes;
     };
     
     class TransitionManager : public Object {
     public:
         TransitionManager(Object* parent) : Object(parent) {}
         
-        std::list<std::shared_ptr<Object>> GetChildren() { return std::list<std::shared_ptr<Object>>(transitions.begin(), transitions.end()); }
         std::string_view GetName() { return "Transitions"; }
-    
-        std::list<std::shared_ptr<Transition>> transitions;
     };
     
     
@@ -217,21 +274,15 @@ namespace Editor {
             glm::vec3 location4;
         };
         
-        Path(Object* parent) : Path(parent, "untitled path") {}
-        Path(Object* parent, std::string_view name) : Object(parent), name(name) {}
-
-        std::string name;
-        std::list<std::shared_ptr<Node>> nodes;
+        Path(Object* parent) : Object(parent) {}
+        //Path(Object* parent, std::string_view name) : Object(parent), name(name) {}
     };
     
     class PathManager : public Object {
     public:
         PathManager(Object* parent) : Object(parent) {}
         
-        std::list<std::shared_ptr<Object>> GetChildren() { return std::list<std::shared_ptr<Object>>(paths.begin(), paths.end()); }
         std::string_view GetName() { return "Paths"; }
-    
-        std::list<std::shared_ptr<Path>> paths;
     };
     
     
@@ -246,19 +297,14 @@ namespace Editor {
             glm::vec3 location;
             Navmesh* parent;
         };
-
-        std::string name;
-        std::list<std::shared_ptr<Node>> nodes;
     };
     
     class NavmeshManager : public Object {
     public:
         NavmeshManager(Object* parent) : Object(parent) {}
         
-        std::list<std::shared_ptr<Object>> GetChildren() { return std::list<std::shared_ptr<Object>>(navmeshes.begin(), navmeshes.end()); }
         std::string_view GetName() { return "Navmeshes"; }
-    
-        std::list<std::shared_ptr<Navmesh>> navmeshes;
+
     };
 
 
@@ -267,23 +313,54 @@ namespace Editor {
 
     class WorldCell : public Object {
     public:
-        std::shared_ptr<EntityGroupManager> group_manager;
-        WorldCell() : Object(nullptr), group_manager(std::make_shared<EntityGroupManager>(this)) { }
+        WorldCell(Object* parent) : WorldCell(parent, "WorldCell") {}
+        WorldCell(Object* parent, std::string name) : Object(parent), group_manager(std::make_shared<EntityGroupManager>(this)) {
+            properties["name"] = name;
+        }
+        
+                bool IsChildrenTreeable() { return true; }
+        bool IsChildrenListable() { return true; }
+        
+        std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
+            return std::vector<PropertyDefinition> {
+                {"name", "Name", "", PROPERTY_STRING}
+            };
+        }
+        
+        std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
+            return std::vector<PropertyDefinition> {
+                {"group-worldcell", "Worldcell", "", PROPERTY_CATEGORY},
+                {"name", "Name", "group-worldcell", PROPERTY_STRING}
+            };
+        }
         
         std::list<std::shared_ptr<Object>> GetChildren() { return std::list<std::shared_ptr<Object>> { group_manager }; }
-        std::string_view GetName() { return name; }
         
-        std::string name = "untitled worldcell";
+        std::shared_ptr<EntityGroupManager> group_manager;
     };
     
     class WorldCellManager : public Object {
     public:
-        WorldCellManager(Object* parent) {}
+        WorldCellManager(Object* parent) {
+            properties["name"] = std::string("Pasaule");
+        }
         
-        std::list<std::shared_ptr<Object>> GetChildren() { return std::list<std::shared_ptr<Object>>(cells.begin(), cells.end()); }
-        std::string_view GetName() { return "Pasaule"; }
-    
-        std::list<std::shared_ptr<WorldCell>> cells;
+        std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
+            return std::vector<PropertyDefinition> {
+                {"name", "Name", "", PROPERTY_STRING}
+            };
+        }
+        
+        std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
+            return std::vector<PropertyDefinition> {
+                {"group-world-cell-manager", "WorldCell Manager", "", PROPERTY_CATEGORY}
+            };
+        }
+        
+                bool IsChildrenTreeable() { return true; }
+        bool IsChildrenListable() { return true; }
+        
+        std::shared_ptr<Object> AddChild() { auto child = std::make_shared<WorldCell>(this); children.push_back(child); return child; }
     };
     
     extern std::shared_ptr<WorldCellManager> worldcells;
