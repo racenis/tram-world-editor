@@ -7,7 +7,7 @@ MainFrame* main_frame = nullptr;
 wxTreeCtrl* world_tree = nullptr;
 EntityList* entity_list = nullptr;
 wxPropertyGrid* property_panel = nullptr;
-wxMenu* world_tree_popup = nullptr;
+EditorObjectMenu* world_tree_popup = nullptr;
 
 #include <editor.h>
 #include <actions.h>
@@ -523,47 +523,6 @@ void Viewport::OnPaint(wxPaintEvent& event)
 	SwapBuffers();
 }
 
-
-class EditorObjectMenu : public wxMenu {
-public:
-    EditorObjectMenu () : wxMenu() {
-        is_visible_checkbox = AppendCheckItem(1, L"Rādīt", L"Parāda šūnas apakšsadaļas saturu 3D skatā.");
-        add_selection = Append(2, L"Pievienot jaunu", L"Pievieno jaunu šūnu");
-        edit_selection = Append(3, L"Rediģēt", L"Rediģēt šūnu.");
-        delete_selection = Append(4, L"Dzēst", L"Pievieno jaunu šūnu");
-        
-        this->Bind(wxEVT_MENU, &EditorObjectMenu::OnIsVisibleCheckboxClick, this, 1);
-        this->Bind(wxEVT_MENU, &EditorObjectMenu::OnAddSelection, this, 2);
-        this->Bind(wxEVT_MENU, &EditorObjectMenu::OnEditSelection, this, 3);
-        this->Bind(wxEVT_MENU, &EditorObjectMenu::OnDeleteSelection, this, 4);
-    }
-    
-    void OnIsVisibleCheckboxClick(wxCommandEvent& event) {
-        std::cout << "Clicked on is visible!" << std::endl;
-    }
-    
-    void OnAddSelection(wxCommandEvent& event) {
-        std::cout << "Clicked on add selection!" << std::endl;
-        Editor::PerformAction<Editor::ActionNew>();
-    }
-    
-    void OnEditSelection(wxCommandEvent& event) {
-        std::cout << "Clicked on edit selection!" << std::endl;
-        Editor::PropertyPanel::SetCurrentSelection();
-    }
-    
-    void OnDeleteSelection(wxCommandEvent& event) {
-        std::cout << "Clicked on delete selection!" << std::endl;
-        Editor::PerformAction<Editor::ActionRemove>();
-    }
-    
-    wxMenuItem* is_visible_checkbox = nullptr;
-    wxMenuItem* add_selection = nullptr;
-    wxMenuItem* edit_selection = nullptr;
-    wxMenuItem* delete_selection = nullptr;
-    
-};
-
 class WorldTree : public wxTreeCtrl {
 public:
     WorldTree (wxWindow* parent) : wxTreeCtrl(parent, -1, wxDefaultPosition, wxSize(200, 150), wxTR_DEFAULT_STYLE | wxTR_MULTIPLE) {
@@ -574,6 +533,7 @@ public:
     
     void OnMenuOpen (wxTreeEvent& event) {
         std::cout << "Opened tree menu!" << std::endl;
+        world_tree_popup->SetSelectionStatus(Editor::selection.get());
         main_frame->PopupMenu(world_tree_popup);
     }
     
@@ -610,8 +570,12 @@ public:
     
     void OnChanged (wxPropertyGridEvent& event) {
         std::cout << "Something changed!" << std::endl;
-        auto val = event.GetValue();
+        auto value = event.GetValue();
+        auto value_name = event.GetPropertyName().ToStdString();
         
+        // TODO: cache the result of value.GetType() == "type"
+        
+        /*
         auto new_selection = std::make_shared<Editor::Selection>();
         for (auto& object : Editor::selection->objects) {
             auto new_object = object->GetCopy();
@@ -631,7 +595,26 @@ public:
             }
         }
         
-        Editor::PerformAction<Editor::ActionSwapSelection>(new_selection);
+        Editor::PerformAction<Editor::ActionSwapSelection>(new_selection);*/
+        
+        // make a back-up of the properties of the selected objects 
+        Editor::PerformAction<Editor::ActionChangeProperties>();
+        
+        for (auto& object : Editor::selection->objects) {
+            if (value.GetType() == "longlong") {
+                object->SetProperty(value_name, value.GetLongLong().GetValue());
+            } else if (value.GetType() == "ulonglong") {
+                object->SetProperty(value_name, value.GetULongLong().GetValue());
+            } else if (value.GetType() == "double") {
+                object->SetProperty(value_name, (float)value.GetDouble());
+            } else if (value.GetType() == "string") {
+                object->SetProperty(value_name, value.GetString().ToStdString());
+            } else {
+                std::cout << "value type '" << value.GetType().c_str() << "' unrecognized!" << std::endl;
+            }
+        }
+        
+        
     }
     
     void OnCollapsed (wxPropertyGridEvent& event) {
@@ -783,7 +766,7 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā progra
     //world_tree = new wxTreeCtrl(this, -1, wxDefaultPosition, wxSize(200, 150));
     world_tree = new WorldTree(this);
     property_panel = new PropertyPanel(this);
-    entity_list = new EntityList(this, -1, wxDefaultPosition, wxSize(200,150), wxLC_REPORT | wxLC_VIRTUAL | wxLC_HRULES | wxLC_VRULES);
+    entity_list = new EntityList(this);
     viewport = new Viewport(this, wxID_ANY, nullptr, { 0, 0 }, { 800, 800 });
 
     m_mgr.AddPane(world_tree, wxLEFT, L"Pasaule");

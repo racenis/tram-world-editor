@@ -48,6 +48,8 @@ namespace Editor::WorldTree {
         for (auto cell : worldcells->children) {
             AddChildren(root_node, cell.get());
         }
+        
+        world_tree->Refresh();
     }
     
     std::shared_ptr<Object> GetObject(void* Id) {

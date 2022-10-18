@@ -15,6 +15,25 @@ namespace Core {
 
 namespace Editor {
     typedef void* worldTreeID_t;
+    class Object;
+    
+    namespace WorldTree {
+        void Add (Object* object);
+        void Remove (Object* object);
+        void Rename (Object* object);
+        void Rebuild();
+        std::shared_ptr<Object> GetObject(void* Id);
+    }
+    
+    namespace PropertyPanel {
+        void SetCurrentSelection();
+    }
+    
+    namespace ObjectList {
+        void SetCurrentSelection();
+    }
+    
+    
     void Init();
     void Yeet();
     void ProduceTestData();
@@ -83,6 +102,26 @@ namespace Editor {
             return *this;
         }
         
+        bool operator==(const PropertyValue& other) const {
+            if (other.type != type) return false;
+            
+            switch (type) {
+                case PROPERTY_STRING:
+                    return str_value == other.str_value;
+                case PROPERTY_FLOAT:
+                    return float_value == other.float_value;
+                case PROPERTY_INT:
+                    return int_value == other.int_value;
+                case PROPERTY_UINT:
+                    return uint_value == other.uint_value;
+                case PROPERTY_CATEGORY:
+                    return false;
+                case PROPERTY_NULL:
+                    return true;
+            }
+            return false;
+        }
+        
         PropertyType type;
         union {
             std::string str_value;
@@ -103,7 +142,10 @@ namespace Editor {
         
         std::shared_ptr<Object> GetPointer() { return shared_from_this(); }
         std::shared_ptr<Object> GetParent() { return parent->GetPointer(); }
-        std::shared_ptr<Object> GetCopy() { return GetPointer(); } // placeholder
+        std::shared_ptr<Object> GetCopy() { return GetPointer(); } // TODO: implement copying
+        
+        auto GetProperties() { return properties; }
+        void SetProperties(auto properties) { this->properties = properties; }
         
         virtual std::string_view GetName() { return properties["name"].str_value; }
         
@@ -117,16 +159,20 @@ namespace Editor {
         
         //virtual std::list<std::shared_ptr<Object>> GetChildren() { std::cout << "GetChildren() not implemented for " << typeid(*this).name() << std::endl; abort(); }
         //virtual std::string_view GetName() { std::cout << "GetName() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
-        virtual bool IsChildrenTreeable() { std::cout << "IsChildrenTreeable() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
-        virtual bool IsChildrenListable() { std::cout << "IsChildrenListable() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
-        virtual void SetHidden(bool is_hidden) { std::cout << "SetHidden() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
-        virtual std::shared_ptr<Object> AddChild() { std::cout << "AddChild(void) not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
-        //virtual void AddChild(std::shared_ptr<Object>) { std::cout << "AddChild(std::shared_ptr) not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
-        //virtual void RemoveChild(std::shared_ptr<Object>) { std::cout << "RemoveChild() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
-        virtual bool IsRemovable() { std::cout << "IsRemovable() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
-        virtual bool IsRemovableChildren() { std::cout << "IsRemovableChildren() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
-        virtual bool IsAddableChildren() { std::cout << "IsAddableChildren() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
-        virtual bool IsHidden() { std::cout << "IsHidden() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+        virtual bool IsChildrenTreeable() { std::cout << "IsChildrenTreeable() not implemented for " << typeid(*this).name() << std::endl; abort(); }
+        virtual bool IsChildrenListable() { std::cout << "IsChildrenListable() not implemented for " << typeid(*this).name() << std::endl; abort(); }
+        //virtual void SetHidden(bool is_hidden) { std::cout << "SetHidden() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+        virtual void SetHidden(bool is_hidden) { for (auto& child : children) child->SetHidden(is_hidden); }
+        virtual std::shared_ptr<Object> AddChild() { std::cout << "AddChild(void) not implemented for " << typeid(*this).name() << std::endl; abort(); }
+
+        virtual bool IsAddable() { std::cout << "IsAddable() not implemented for " << typeid(*this).name() << std::endl; abort(); }
+        virtual bool IsRemovable() { std::cout << "IsRemovable() not implemented for " << typeid(*this).name() << std::endl; abort(); }
+        virtual bool IsEditable() { std::cout << "IsEditable() not implemented for " << typeid(*this).name() << std::endl; abort(); }
+        virtual bool IsCopyable() { std::cout << "IsCopyable() not implemented for " << typeid(*this).name() << std::endl; abort(); }
+        
+        
+        //virtual bool IsHidden() { std::cout << "IsHidden() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+        virtual bool IsHidden() { for (auto& child : children) if (child->IsHidden()) return true; return false; }
         
         // these are the properties that will be shown in the object list
         virtual std::vector<PropertyDefinition> GetListPropertyDefinitions() { std::cout << "GetListPropertyDefinitions() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
@@ -140,7 +186,7 @@ namespace Editor {
         
         // takes in the property name and copies the value from the void* pointer into it
         //virtual void SetProperty (std::string property_name, PropertyValue property_value) { std::cout << "SetProperty() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
-        void SetProperty (std::string property_name, PropertyValue property_value) { properties[property_name] = property_value; }
+        void SetProperty (std::string property_name, PropertyValue property_value) { properties[property_name] = property_value; if (property_name == "name" && parent && parent->IsChildrenTreeable()) WorldTree::Rename(this); }
         
     };
     
@@ -155,13 +201,20 @@ namespace Editor {
 namespace Editor {
     class Entity : public Object {
     public:
-        Entity(Object* parent) : Entity(parent, "Unnamed entity") {}
+        Entity(Object* parent) : Entity(parent, "New Entity") {}
         Entity(Object* parent, std::string name) : Object(parent) {
             properties["name"] = name;
+            properties["position-x"] = 0.0f;
+            properties["position-y"] = 0.0f;
+            properties["position-z"] = 0.0f;
         }
     
         bool IsChildrenTreeable() { return false; }
         bool IsChildrenListable() { return false; }
+        bool IsAddable() { return false; }
+        bool IsRemovable() { return true; }
+        bool IsEditable() { return true; }
+        bool IsCopyable() { return true; }
         
         std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
             return std::vector<PropertyDefinition> {
@@ -185,6 +238,10 @@ namespace Editor {
         
         bool IsChildrenTreeable() { return false; }
         bool IsChildrenListable() { return true; }
+        bool IsAddable() { return true; }
+        bool IsRemovable() { return properties["name"].str_value != "[default]"; }
+        bool IsEditable() { return true; }
+        bool IsCopyable() { return true; }
         
         std::shared_ptr<Object> AddChild() { auto child = std::make_shared<Entity>(this); children.push_back(child); return child; }
 
@@ -217,6 +274,10 @@ namespace Editor {
         
         bool IsChildrenTreeable() { return true; }
         bool IsChildrenListable() { return true; }
+        bool IsAddable() { return true; }
+        bool IsRemovable() { return false; }
+        bool IsEditable() { return false; }
+        bool IsCopyable() { return false; }
         
         std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
             return std::vector<PropertyDefinition> {
@@ -249,6 +310,10 @@ namespace Editor {
         
         bool IsChildrenTreeable() { return true; }
         bool IsChildrenListable() { return true; }
+        bool IsAddable() { return true; }
+        bool IsRemovable() { return true; }
+        bool IsEditable() { return true; }
+        bool IsCopyable() { return true; }
     };
     
     class TransitionManager : public Object {
@@ -318,8 +383,12 @@ namespace Editor {
             properties["name"] = name;
         }
         
-                bool IsChildrenTreeable() { return true; }
+        bool IsChildrenTreeable() { return true; }
         bool IsChildrenListable() { return true; }
+        bool IsAddable() { return false; }
+        bool IsRemovable() { return true; }
+        bool IsEditable() { return true; }
+        bool IsCopyable() { return true; }
         
         std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
             return std::vector<PropertyDefinition> {
@@ -357,8 +426,12 @@ namespace Editor {
             };
         }
         
-                bool IsChildrenTreeable() { return true; }
+        bool IsChildrenTreeable() { return true; }
         bool IsChildrenListable() { return true; }
+        bool IsAddable() { return true; }
+        bool IsRemovable() { return false; }
+        bool IsEditable() { return false; }
+        bool IsCopyable() { return false; }
         
         std::shared_ptr<Object> AddChild() { auto child = std::make_shared<WorldCell>(this); children.push_back(child); return child; }
     };
@@ -368,21 +441,7 @@ namespace Editor {
 
 
 namespace Editor {
-    namespace WorldTree {
-        void Add (Object* object);
-        void Remove (Object* object);
-        void Rename (Object* object);
-        void Rebuild();
-        std::shared_ptr<Object> GetObject(void* Id);
-    }
-    
-    namespace PropertyPanel {
-        void SetCurrentSelection();
-    }
-    
-    namespace ObjectList {
-        void SetCurrentSelection();
-    }
+
     
     
     

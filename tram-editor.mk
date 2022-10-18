@@ -14,7 +14,7 @@ CurrentFileName        :=
 CurrentFilePath        :=
 CurrentFileFullPath    :=
 User                   :=Poga
-Date                   :=17/10/2022
+Date                   :=18/10/2022
 CodeLitePath           :="C:/Program Files/CodeLite"
 MakeDirCommand         :=mkdir
 LinkerName             :=C:/mingw64/bin/g++.exe
@@ -66,7 +66,7 @@ AS       := C:/mingw64/bin/as.exe
 CodeLiteDir:=C:\Program Files\CodeLite
 WXWIN:=C:\Users\Poga\Desktop\miskaste\wxwidgets
 WXCFG:=gcc_dll\mswu
-Objects0=$(IntermediateDirectory)/benis.cpp$(ObjectSuffix) $(IntermediateDirectory)/editor.cpp$(ObjectSuffix) $(IntermediateDirectory)/worldtree.cpp$(ObjectSuffix) $(IntermediateDirectory)/main.cpp$(ObjectSuffix) $(IntermediateDirectory)/propertypanel.cpp$(ObjectSuffix) $(IntermediateDirectory)/objectlist.cpp$(ObjectSuffix) 
+Objects0=$(IntermediateDirectory)/benis.cpp$(ObjectSuffix) $(IntermediateDirectory)/editor.cpp$(ObjectSuffix) $(IntermediateDirectory)/worldtree.cpp$(ObjectSuffix) $(IntermediateDirectory)/main.cpp$(ObjectSuffix) $(IntermediateDirectory)/propertypanel.cpp$(ObjectSuffix) $(IntermediateDirectory)/objectlist.cpp$(ObjectSuffix) $(IntermediateDirectory)/objectmenu.cpp$(ObjectSuffix) 
 
 
 
@@ -144,6 +144,14 @@ $(IntermediateDirectory)/objectlist.cpp$(DependSuffix): objectlist.cpp
 
 $(IntermediateDirectory)/objectlist.cpp$(PreprocessSuffix): objectlist.cpp
 	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/objectlist.cpp$(PreprocessSuffix) objectlist.cpp
+
+$(IntermediateDirectory)/objectmenu.cpp$(ObjectSuffix): objectmenu.cpp $(IntermediateDirectory)/objectmenu.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/objectmenu.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/objectmenu.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/objectmenu.cpp$(DependSuffix): objectmenu.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/objectmenu.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/objectmenu.cpp$(DependSuffix) -MM objectmenu.cpp
+
+$(IntermediateDirectory)/objectmenu.cpp$(PreprocessSuffix): objectmenu.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/objectmenu.cpp$(PreprocessSuffix) objectmenu.cpp
 
 
 -include $(IntermediateDirectory)/*$(DependSuffix)

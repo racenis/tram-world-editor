@@ -13,7 +13,7 @@ namespace Editor::PropertyPanel {
                 auto object_fields = object->GetFullPropertyDefinitions();
                 
                 for (auto& field : object_fields) {
-                    auto field_ptr = fields[field.display_name];
+                    auto field_ptr = fields[field.name];
                     
                     if (!field_ptr) {
                         switch (field.type) {
@@ -36,15 +36,15 @@ namespace Editor::PropertyPanel {
                                 abort();
                         }
                         
-                        fields[field.display_name] = field_ptr;
+                        fields[field.name] = field_ptr;
                         fields_list.push_back(field_ptr);
-                    }
-                    
-                    auto category_ptr = fields[field.category_name];
-                    if (category_ptr) {
-                        property_panel->AppendIn(category_ptr, field_ptr);
-                    } else {
-                        property_panel->Append(field_ptr);
+                        
+                        auto category_ptr = fields[field.category_name];
+                        if (category_ptr) {
+                            property_panel->AppendIn(category_ptr, field_ptr);
+                        } else {
+                            property_panel->Append(field_ptr);
+                        }
                     }
                 }
             }
@@ -54,52 +54,48 @@ namespace Editor::PropertyPanel {
             for (auto& field : fields_list) {
                 if (field->IsCategory()) continue;
                 std::string field_name = field->GetName().ToStdString();
-                wxVariant field_value;
+                PropertyValue value;
                 bool first = true;
                 
                 // will crash if selection.size() < 1
                 for (auto& object : selection->objects) {
-                    wxVariant field_value_next;
-                    PropertyValue field_value_retrieved = object->GetProperty(field_name);
-                    
-                    switch (field_value_retrieved.type) {
-                        case PROPERTY_STRING:
-                            field_value_next = wxVariant(field_value_retrieved.str_value);
-                            break;
-                        case PROPERTY_FLOAT:
-                            field_value_next = wxVariant(field_value_retrieved.float_value);
-                            break;
-                        case PROPERTY_INT:
-                            field_value_next = wxVariant(wxLongLong(field_value_retrieved.int_value));
-                            break;
-                        case PROPERTY_UINT:
-                            field_value_next = wxVariant(wxULongLong(field_value_retrieved.uint_value));
-                            break;
-                        case PROPERTY_CATEGORY:
-                            goto field_is_category;
-                        case PROPERTY_NULL:
-                            std::cout << "[PROPS] prop null for " << field_name << std::endl;
-                            goto not_matching;
-                    }
+                    PropertyValue next_value = object->GetProperty(field_name);
                     
                     if (first) {
-                        field_value = field_value_next;
-                        field->SetValue(field_value);
+                        value = next_value;
                         first = false;
-                    } else if (field_value != field_value_next) {
-                        std::cout << "[PROPS] not matching: " << field_value.GetString().c_str() << " and " << field_value_next.GetString().c_str() << std::endl;
+                        if (value.type == PROPERTY_NULL) goto not_matching;
+                    } else if (value != next_value) {
+                        std::cout << "[PROPS] VALUE not matching !! " << std::endl;
                         goto not_matching;
                     }
                 }
+
+                switch (value.type) {
+                    case PROPERTY_STRING:
+                        field->SetValue(value.str_value);
+                        break;
+                    case PROPERTY_FLOAT:
+                        field->SetValue(value.float_value);
+                        break;
+                    case PROPERTY_INT:
+                        field->SetValue(wxLongLong(value.int_value));
+                        break;
+                    case PROPERTY_UINT:
+                        field->SetValue(wxULongLong(value.uint_value));
+                        break;
+                    default:
+                        break;
+                }
+                
+                continue;
                 
                 not_matching:
                 field->SetBackgroundColour(*wxYELLOW);
-                continue;
-                
-                field_is_category:
-                continue;
+                field->SetValue("---");
             }
             
+            property_panel->Refresh();
         } else {
             std::cout << "Selection canceled! " << std::endl;
         }

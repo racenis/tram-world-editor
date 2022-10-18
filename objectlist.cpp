@@ -51,13 +51,11 @@ namespace Editor::ObjectList {
     }
     
     void EntityList::OnMenuOpen(wxListEvent& event) {
-        std::cout << "TODO: open menu" << std::endl;
+        world_tree_popup->SetSelectionStatus(Editor::selection.get());
         main_frame->PopupMenu(world_tree_popup);
     }
     
     void EntityList::OnSelectionChanged(wxListEvent& event) {
-        std::cout << "Selection changed!" << std::endl;
-        
         auto new_selection = std::make_shared<Editor::Selection>();
         auto childrens = selected_object->GetChildren();
         

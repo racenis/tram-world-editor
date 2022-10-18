@@ -13,6 +13,7 @@
 class MainFrame;
 class EntityList;
 class Viewport;
+class EditorObjectMenu;
 
 // at any point in time the editor will have one and only one window open
 // and only one instance of each widget. that means that we can just declare
@@ -22,7 +23,9 @@ extern MainFrame* main_frame;
 extern wxTreeCtrl* world_tree;
 extern EntityList* entity_list;
 extern wxPropertyGrid* property_panel;
-extern wxMenu* world_tree_popup;
+extern EditorObjectMenu* world_tree_popup;
+
+namespace Editor { class Selection; }
 
 // this is the main window class of the app
 class MainFrame : public wxFrame {
@@ -98,8 +101,7 @@ protected:
 
 class EntityList : public wxListCtrl {
 public:
-    EntityList (wxWindow* parent, wxWindowID id, const wxPoint& pos=wxDefaultPosition, const wxSize& size=wxDefaultSize, long style=wxLC_ICON) : 
-        wxListCtrl(parent, id, pos, size, style), parent_frame((MainFrame*)parent) {
+    EntityList (wxWindow* parent) :  wxListCtrl(parent, -1, wxDefaultPosition, wxSize(200,150), wxLC_REPORT | wxLC_VIRTUAL | wxLC_HRULES | wxLC_VRULES) {
             Bind(wxEVT_LIST_ITEM_RIGHT_CLICK, &EntityList::OnMenuOpen, this);
             Bind(wxEVT_LIST_ITEM_SELECTED, &EntityList::OnSelectionChanged, this);
             Bind(wxEVT_LIST_ITEM_ACTIVATED, &EntityList::OnItemActivated, this);
@@ -112,10 +114,27 @@ public:
     void OnMenuOpen(wxListEvent& event);
     void OnSelectionChanged(wxListEvent& event);
     void OnItemActivated(wxListEvent& event);
+};
+
+class EditorObjectMenu : public wxMenu {
+public:
+    EditorObjectMenu ();
     
+    void SetSelectionStatus(Editor::Selection* selection);
     
+    void OnIsVisibleCheckboxClick(wxCommandEvent& event);
     
-    MainFrame* parent_frame;
+    void OnAddSelection(wxCommandEvent& event);
+    
+    void OnEditSelection(wxCommandEvent& event);
+    
+    void OnDeleteSelection(wxCommandEvent& event);
+    
+    wxMenuItem* is_visible_checkbox = nullptr;
+    wxMenuItem* add_selection = nullptr;
+    wxMenuItem* edit_selection = nullptr;
+    wxMenuItem* delete_selection = nullptr;
+    
 };
 
 #endif // WIDGETS_H

@@ -61,6 +61,7 @@ namespace Editor {
     public:
         ActionRemove () {
             for (auto& object : selection->objects) {
+                // TODO: add a check for if the object can even be removed
                 removal_list.push_back({object->parent->GetPointer(), object});
             }
             
@@ -84,7 +85,33 @@ namespace Editor {
         std::list<std::pair<std::shared_ptr<Object>, std::shared_ptr<Object>>> removal_list;
     };
     
-    class ActionSwapSelection : public Action {
+    class ActionChangeProperties : public Action {
+    public:
+        // Makes a backup of the properties of the selected objects.
+        ActionChangeProperties() {
+            for (auto& object : selection->objects) {
+                property_backups.push_back({object, object->GetProperties()});
+            }
+        }
+        
+        // Swaps the backed-up properties with the new properties.
+        void Perform () {
+            for (auto& backup : property_backups) {
+                auto new_property = backup.first->GetProperties();
+                backup.first->SetProperties(backup.second);
+                backup.second = new_property;
+            }
+        }
+        
+        // Swaps the new properties with the backed-up properties.
+        void Unperform() {
+            Perform();
+        }
+        
+        std::list<std::pair<std::shared_ptr<Object>, std::unordered_map<std::string, PropertyValue>>> property_backups;
+    };
+    
+    /*class ActionSwapSelection : public Action {
     public:
         ActionSwapSelection (std::shared_ptr<Selection> new_selection) {
             prev_selection = selection;
@@ -142,7 +169,7 @@ namespace Editor {
         
         std::shared_ptr<Selection> prev_selection = nullptr;
         std::shared_ptr<Selection> next_selection = nullptr;
-    };
+    };*/
 }
 
 #endif // ACTIONS_H
