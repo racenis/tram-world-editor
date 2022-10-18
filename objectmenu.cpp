@@ -1,4 +1,4 @@
-#include <widgets.h>
+#include <objectmenu.h>
 #include <editor.h>
 #include <actions.h>
 

@@ -1,5 +1,8 @@
 #include <editor.h>
+#include <actions.h>
 #include <widgets.h>
+#include <objectmenu.h>
+#include <worldtree.h>
 
 namespace Editor::WorldTree {
     std::unordered_map<worldTreeID_t, Object*> treeId_to_obj;
@@ -56,3 +59,34 @@ namespace Editor::WorldTree {
         return treeId_to_obj[Id]->GetPointer();
     }
 }
+
+    WorldTree::WorldTree (wxWindow* parent) : wxTreeCtrl(parent, -1, wxDefaultPosition, wxSize(200, 150), wxTR_DEFAULT_STYLE | wxTR_MULTIPLE) {
+        Bind(wxEVT_TREE_ITEM_MENU, &WorldTree::OnMenuOpen, this);
+        Bind(wxEVT_TREE_SEL_CHANGED, &WorldTree::OnSelectionChanged, this);
+        Bind(wxEVT_TREE_ITEM_ACTIVATED, &WorldTree::OnItemActivated, this);
+    }
+    
+    void WorldTree::OnMenuOpen (wxTreeEvent& event) {
+        std::cout << "Opened tree menu!" << std::endl;
+        world_tree_popup->SetSelectionStatus(Editor::selection.get());
+        main_frame->PopupMenu(world_tree_popup);
+    }
+    
+    void WorldTree::OnSelectionChanged (wxTreeEvent& event) {
+        std::cout << "Selection changed!" << std::endl;
+        wxArrayTreeItemIds selected_ids;
+        size_t selected_count = GetSelections(selected_ids);
+        
+        auto new_selection = std::make_shared<Editor::Selection>();
+        for (size_t i = 0; i < selected_count; i++) {
+            auto ob = Editor::WorldTree::GetObject(selected_ids[i].GetID());
+            new_selection->objects.push_back(ob);
+        }
+        
+        Editor::PerformAction<Editor::ActionChangeSelection>(new_selection);
+    }
+    
+    void WorldTree::OnItemActivated (wxTreeEvent& event) {
+        Editor::PropertyPanel::SetCurrentSelection();
+        Editor::ObjectList::SetCurrentSelection();
+    }

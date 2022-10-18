@@ -3,6 +3,9 @@
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="src">
+    <File Name="objectmenu.h"/>
+    <File Name="worldtree.h"/>
+    <File Name="propertypanel.h"/>
     <File Name="objectmenu.cpp"/>
     <File Name="objectlist.cpp"/>
     <File Name="propertypanel.cpp"/>

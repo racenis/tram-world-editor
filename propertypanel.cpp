@@ -1,5 +1,7 @@
 #include <editor.h>
+#include <actions.h>
 #include <widgets.h>
+#include <propertypanel.h>
 
 namespace Editor::PropertyPanel {
     void SetCurrentSelection() {
@@ -101,3 +103,43 @@ namespace Editor::PropertyPanel {
         }
     }
 }
+
+    PropertyPanel::PropertyPanel (wxWindow* parent) : wxPropertyGrid(parent, -1) {
+        Bind(wxEVT_PG_CHANGED, &PropertyPanel::OnChanged, this);
+        Bind(wxEVT_PG_ITEM_COLLAPSED, &PropertyPanel::OnCollapsed, this);
+        Bind(wxEVT_PG_ITEM_EXPANDED, &PropertyPanel::OnExpanded, this);
+    }
+    
+    void PropertyPanel::OnChanged (wxPropertyGridEvent& event) {
+        std::cout << "Something changed!" << std::endl;
+        auto value = event.GetValue();
+        auto value_name = event.GetPropertyName().ToStdString();
+        
+        // make a back-up of the properties of the selected objects 
+        Editor::PerformAction<Editor::ActionChangeProperties>();
+        
+        // TODO: cache the result of value.GetType() == "type"
+        for (auto& object : Editor::selection->objects) {
+            if (value.GetType() == "longlong") {
+                object->SetProperty(value_name, value.GetLongLong().GetValue());
+            } else if (value.GetType() == "ulonglong") {
+                object->SetProperty(value_name, value.GetULongLong().GetValue());
+            } else if (value.GetType() == "double") {
+                object->SetProperty(value_name, (float)value.GetDouble());
+            } else if (value.GetType() == "string") {
+                object->SetProperty(value_name, value.GetString().ToStdString());
+            } else {
+                std::cout << "value type '" << value.GetType().c_str() << "' unrecognized!" << std::endl;
+            }
+        }
+        
+        
+    }
+    
+    void PropertyPanel::OnCollapsed (wxPropertyGridEvent& event) {
+        std::cout << "Something collapsed!" << std::endl;
+    }
+    
+    void PropertyPanel::OnExpanded (wxPropertyGridEvent& event) {
+        std::cout << "Something expanded!" << std::endl;
+    }

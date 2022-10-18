@@ -2,13 +2,19 @@
 #include <glad.h>
 
 #include <widgets.h>
+#include <objectlist.h>
+#include <objectmenu.h>
+#include <propertypanel.h>
+#include <worldtree.h>
 
+// TODO: move these out of here
 MainFrame* main_frame = nullptr;
-wxTreeCtrl* world_tree = nullptr;
-EntityList* entity_list = nullptr;
-wxPropertyGrid* property_panel = nullptr;
+WorldTree* world_tree = nullptr;
+ObjectList* object_list = nullptr;
+PropertyPanel* property_panel = nullptr;
 EditorObjectMenu* world_tree_popup = nullptr;
 
+// TODO: check which of these can be yeeted
 #include <editor.h>
 #include <actions.h>
 
@@ -157,7 +163,7 @@ void Viewport::OnLeftClick(wxMouseEvent& event) {
         entity_axis = 0;
         if (!move_mode) {
             move_mode = true;
-            parent_frame->PropertyPanelRebuild();
+            //parent_frame->PropertyPanelRebuild();
         }
         
         ReleaseMouse();
@@ -523,108 +529,10 @@ void Viewport::OnPaint(wxPaintEvent& event)
 	SwapBuffers();
 }
 
-class WorldTree : public wxTreeCtrl {
-public:
-    WorldTree (wxWindow* parent) : wxTreeCtrl(parent, -1, wxDefaultPosition, wxSize(200, 150), wxTR_DEFAULT_STYLE | wxTR_MULTIPLE) {
-        Bind(wxEVT_TREE_ITEM_MENU, &WorldTree::OnMenuOpen, this);
-        Bind(wxEVT_TREE_SEL_CHANGED, &WorldTree::OnSelectionChanged, this);
-        Bind(wxEVT_TREE_ITEM_ACTIVATED, &WorldTree::OnItemActivated, this);
-    }
-    
-    void OnMenuOpen (wxTreeEvent& event) {
-        std::cout << "Opened tree menu!" << std::endl;
-        world_tree_popup->SetSelectionStatus(Editor::selection.get());
-        main_frame->PopupMenu(world_tree_popup);
-    }
-    
-    void OnSelectionChanged (wxTreeEvent& event) {
-        std::cout << "Selection changed!" << std::endl;
-        wxArrayTreeItemIds selected_ids;
-        size_t selected_count = GetSelections(selected_ids);
-        
-        auto new_selection = std::make_shared<Editor::Selection>();
-        for (size_t i = 0; i < selected_count; i++) {
-            auto ob = Editor::WorldTree::GetObject(selected_ids[i].GetID());
-            new_selection->objects.push_back(ob);
-        }
-        
-        //for (auto& obj : Editor::selection.objects) std::cout << obj->GetName() << std::endl;
-        
-        Editor::PerformAction<Editor::ActionChangeSelection>(new_selection);
-    }
-    
-    void OnItemActivated (wxTreeEvent& event) {
-        Editor::PropertyPanel::SetCurrentSelection();
-        Editor::ObjectList::SetCurrentSelection();
-    }
-};
 
 
-class PropertyPanel : public wxPropertyGrid {
-public:
-    PropertyPanel (wxWindow* parent) : wxPropertyGrid(parent, -1) {
-        Bind(wxEVT_PG_CHANGED, &PropertyPanel::OnChanged, this);
-        Bind(wxEVT_PG_ITEM_COLLAPSED, &PropertyPanel::OnCollapsed, this);
-        Bind(wxEVT_PG_ITEM_EXPANDED, &PropertyPanel::OnExpanded, this);
-    }
-    
-    void OnChanged (wxPropertyGridEvent& event) {
-        std::cout << "Something changed!" << std::endl;
-        auto value = event.GetValue();
-        auto value_name = event.GetPropertyName().ToStdString();
-        
-        // TODO: cache the result of value.GetType() == "type"
-        
-        /*
-        auto new_selection = std::make_shared<Editor::Selection>();
-        for (auto& object : Editor::selection->objects) {
-            auto new_object = object->GetCopy();
-            auto value_name = event.GetPropertyName().ToStdString();
-            new_selection->objects.push_back(new_object);
-            
-            if (val.GetType() == "longlong") {
-                new_object->SetProperty(value_name, val.GetLongLong().GetValue());
-            } else if (val.GetType() == "ulonglong") {
-                new_object->SetProperty(value_name, val.GetULongLong().GetValue());
-            } else if (val.GetType() == "double") {
-                new_object->SetProperty(value_name, (float)val.GetDouble());
-            } else if (val.GetType() == "string") {
-                new_object->SetProperty(value_name, val.GetString().ToStdString());
-            } else {
-                std::cout << "value type '" << val.GetType().c_str() << "' unrecognized!" << std::endl;
-            }
-        }
-        
-        Editor::PerformAction<Editor::ActionSwapSelection>(new_selection);*/
-        
-        // make a back-up of the properties of the selected objects 
-        Editor::PerformAction<Editor::ActionChangeProperties>();
-        
-        for (auto& object : Editor::selection->objects) {
-            if (value.GetType() == "longlong") {
-                object->SetProperty(value_name, value.GetLongLong().GetValue());
-            } else if (value.GetType() == "ulonglong") {
-                object->SetProperty(value_name, value.GetULongLong().GetValue());
-            } else if (value.GetType() == "double") {
-                object->SetProperty(value_name, (float)value.GetDouble());
-            } else if (value.GetType() == "string") {
-                object->SetProperty(value_name, value.GetString().ToStdString());
-            } else {
-                std::cout << "value type '" << value.GetType().c_str() << "' unrecognized!" << std::endl;
-            }
-        }
-        
-        
-    }
-    
-    void OnCollapsed (wxPropertyGridEvent& event) {
-        std::cout << "Something collapsed!" << std::endl;
-    }
-    
-    void OnExpanded (wxPropertyGridEvent& event) {
-        std::cout << "Something expanded!" << std::endl;
-    }
-};
+
+
 
 
 
@@ -766,18 +674,18 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā progra
     //world_tree = new wxTreeCtrl(this, -1, wxDefaultPosition, wxSize(200, 150));
     world_tree = new WorldTree(this);
     property_panel = new PropertyPanel(this);
-    entity_list = new EntityList(this);
+    object_list = new ObjectList(this);
     viewport = new Viewport(this, wxID_ANY, nullptr, { 0, 0 }, { 800, 800 });
 
     m_mgr.AddPane(world_tree, wxLEFT, L"Pasaule");
     m_mgr.AddPane(property_panel, wxLEFT, L"Īpašības");
-    m_mgr.AddPane(entity_list, wxBOTTOM, L"Saturs");
+    m_mgr.AddPane(object_list, wxBOTTOM, L"Saturs");
     m_mgr.AddPane(output_text_ctrl, wxBOTTOM, L"Konsole");
     m_mgr.AddPane(viewport, wxCENTER, L"GIANT PENIS");
     
     m_mgr.GetPane(world_tree).CloseButton(false);
     m_mgr.GetPane(property_panel).CloseButton(false);
-    m_mgr.GetPane(entity_list).CloseButton(false);
+    m_mgr.GetPane(object_list).CloseButton(false);
     m_mgr.GetPane(output_text_ctrl).CloseButton(false);
     
     //world_tree_root_node = world_tree->AddRoot(L"Pasaule un viss tajā iekšā");
@@ -863,7 +771,7 @@ void MainFrame::OnLoadCells(wxCommandEvent& event) {
     }*/
     //BuildWorldCellTree();
     PropertyPanelRebuild();
-    entity_list->RefreshAllItems();
+    object_list->RefreshAllItems();
     progress_dialog.Update(100, L"Pabeigts");
     std::cout << "Loaded cells." << std::endl;
 }
@@ -996,7 +904,7 @@ void MainFrame::PropertyPanelRebuild() {
     }*/
 }
 
-void MainFrame::OnPropertyPanelChanged(wxPropertyGridEvent& event) {
+//void MainFrame::OnPropertyPanelChanged(wxPropertyGridEvent& event) {
     /*
     std::unordered_map<std::string, void (*)(wxPropertyGridEvent&, MainFrame*)> updates = {
         {"worldcell-name", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().into->name = event.GetPropertyValue().GetString(); frame->BuildWorldCellTree(); }},
@@ -1083,7 +991,7 @@ void MainFrame::OnPropertyPanelChanged(wxPropertyGridEvent& event) {
         //std::cout << std::string(event.GetPropertyName()) << std::endl;
         property_collapsed[std::string(event.GetPropertyName())] = true;
     }*/
-}
+//}
 
 /*void MainFrame::OnWorldCellTreeDoubleClick(wxTreeEvent& event) {
     if (event.GetItem() == world_tree_root_node) {
@@ -1099,7 +1007,7 @@ void MainFrame::OnPropertyPanelChanged(wxPropertyGridEvent& event) {
     }
 }*/
 
-void MainFrame::OnEntityListRightClick(wxListEvent& event) {
+//void MainFrame::OnEntityListRightClick(wxListEvent& event) {
     /*
     
     if (selection.front().indirection_type == Editor::Selector::ENTITY) {
@@ -1120,17 +1028,17 @@ void MainFrame::OnEntityListRightClick(wxListEvent& event) {
     }
     
     PopupMenu(entity_list_popup);*/
-}
+//}
 
-void MainFrame::OnEntityListClick(wxListEvent& event) {
+//void MainFrame::OnEntityListClick(wxListEvent& event) {
     //SetSingleSelection(selection.front().Index(event.GetIndex()));
     //viewport->Refresh();
-}
+//}
 
-void MainFrame::OnEntityListDoubleClick(wxListEvent& event) {
+//void MainFrame::OnEntityListDoubleClick(wxListEvent& event) {
     //SetSingleSelection(selection.front().Index(event.GetIndex()));
     //PropertyPanelRebuild();
-}
+//}
 
 void MainFrame::OnEntityListPopupSelect(wxCommandEvent& event) {
     /*

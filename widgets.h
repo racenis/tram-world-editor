@@ -2,27 +2,29 @@
 #define WIDGETS_H
 
 #include <wx/wx.h>
-#include <wx/listctrl.h>
-#include <wx/treectrl.h>
 
-#include <wx/propgrid/propgrid.h>
+
+
+
 #include <wx/aui/aui.h>
 #include <wx/aboutdlg.h>
 #include <wx/progdlg.h>
 
 class MainFrame;
-class EntityList;
+class ObjectList;
 class Viewport;
 class EditorObjectMenu;
+class PropertyPanel;
+class WorldTree;
 
 // at any point in time the editor will have one and only one window open
 // and only one instance of each widget. that means that we can just declare
 // them as globals, as to make programming easier. this app is so small
 // that it will not be a problem
 extern MainFrame* main_frame;
-extern wxTreeCtrl* world_tree;
-extern EntityList* entity_list;
-extern wxPropertyGrid* property_panel;
+extern WorldTree* world_tree;
+extern ObjectList* object_list;
+extern PropertyPanel* property_panel;
 extern EditorObjectMenu* world_tree_popup;
 
 namespace Editor { class Selection; }
@@ -74,7 +76,7 @@ protected:
     //void SetSingleSelection(Editor::Selector select);
     void PropertyPanelClear(); // TODO: yeet this
     void PropertyPanelRebuild();
-    void OnPropertyPanelChanged(wxPropertyGridEvent& event);
+    //void OnPropertyPanelChanged(wxPropertyGridEvent& event);
     std::unordered_map<std::string, bool> property_collapsed;
     
     // entity list stuff
@@ -83,9 +85,9 @@ protected:
     wxMenu* entity_list_change_type_popup;
     wxMenuItem* entity_list_change_type_popup_item;
     long entity_list_selected_item;
-    void OnEntityListRightClick(wxListEvent& event);
-    void OnEntityListClick(wxListEvent& event);
-    void OnEntityListDoubleClick(wxListEvent& event);
+    //void OnEntityListRightClick(wxListEvent& event);
+    //void OnEntityListClick(wxListEvent& event);
+    //void OnEntityListDoubleClick(wxListEvent& event);
     void OnEntityListPopupSelect(wxCommandEvent& event);
     void OnEntityTypeChange(wxCommandEvent& event);
     
@@ -93,48 +95,8 @@ protected:
     Viewport* viewport;
     
     wxStreamToTextRedirector* std_cout_redirect;
-    
-    friend class EntityList;
-    friend class Viewport;
 };
 
 
-class EntityList : public wxListCtrl {
-public:
-    EntityList (wxWindow* parent) :  wxListCtrl(parent, -1, wxDefaultPosition, wxSize(200,150), wxLC_REPORT | wxLC_VIRTUAL | wxLC_HRULES | wxLC_VRULES) {
-            Bind(wxEVT_LIST_ITEM_RIGHT_CLICK, &EntityList::OnMenuOpen, this);
-            Bind(wxEVT_LIST_ITEM_SELECTED, &EntityList::OnSelectionChanged, this);
-            Bind(wxEVT_LIST_ITEM_ACTIVATED, &EntityList::OnItemActivated, this);
-        }
-
-    wxString OnGetItemText (long item, long column) const override;
-    
-    void RefreshAllItems ();
-    
-    void OnMenuOpen(wxListEvent& event);
-    void OnSelectionChanged(wxListEvent& event);
-    void OnItemActivated(wxListEvent& event);
-};
-
-class EditorObjectMenu : public wxMenu {
-public:
-    EditorObjectMenu ();
-    
-    void SetSelectionStatus(Editor::Selection* selection);
-    
-    void OnIsVisibleCheckboxClick(wxCommandEvent& event);
-    
-    void OnAddSelection(wxCommandEvent& event);
-    
-    void OnEditSelection(wxCommandEvent& event);
-    
-    void OnDeleteSelection(wxCommandEvent& event);
-    
-    wxMenuItem* is_visible_checkbox = nullptr;
-    wxMenuItem* add_selection = nullptr;
-    wxMenuItem* edit_selection = nullptr;
-    wxMenuItem* delete_selection = nullptr;
-    
-};
 
 #endif // WIDGETS_H
