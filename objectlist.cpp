@@ -4,75 +4,71 @@
 #include <objectmenu.h>
 #include <objectlist.h>
 
-
-wxString ObjectList::OnGetItemText (long item, long column) const {
-        using namespace Editor;
-        auto childrens = selected_object->GetChildren();
-        auto first_childrens = childrens.begin();
-        std::advance(first_childrens, item);
-        auto& info = columns[column];
-        auto& object = *first_childrens;
-        
-        PropertyValue value = object->GetProperty(info.name);
-        
-        switch (value.type) {
-            case PROPERTY_STRING: 
-                return wxString(value.str_value);
-            case PROPERTY_FLOAT:
-                return wxString(std::to_string(value.float_value));
-            case PROPERTY_INT:
-                return wxString(std::to_string(value.int_value));
-            case PROPERTY_UINT:
-                return wxString(std::to_string(value.uint_value));
-            default:
-                return wxString("nil");
-            }
-    }
-    
-    void ObjectList::OnMenuOpen(wxListEvent& event) {
-        world_tree_popup->SetSelectionStatus(Editor::selection.get());
-        main_frame->PopupMenu(world_tree_popup);
-    }
-    
-    void ObjectList::OnSelectionChanged(wxListEvent& event) {
-        using namespace Editor;
-        auto new_selection = std::make_shared<Editor::Selection>();
-        auto childrens = selected_object->GetChildren();
-        
-        for (long item = GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED); item != -1; item = GetNextItem(item, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED)){
-            auto chi_benig = childrens.begin();
-            std::advance(chi_benig, item);
-            new_selection->objects.push_back(*chi_benig);
-        }
-        
-        Editor::PerformAction<Editor::ActionChangeSelection>(new_selection);
-    }
-    
-    void ObjectList::OnItemActivated(wxListEvent& event) {
-        Editor::PropertyPanel::SetCurrentSelection();
-        Editor::ObjectList::SetCurrentSelection();
-    }
-
-
 using namespace Editor;
 std::vector<PropertyDefinition> columns;
 std::shared_ptr<Object> selected_object;
 
-    void Editor::ObjectList::SetCurrentSelection() {
-        object_list->DeleteAllColumns();
-        columns.clear();
+void Editor::ObjectList::SetCurrentSelection() {
+    object_list->DeleteAllColumns();
+    columns.clear();
+    
+    if (selection->objects.size() == 1) {
+        auto object = selection->objects.front();
+        selected_object = object->IsChildrenListable() ? object : object->GetParent();
+        columns = selected_object->GetListPropertyDefinitions();
         
-        if (selection->objects.size() == 1) {
-            auto object = selection->objects.front();
-            selected_object = object->IsChildrenListable() ? object : object->GetParent();
-            columns = selected_object->GetListPropertyDefinitions();
-            
-            for (size_t i = 0; i < columns.size(); i++) {
-                object_list->InsertColumn(i, columns[i].display_name);
-            }
-            
-            object_list->SetItemCount(selected_object->GetChildren().size());
-        } else {
-            object_list->SetItemCount(0);
+        for (size_t i = 0; i < columns.size(); i++) {
+            object_list->InsertColumn(i, columns[i].display_name);
         }
+        
+        object_list->SetItemCount(selected_object->GetChildren().size());
+    } else {
+        object_list->SetItemCount(0);
     }
+}
+
+wxString ObjectListCtrl::OnGetItemText (long item, long column) const {
+    auto childrens = selected_object->GetChildren();
+    auto first_childrens = childrens.begin();
+    std::advance(first_childrens, item);
+    auto& info = columns[column];
+    auto& object = *first_childrens;
+    
+    PropertyValue value = object->GetProperty(info.name);
+    
+    switch (value.type) {
+        case PROPERTY_STRING: 
+            return wxString(value.str_value);
+        case PROPERTY_FLOAT:
+            return wxString(std::to_string(value.float_value));
+        case PROPERTY_INT:
+            return wxString(std::to_string(value.int_value));
+        case PROPERTY_UINT:
+            return wxString(std::to_string(value.uint_value));
+        default:
+            return wxString("nil");
+        }
+}
+
+void ObjectListCtrl::OnMenuOpen(wxListEvent& event) {
+    world_tree_popup->SetSelectionStatus(Editor::selection.get());
+    main_frame->PopupMenu(world_tree_popup);
+}
+
+void ObjectListCtrl::OnSelectionChanged(wxListEvent& event) {
+    auto new_selection = std::make_shared<Editor::Selection>();
+    auto childrens = selected_object->GetChildren();
+    
+    for (long item = GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED); item != -1; item = GetNextItem(item, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED)){
+        auto chi_benig = childrens.begin();
+        std::advance(chi_benig, item);
+        new_selection->objects.push_back(*chi_benig);
+    }
+    
+    Editor::PerformAction<Editor::ActionChangeSelection>(new_selection);
+}
+
+void ObjectListCtrl::OnItemActivated(wxListEvent& event) {
+    Editor::PropertyPanel::SetCurrentSelection();
+    Editor::ObjectList::SetCurrentSelection();
+}

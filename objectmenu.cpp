@@ -34,16 +34,13 @@ void EditorObjectMenu::OnIsVisibleCheckboxClick(wxCommandEvent& event) {
 }
 
 void EditorObjectMenu::OnAddSelection(wxCommandEvent& event) {
-    std::cout << "Clicked on add selection!" << std::endl;
     Editor::PerformAction<Editor::ActionNew>();
 }
 
 void EditorObjectMenu::OnEditSelection(wxCommandEvent& event) {
-    std::cout << "Clicked on edit selection!" << std::endl;
     Editor::PropertyPanel::SetCurrentSelection();
 }
 
 void EditorObjectMenu::OnDeleteSelection(wxCommandEvent& event) {
-    std::cout << "Clicked on delete selection!" << std::endl;
     Editor::PerformAction<Editor::ActionRemove>();
 }

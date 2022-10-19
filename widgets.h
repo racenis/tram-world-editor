@@ -11,7 +11,7 @@
 #include <wx/progdlg.h>
 
 class MainFrame;
-class ObjectList;
+class ObjectListCtrl;
 class Viewport;
 class EditorObjectMenu;
 class PropertyPanel;
@@ -23,7 +23,7 @@ class WorldTree;
 // that it will not be a problem
 extern MainFrame* main_frame;
 extern WorldTree* world_tree;
-extern ObjectList* object_list;
+extern ObjectListCtrl* object_list;
 extern PropertyPanel* property_panel;
 extern EditorObjectMenu* world_tree_popup;
 

@@ -10,7 +10,7 @@
 // TODO: move these out of here
 MainFrame* main_frame = nullptr;
 WorldTree* world_tree = nullptr;
-ObjectList* object_list = nullptr;
+ObjectListCtrl* object_list = nullptr;
 PropertyPanel* property_panel = nullptr;
 EditorObjectMenu* world_tree_popup = nullptr;
 
@@ -674,7 +674,7 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā progra
     //world_tree = new wxTreeCtrl(this, -1, wxDefaultPosition, wxSize(200, 150));
     world_tree = new WorldTree(this);
     property_panel = new PropertyPanel(this);
-    object_list = new ObjectList(this);
+    object_list = new ObjectListCtrl(this);
     viewport = new Viewport(this, wxID_ANY, nullptr, { 0, 0 }, { 800, 800 });
 
     m_mgr.AddPane(world_tree, wxLEFT, L"Pasaule");
@@ -771,7 +771,7 @@ void MainFrame::OnLoadCells(wxCommandEvent& event) {
     }*/
     //BuildWorldCellTree();
     PropertyPanelRebuild();
-    object_list->RefreshAllItems();
+    //object_list->RefreshAllItems();
     progress_dialog.Update(100, L"Pabeigts");
     std::cout << "Loaded cells." << std::endl;
 }
