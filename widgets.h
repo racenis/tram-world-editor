@@ -44,52 +44,17 @@ protected:
     void OnHello(wxCommandEvent& event);
     void OnExit(wxCommandEvent& event);
     void OnAbout(wxCommandEvent& event);
+    
+    void OnAction(wxCommandEvent& event);
+    
     void OnSettingsChange(wxCommandEvent& event);
     
     void OnLoadCells(wxCommandEvent& event);
     void OnSaveCells(wxCommandEvent& event);
-    
-    // world/worldcell tree is the tree in the top-left pane
-    // that contains a list of all of the world-cells
-    //wxMenu* world_tree_cell_popup;
-    //wxMenu* world_tree_item_popup;
-    //wxMenu* world_tree_root_popup;
-    //wxMenuItem* world_tree_cell_is_visible_checkbox;
-    //wxMenuItem* world_tree_item_is_visible_checkbox;
-    //wxMenuItem* world_tree_item_add_selection;
-    //wxMenuItem* world_tree_item_edit_selection;
-    //wxMenuItem* world_tree_item_delete_selection;
-    //wxTreeItemId world_tree_selected_item;
-    //wxTreeItemId world_tree_root_node;
-    //std::unordered_map<void*, Editor::WorldCellIndirector> world_tree_map;
-    //void BuildWorldCellTree();
-    //void RebuildWorldCellTree();
-    //void OnWorldCellTreeRightClick(wxTreeEvent& event);
-    //void OnWorldCellTreeDoubleClick(wxTreeEvent& event);
-    //void OnWorldCellTreePopupClick(wxCommandEvent& event);
-    
-    // property panel stuff
-    
+
     bool property_panel_degrees = false;
     bool property_panel_radians = true;
-    //std::vector<Editor::Selector> selection;
-    //void SetSingleSelection(Editor::Selector select);
-    void PropertyPanelClear(); // TODO: yeet this
-    void PropertyPanelRebuild();
-    //void OnPropertyPanelChanged(wxPropertyGridEvent& event);
-    std::unordered_map<std::string, bool> property_collapsed;
-    
-    // entity list stuff
-    
-    wxMenu* entity_list_popup;
-    wxMenu* entity_list_change_type_popup;
-    wxMenuItem* entity_list_change_type_popup_item;
-    long entity_list_selected_item;
-    //void OnEntityListRightClick(wxListEvent& event);
-    //void OnEntityListClick(wxListEvent& event);
-    //void OnEntityListDoubleClick(wxListEvent& event);
-    void OnEntityListPopupSelect(wxCommandEvent& event);
-    void OnEntityTypeChange(wxCommandEvent& event);
+
     
     // for viewport
     Viewport* viewport;

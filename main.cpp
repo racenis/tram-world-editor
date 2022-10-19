@@ -540,13 +540,15 @@ void Viewport::OnPaint(wxPaintEvent& event)
 
 
 
-
+// TODO: check of which these can be yeeted
 enum {
     ID_Hello = 1,
     ID_New_Member = 2,
     ID_Existing_Member = 3,
     ID_Load_Cells = 4,
     ID_Save_Cells = 5,
+    ID_Action_Redo = 10,
+    ID_Action_Undo = 11,
     ID_World_Tree_Show = 40,
     ID_World_Tree_Hide = 41,
     ID_World_Tree_Begonis = 42,
@@ -576,7 +578,8 @@ public:
 };
 
 wxIMPLEMENT_APP(TramEditor);
- 
+
+// TODO: move this into a seperate file
 MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā programma", wxDefaultPosition, wxSize(800, 600), wxDEFAULT_FRAME_STYLE) {
     Editor::Init();
     
@@ -586,6 +589,10 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā progra
     file_menu->Append(ID_Save_Cells, L"Saglabāt šūnas", L"Saglabā atvērtās šūnas.");
     file_menu->AppendSeparator();
     file_menu->Append(wxID_EXIT, L"Beidzēt\tCtrl-Q", L"Izbeigt programmu.");
+ 
+    wxMenu* edit_menu = new wxMenu;
+    edit_menu->Append(ID_Action_Undo, L"Undo\tCtrl-Z", L"Atceļ pēdējās izmaiņas.");
+    edit_menu->Append(ID_Action_Redo, L"Redo\tCtrl-Y", L"Atkal izpilda atceltās izmaiņas.");
  
     wxMenu* settings_menu = new wxMenu;
     settings_menu->AppendRadioItem(ID_Settings_Space_World, L"Pasaules telpa", L"Rotācijas un relokācijas notiek pasaules telpā.");
@@ -601,6 +608,7 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā progra
  
     wxMenuBar* menu_bar = new wxMenuBar;
     menu_bar->Append(file_menu, L"&Fails");
+    menu_bar->Append(edit_menu, L"&Rediģēt");
     menu_bar->Append(settings_menu, L"&Iestatījumi");
     menu_bar->Append(help_menu, L"&Palīdzība");
 
@@ -610,7 +618,6 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā progra
     CreateStatusBar();
     SetStatusText(L"Paldies par uzmanību!");
     
-    //SetSingleSelection(Editor::Selector());
  
     Bind(wxEVT_MENU, &MainFrame::OnHello, this, ID_Hello);
     Bind(wxEVT_MENU, &MainFrame::OnAbout, this, wxID_ABOUT);
@@ -618,6 +625,9 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā progra
     
     Bind(wxEVT_MENU, &MainFrame::OnLoadCells, this, ID_Load_Cells);
     Bind(wxEVT_MENU, &MainFrame::OnSaveCells, this, ID_Save_Cells);
+    
+    Bind(wxEVT_MENU, &MainFrame::OnAction, this, ID_Action_Redo);
+    Bind(wxEVT_MENU, &MainFrame::OnAction, this, ID_Action_Undo);
     
     Bind(wxEVT_MENU, &MainFrame::OnSettingsChange, this, ID_Settings_Angle_Radians);
     Bind(wxEVT_MENU, &MainFrame::OnSettingsChange, this, ID_Settings_Angle_Degrees);
@@ -627,51 +637,12 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā progra
     
     // --- POP-UP MENUS ---
     world_tree_popup = new EditorObjectMenu;
-    //world_tree_cell_popup = new wxMenu;
-    //world_tree_cell_is_visible_checkbox = world_tree_cell_popup->AppendCheckItem(ID_World_Tree_Show, L"Rādīt", L"Parāda šūnas saturu 3D skatā.");
-    //world_tree_cell_popup->Append(ID_World_Tree_New, L"Pievienot entītiju", L"Pievieno jaunu šūnu");
-    //world_tree_cell_popup->Append(ID_World_Tree_Edit, L"Rediģēt", L"Rediģēt šūnu.");
-    //world_tree_cell_popup->Append(ID_World_Tree_Begonis, L"Begonizēt", L"Begonizē šūnas saturu.");
-    //world_tree_cell_popup->Append(ID_World_Tree_Delete, L"Dzēst", L"Dzēš šūnu.");
-    
-    //world_tree_item_popup = new wxMenu;
-    //world_tree_item_is_visible_checkbox = world_tree_item_popup->AppendCheckItem(ID_World_Tree_Show, L"Rādīt", L"Parāda šūnas apakšsadaļas saturu 3D skatā.");
-    //world_tree_item_add_selection = world_tree_item_popup->Append(ID_World_Tree_New, L"Pievienot jaunu", L"Pievieno jaunu šūnu");
-    //world_tree_item_edit_selection = world_tree_item_popup->Append(ID_World_Tree_Edit, L"Rediģēt", L"Rediģēt šūnu.");
-    //world_tree_item_delete_selection = world_tree_item_popup->Append(ID_World_Tree_Delete, L"Dzēst", L"Pievieno jaunu šūnu");
-    
-    //world_tree_root_popup = new wxMenu;
-    //world_tree_root_popup->Append(ID_World_Tree_New, L"Pievienot jaunu", L"Pievieno jaunu šūnu");
-    
-    //Bind(wxEVT_MENU, &MainFrame::OnWorldCellTreePopupClick, this, ID_World_Tree_New);
-    //Bind(wxEVT_MENU, &MainFrame::OnWorldCellTreePopupClick, this, ID_World_Tree_Show);
-    //Bind(wxEVT_MENU, &MainFrame::OnWorldCellTreePopupClick, this, ID_World_Tree_Edit);
-    //Bind(wxEVT_MENU, &MainFrame::OnWorldCellTreePopupClick, this, ID_World_Tree_Begonis);
-    //Bind(wxEVT_MENU, &MainFrame::OnWorldCellTreePopupClick, this, ID_World_Tree_Delete);
-    
-    
-    entity_list_change_type_popup = new wxMenu;
-    /*int i = 0;
-    for (auto it = Editor::entityDatas.begin(); it != Editor::entityDatas.end(); it++, i++) {
-        entity_list_change_type_popup->AppendCheckItem(ID_Entity_Change_Type + i, it->second()->GetEditorName(), L"Mainīt entītijas tipu uz izvēlēto.");
-        Bind(wxEVT_MENU, &MainFrame::OnEntityTypeChange, this, ID_Entity_Change_Type + i);
-    }*/
-    
-    entity_list_popup = new wxMenu;
-    entity_list_popup->Append(ID_Entity_List_New, L"Jauns", L"Pievieno jaunu ierakstu.");
-    entity_list_popup->Append(ID_Entity_List_Delete, L"Dzēst", L"Dzēš izvēlēto ierakstu.");
-    entity_list_popup->Append(ID_Entity_List_Edit, L"Rediģēt", L"Atver rediģēšanai izvēlēto ierakstu.");
-    entity_list_change_type_popup_item = entity_list_popup->AppendSubMenu(entity_list_change_type_popup, L"Tips", L"Maina entītijas tipu.");
-    Bind(wxEVT_MENU, &MainFrame::OnEntityListPopupSelect, this, ID_Entity_List_New);
-    Bind(wxEVT_MENU, &MainFrame::OnEntityListPopupSelect, this, ID_Entity_List_Edit);
-    Bind(wxEVT_MENU, &MainFrame::OnEntityListPopupSelect, this, ID_Entity_List_Delete);
     
      // notify wxAUI which frame to use
     m_mgr.SetManagedWindow(this);
 
     wxTextCtrl* output_text_ctrl = new wxTextCtrl(this, -1, "", wxDefaultPosition, wxSize(200,150), wxNO_BORDER | wxTE_READONLY | wxTE_MULTILINE);
     std_cout_redirect = new wxStreamToTextRedirector(output_text_ctrl);
-    //world_tree = new wxTreeCtrl(this, -1, wxDefaultPosition, wxSize(200, 150));
     world_tree = new WorldTree(this);
     property_panel = new PropertyPanel(this);
     object_list = new ObjectListCtrl(this);
@@ -687,19 +658,6 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā progra
     m_mgr.GetPane(property_panel).CloseButton(false);
     m_mgr.GetPane(object_list).CloseButton(false);
     m_mgr.GetPane(output_text_ctrl).CloseButton(false);
-    
-    //world_tree_root_node = world_tree->AddRoot(L"Pasaule un viss tajā iekšā");
-    //BuildWorldCellTree();
-    //world_tree->Bind(wxEVT_TREE_ITEM_RIGHT_CLICK, &MainFrame::OnWorldCellTreeRightClick, this);
-    //world_tree->Bind(wxEVT_TREE_ITEM_ACTIVATED, &MainFrame::OnWorldCellTreeDoubleClick, this);
-    
-    //property_panel->Bind(wxEVT_PG_CHANGED, &MainFrame::OnPropertyPanelChanged, this);
-    //property_panel->Bind(wxEVT_PG_ITEM_COLLAPSED, &MainFrame::OnPropertyPanelChanged, this);
-    //property_panel->Bind(wxEVT_PG_ITEM_EXPANDED, &MainFrame::OnPropertyPanelChanged, this);
-
-    //entity_list->Bind(wxEVT_LIST_ITEM_RIGHT_CLICK, &MainFrame::OnEntityListRightClick, this);
-    //entity_list->Bind(wxEVT_LIST_ITEM_SELECTED, &MainFrame::OnEntityListClick, this);
-    //entity_list->Bind(wxEVT_LIST_ITEM_ACTIVATED, &MainFrame::OnEntityListDoubleClick, this);
 
     // --- AUI FLAGS ---
     unsigned int flags = m_mgr.GetFlags();
@@ -739,12 +697,12 @@ void MainFrame::OnSettingsChange(wxCommandEvent& event) {
         case ID_Settings_Angle_Radians:
             property_panel_degrees = false;
             property_panel_radians = true;
-            PropertyPanelRebuild();
+            //PropertyPanelRebuild();
             break;
         case ID_Settings_Angle_Degrees:
             property_panel_degrees = true;
             property_panel_radians = false;
-            PropertyPanelRebuild();
+            //PropertyPanelRebuild();
             break;
         case ID_Settings_Space_World:
             viewport->SetSpaces(true, false, false);
@@ -760,6 +718,17 @@ void MainFrame::OnSettingsChange(wxCommandEvent& event) {
     }
 }
 
+void MainFrame::OnAction(wxCommandEvent& event) {
+    switch (event.GetId()) {
+        case ID_Action_Redo:
+            Editor::Redo();
+            break;
+        case ID_Action_Undo:
+            Editor::Undo();
+            break;
+    }
+}
+
 void MainFrame::OnLoadCells(wxCommandEvent& event) {
     wxProgressDialog progress_dialog (L"Ielādē šūnas", L"Notiek šūnu ielāde", 100, this);
     /*auto progress_increment = (100 / Editor::worldCells.size()) - 1;
@@ -770,7 +739,7 @@ void MainFrame::OnLoadCells(wxCommandEvent& event) {
         progress += progress_increment;
     }*/
     //BuildWorldCellTree();
-    PropertyPanelRebuild();
+    //PropertyPanelRebuild();
     //object_list->RefreshAllItems();
     progress_dialog.Update(100, L"Pabeigts");
     std::cout << "Loaded cells." << std::endl;
@@ -788,290 +757,6 @@ void MainFrame::OnSaveCells(wxCommandEvent& event) {
     progress_dialog.Update(100, L"Pabeigts");
     std::cout << "Saved cells." << std::endl;
 }
-
-
-void MainFrame::PropertyPanelRebuild() {
-    property_panel->Clear();
-    
-    /*
-    if (selection.size() < 1) {
-        
-    } else if (selection.front().indirection_type == Editor::Selector::ENTITY) {
-        auto selected_entity = selection.front().entity;
-        auto gen_props = property_panel->Append(new wxPropertyCategory(L"Vispārīgās īpašības"));
-        auto spec_props = property_panel->Append(new wxPropertyCategory(L"Īpašās īpašības"));
-        gen_props->ChangeFlag(wxPG_PROP_COLLAPSED, property_collapsed[std::string(gen_props->GetName())]);
-        spec_props->ChangeFlag(wxPG_PROP_COLLAPSED, property_collapsed[std::string(spec_props->GetName())]);
-        
-        property_panel->AppendIn(gen_props, new wxUIntProperty(L"ID", "entity-id", selected_entity->id));
-        property_panel->AppendIn(gen_props, new wxStringProperty(L"Nosaukums", "entity-name", selected_entity->name.data()));
-        auto loc_props = property_panel->AppendIn(gen_props, new wxPropertyCategory(L"Lokācija"));
-        loc_props->ChangeFlag(wxPG_PROP_COLLAPSED, property_collapsed[std::string(loc_props->GetName())]);
-        property_panel->AppendIn(loc_props, new wxFloatProperty(L"X", "entity-location-x", selected_entity->location[0]));
-        property_panel->AppendIn(loc_props, new wxFloatProperty(L"Y", "entity-location-y", selected_entity->location[1]));
-        property_panel->AppendIn(loc_props, new wxFloatProperty(L"Z", "entity-location-z", selected_entity->location[2]));
-        auto rot_props = property_panel->AppendIn(gen_props, new wxPropertyCategory(L"Rotācija"));
-        rot_props->ChangeFlag(wxPG_PROP_COLLAPSED, property_collapsed[std::string(rot_props->GetName())]);
-        property_panel->AppendIn(rot_props, new wxFloatProperty(L"X", "entity-rotation-x", property_panel_radians ? selected_entity->rotation[0] : glm::degrees(selected_entity->rotation[0])));
-        property_panel->AppendIn(rot_props, new wxFloatProperty(L"Y", "entity-rotation-y", property_panel_radians ? selected_entity->rotation[1] : glm::degrees(selected_entity->rotation[1])));
-        property_panel->AppendIn(rot_props, new wxFloatProperty(L"Z", "entity-rotation-z", property_panel_radians ? selected_entity->rotation[2] : glm::degrees(selected_entity->rotation[2])));
-        property_panel->AppendIn(gen_props, new wxStringProperty(L"Darbība", "entity-action", selected_entity->action.data()));
-        
-        using namespace Core;
-        if (selected_entity->ent_data) {
-            auto p = selected_entity->ent_data->GetEditorFieldInfo();
-            for (size_t i = 0; i < p.size(); i++) {
-                if (p[i].type == SerializedEntityData::FieldInfo::FIELD_UINT64) {
-                    property_panel->AppendIn(spec_props, new wxFloatProperty(p[i].name, std::string("special-") + std::to_string(i), *((SerializedEntityData::Field<uint64_t>*)p[i].field)));
-                } else if (p[i].type == SerializedEntityData::FieldInfo::FIELD_FLOAT) {
-                    property_panel->AppendIn(spec_props, new wxFloatProperty(p[i].name, std::string("special-") + std::to_string(i), *((SerializedEntityData::Field<float>*)p[i].field)));
-                } else if (p[i].type == SerializedEntityData::FieldInfo::FIELD_STRING) {
-                    property_panel->AppendIn(spec_props, new wxStringProperty(p[i].name, std::string("special-") + std::to_string(i), Core::ReverseUID(*((SerializedEntityData::Field<uint64_t>*)p[i].field))));
-                }
-            }
-        }
-    } else if (selection.front().indirection_type == Editor::Selector::CELL_ITSELF) {
-        auto cell_props = property_panel->Append(new wxPropertyCategory(L"Pasaules šūna"));
-        cell_props->ChangeFlag(wxPG_PROP_COLLAPSED, property_collapsed[std::string(cell_props->GetName())]);
-        property_panel->Append(new wxStringProperty(L"Nosaukums", "worldcell-name", selection.front().into->name.data()));
-        auto chkprop1 = new wxBoolProperty(L"Iekštelpa", "worldcell-int", selection.front().into->is_interior);
-        auto chkprop2 = new wxBoolProperty(L"Iekštlp. apg.", "worldcell-int-light", selection.front().into->is_interior_lighting);
-        chkprop1->SetAttribute("UseCheckbox", 1); // <-- bad library design
-        chkprop2->SetAttribute("UseCheckbox", 1); // <-- DO NOT design your libraries like that
-        property_panel->Append(chkprop1);
-        property_panel->Append(chkprop2);
-    } else if (selection.front().indirection_type == Editor::Selector::TRANSITION) {
-        auto trans_props = property_panel->Append(new wxPropertyCategory(L"Šūnas pāreja"));
-        trans_props->ChangeFlag(wxPG_PROP_COLLAPSED, property_collapsed[std::string(trans_props->GetName())]);
-        property_panel->Append(new wxStringProperty(L"Nosaukums", "transition-name", selection.front().trans->name.data()));
-        property_panel->Append(new wxStringProperty(L"Pāreja uz", "transition-into", selection.front().trans->cell_into_name.data()));
-    } else if (selection.front().indirection_type == Editor::Selector::TRANSITION_POINT) {
-        auto point_props = property_panel->Append(new wxPropertyCategory(L"Šūnas punkts"));
-        point_props->ChangeFlag(wxPG_PROP_COLLAPSED, property_collapsed[std::string(point_props->GetName())]);
-        property_panel->Append(new wxFloatProperty(L"X", "transition-point-x", selection.front().point->location.x));
-        property_panel->Append(new wxFloatProperty(L"Y", "transition-point-y", selection.front().point->location.y));
-        property_panel->Append(new wxFloatProperty(L"Z", "transition-point-z", selection.front().point->location.z));
-    } else if (selection.front().indirection_type == Editor::Selector::ENTITY_GROUP) {
-        auto ent_props = property_panel->Append(new wxPropertyCategory(L"Entītiju grupa"));
-        ent_props->ChangeFlag(wxPG_PROP_COLLAPSED, property_collapsed[std::string(ent_props->GetName())]);
-        property_panel->Append(new wxStringProperty(L"Nosaukums", "entity-group-name", selection.front().group->name.data()));
-    } else if (selection.front().indirection_type == Editor::Selector::NAVMESH) {
-        auto navmesh_props = property_panel->Append(new wxPropertyCategory(L"Navigācijas grafs"));
-        navmesh_props->ChangeFlag(wxPG_PROP_COLLAPSED, property_collapsed[std::string(navmesh_props->GetName())]);
-        property_panel->Append(new wxStringProperty(L"Nosaukums", "navmesh-name", selection.front().navmesh->name.data()));
-    }  else if (selection.front().indirection_type == Editor::Selector::NAVMESH_NODE) {
-        auto node_props = property_panel->Append(new wxPropertyCategory(L"Navigācijas grafa punkts"));
-        node_props->ChangeFlag(wxPG_PROP_COLLAPSED, property_collapsed[std::string(node_props->GetName())]);
-        property_panel->Append(new wxUIntProperty(L"ID", "node-id", selection.front().node->id));
-        property_panel->Append(new wxUIntProperty(L"⇧", "node-next-id", selection.front().node->next_id));
-        property_panel->Append(new wxUIntProperty(L"⇩", "node-prev-id", selection.front().node->prev_id));
-        property_panel->Append(new wxUIntProperty(L"⇦", "node-left-id", selection.front().node->left_id));
-        property_panel->Append(new wxUIntProperty(L"⇨", "node-right-id", selection.front().node->right_id));
-        property_panel->Append(new wxFloatProperty(L"X", "node-x", selection.front().node->location.x));
-        property_panel->Append(new wxFloatProperty(L"Y", "node-y", selection.front().node->location.y));
-        property_panel->Append(new wxFloatProperty(L"Z", "node-z", selection.front().node->location.z));
-    } else if (selection.front().indirection_type == Editor::Selector::PATH) {
-        property_panel->Append(new wxPropertyCategory(L"Ceļš / sliede"));
-        property_panel->Append(new wxStringProperty(L"Nosaukums", "path-name", selection.front().path->name.data()));
-    } else if (selection.front().indirection_type == Editor::Selector::PATH_CURVE) {
-        auto curve_props = property_panel->Append(new wxPropertyCategory(L"Ceļasliedes punkts"));
-        curve_props->ChangeFlag(wxPG_PROP_COLLAPSED, property_collapsed[std::string(curve_props->GetName())]);
-        property_panel->Append(new wxUIntProperty(L"ID", "curve-id", selection.front().curve->id));
-        property_panel->Append(new wxUIntProperty(L"⇧", "curve-next-id", selection.front().curve->next_id));
-        property_panel->Append(new wxUIntProperty(L"⇩", "curve-prev-id", selection.front().curve->prev_id));
-        property_panel->Append(new wxUIntProperty(L"⇦", "curve-left-id", selection.front().curve->left_id));
-        property_panel->Append(new wxUIntProperty(L"⇨", "curve-right-id", selection.front().curve->right_id));
-        auto point1 = property_panel->Append(new wxPropertyCategory(L"1. punkts"));
-        auto point2 = property_panel->Append(new wxPropertyCategory(L"2. punkts"));
-        auto point3 = property_panel->Append(new wxPropertyCategory(L"3. punkts"));
-        auto point4 = property_panel->Append(new wxPropertyCategory(L"4. punkts"));
-        point1->ChangeFlag(wxPG_PROP_COLLAPSED, property_collapsed[std::string(point1->GetName())]);
-        point2->ChangeFlag(wxPG_PROP_COLLAPSED, property_collapsed[std::string(point2->GetName())]);
-        point3->ChangeFlag(wxPG_PROP_COLLAPSED, property_collapsed[std::string(point3->GetName())]);
-        point4->ChangeFlag(wxPG_PROP_COLLAPSED, property_collapsed[std::string(point4->GetName())]);
-        property_panel->AppendIn(point1, new wxFloatProperty(L"X", "curve-point1-x", selection.front().curve->location1.x));
-        property_panel->AppendIn(point1, new wxFloatProperty(L"Y", "curve-point1-y", selection.front().curve->location1.y));
-        property_panel->AppendIn(point1, new wxFloatProperty(L"Z", "curve-point1-z", selection.front().curve->location1.z));
-        property_panel->AppendIn(point2, new wxFloatProperty(L"X", "curve-point2-x", selection.front().curve->location2.x));
-        property_panel->AppendIn(point2, new wxFloatProperty(L"Y", "curve-point2-y", selection.front().curve->location2.y));
-        property_panel->AppendIn(point2, new wxFloatProperty(L"Z", "curve-point2-z", selection.front().curve->location2.z));
-        property_panel->AppendIn(point3, new wxFloatProperty(L"X", "curve-point3-x", selection.front().curve->location3.x));
-        property_panel->AppendIn(point3, new wxFloatProperty(L"Y", "curve-point3-y", selection.front().curve->location3.y));
-        property_panel->AppendIn(point3, new wxFloatProperty(L"Z", "curve-point3-z", selection.front().curve->location3.z));
-        property_panel->AppendIn(point4, new wxFloatProperty(L"X", "curve-point4-x", selection.front().curve->location4.x));
-        property_panel->AppendIn(point4, new wxFloatProperty(L"Y", "curve-point4-y", selection.front().curve->location4.y));
-        property_panel->AppendIn(point4, new wxFloatProperty(L"Z", "curve-point4-z", selection.front().curve->location4.z));
-    }*/
-}
-
-//void MainFrame::OnPropertyPanelChanged(wxPropertyGridEvent& event) {
-    /*
-    std::unordered_map<std::string, void (*)(wxPropertyGridEvent&, MainFrame*)> updates = {
-        {"worldcell-name", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().into->name = event.GetPropertyValue().GetString(); frame->BuildWorldCellTree(); }},
-        {"worldcell-int", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().into->is_interior = event.GetPropertyValue().GetBool(); }},
-        {"worldcell-int-light", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().into->is_interior_lighting = event.GetPropertyValue().GetBool(); }},
-        
-        {"entity-id", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().entity->id = event.GetPropertyValue().GetULongLong().GetValue(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"entity-name", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().entity->name = event.GetPropertyValue().GetString(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"entity-location-x", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().entity->location[0] = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); frame->selection.front().entity->ModelUpdate(); }},
-        {"entity-location-y", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().entity->location[1] = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); frame->selection.front().entity->ModelUpdate(); }},
-        {"entity-location-z", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().entity->location[2] = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); frame->selection.front().entity->ModelUpdate(); }},
-        {"entity-rotation-x", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().entity->rotation[0] = frame->property_panel_radians ? event.GetPropertyValue().GetDouble() : glm::radians(event.GetPropertyValue().GetDouble()); frame->entity_list->RefreshItem(frame->entity_list_selected_item); frame->selection.front().entity->ModelUpdate(); }},
-        {"entity-rotation-y", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().entity->rotation[1] = frame->property_panel_radians ? event.GetPropertyValue().GetDouble() : glm::radians(event.GetPropertyValue().GetDouble()); frame->entity_list->RefreshItem(frame->entity_list_selected_item); frame->selection.front().entity->ModelUpdate(); }},
-        {"entity-rotation-z", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().entity->rotation[2] = frame->property_panel_radians ? event.GetPropertyValue().GetDouble() : glm::radians(event.GetPropertyValue().GetDouble()); frame->entity_list->RefreshItem(frame->entity_list_selected_item); frame->selection.front().entity->ModelUpdate(); }},
-        
-        {"entity-action", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().entity->action = event.GetPropertyValue().GetString(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        
-        {"entity-group-name", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().group->name = event.GetPropertyValue().GetString(); frame->RebuildWorldCellTree(); }},
-        
-        {"transition-name", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().trans->name = event.GetPropertyValue().GetString(); frame->RebuildWorldCellTree(); }},
-        {"transition-into", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().trans->cell_into_name = event.GetPropertyValue().GetString(); }},
-        
-        {"transition-point-x", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().point->location.x = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"transition-point-y", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().point->location.y = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"transition-point-z", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().point->location.z = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        
-        {"path-name", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().path->name = event.GetPropertyValue().GetString(); frame->RebuildWorldCellTree(); }},
-        
-        {"node-id", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().node->id = event.GetPropertyValue().GetULongLong().GetValue(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"node-next-id", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().node->next_id = event.GetPropertyValue().GetULongLong().GetValue(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"node-prev-id", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().node->prev_id = event.GetPropertyValue().GetULongLong().GetValue(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"node-left-id", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().node->left_id = event.GetPropertyValue().GetULongLong().GetValue(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"node-right-id", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().node->right_id = event.GetPropertyValue().GetULongLong().GetValue(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"node-x", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().node->location.x = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"node-y", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().node->location.y = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"node-z", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().node->location.z = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        
-        {"navmesh-name", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().navmesh->name = event.GetPropertyValue().GetString(); frame->RebuildWorldCellTree(); }},
-        
-        {"curve-id", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->id = event.GetPropertyValue().GetULongLong().GetValue(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"curve-next-id", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->next_id = event.GetPropertyValue().GetULongLong().GetValue(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"curve-prev-id", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->prev_id = event.GetPropertyValue().GetULongLong().GetValue(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"curve-left-id", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->left_id = event.GetPropertyValue().GetULongLong().GetValue(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"curve-right-id", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->right_id = event.GetPropertyValue().GetULongLong().GetValue(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"curve-point1-x", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->location1.x = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"curve-point1-y", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->location1.y = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"curve-point1-z", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->location1.z = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"curve-point2-x", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->location2.x = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"curve-point2-y", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->location2.y = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"curve-point2-z", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->location2.z = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"curve-point3-x", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->location3.x = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"curve-point3-y", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->location3.y = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"curve-point3-z", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->location3.z = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"curve-point4-x", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->location4.x = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"curve-point4-y", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->location4.y = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        {"curve-point4-z", [](wxPropertyGridEvent& event, MainFrame* frame){ frame->selection.front().curve->location4.z = event.GetPropertyValue().GetDouble(); frame->entity_list->RefreshItem(frame->entity_list_selected_item); }},
-        
-        };
-    
-    if (event.GetEventType() == wxEVT_PG_CHANGED) {
-        using namespace Core;
-        if (std::string(event.GetPropertyName()).substr(0, 8) == "special-") {
-            //std::cout << "changing special prop nr" << std::stoi(std::string(event.GetPropertyName()).substr(8)) << std::endl;
-            auto p = selection.front().entity->ent_data->GetEditorFieldInfo()[std::stoi(std::string(event.GetPropertyName()).substr(8))];
-            
-            if (p.type == SerializedEntityData::FieldInfo::FIELD_UINT64) {
-                *((SerializedEntityData::Field<uint64_t>*)p.field) = event.GetPropertyValue().GetULongLong().GetValue();
-            } else if (p.type == SerializedEntityData::FieldInfo::FIELD_FLOAT) {
-                *((SerializedEntityData::Field<float>*)p.field) = event.GetPropertyValue().GetDouble();
-            } else if (p.type == SerializedEntityData::FieldInfo::FIELD_STRING) {
-                *((SerializedEntityData::Field<uint64_t>*)p.field) = UID(std::string(event.GetPropertyValue().GetString()));
-                selection.front().entity->ModelUpdate();
-            }
-            
-        } else {
-            updates[std::string(event.GetPropertyName())](event, this);
-        }
-        
-        viewport->Refresh();
-    } else if (event.GetEventType() == wxEVT_PG_ITEM_EXPANDED) {
-        //std::cout << std::string(event.GetPropertyName()) << std::endl;
-        property_collapsed[std::string(event.GetPropertyName())] = false;
-    } else if (event.GetEventType() == wxEVT_PG_ITEM_COLLAPSED) {
-        //std::cout << std::string(event.GetPropertyName()) << std::endl;
-        property_collapsed[std::string(event.GetPropertyName())] = true;
-    }*/
-//}
-
-/*void MainFrame::OnWorldCellTreeDoubleClick(wxTreeEvent& event) {
-    if (event.GetItem() == world_tree_root_node) {
-        auto alert = wxMessageDialog(this, L"Tev biksēs skudras!", L"Skudru uzbrukums!", wxOK | wxICON_EXCLAMATION);
-        alert.SetExtendedMessage(L"Ir noticis skudru uzbrukums jūsu biksēm. Programma pēc šī uzbrukuma nespēs atkopties. Skatīt lietošanas instrukcijas nodaļu \"7.6.3 Negaidīts skudru uzbrukums\" (431. lpp).");
-        alert.ShowModal();
-    } else {
-        auto& indirect = world_tree_map[event.GetItem().GetID()];
-        SetSingleSelection(indirect);
-        PropertyPanelRebuild();
-        entity_list->RefreshAllItems();
-        
-    }
-}*/
-
-//void MainFrame::OnEntityListRightClick(wxListEvent& event) {
-    /*
-    
-    if (selection.front().indirection_type == Editor::Selector::ENTITY) {
-        int i = 0; auto ent = selection.front().entity;
-        for (auto it = Editor::entityDatas.begin(); it != Editor::entityDatas.end(); it++, i++) {
-            auto item = entity_list_change_type_popup->FindChildItem(ID_Entity_Change_Type + i);
-            if (ent->ent_data && ent->ent_data->GetEditorName() == item->GetName()) {
-                item->Check(true);
-            } else {
-                item->Check(false);
-            }
-
-            entity_list_change_type_popup_item->Enable(true);
-        }
-        
-    } else {
-        entity_list_change_type_popup_item->Enable(false);
-    }
-    
-    PopupMenu(entity_list_popup);*/
-//}
-
-//void MainFrame::OnEntityListClick(wxListEvent& event) {
-    //SetSingleSelection(selection.front().Index(event.GetIndex()));
-    //viewport->Refresh();
-//}
-
-//void MainFrame::OnEntityListDoubleClick(wxListEvent& event) {
-    //SetSingleSelection(selection.front().Index(event.GetIndex()));
-    //PropertyPanelRebuild();
-//}
-
-void MainFrame::OnEntityListPopupSelect(wxCommandEvent& event) {
-    /*
-    switch (event.GetId()) {
-        case ID_Entity_List_New:
-            SetSingleSelection(selection.front().New());
-            entity_list->RefreshAllItems();
-            break;
-        case ID_Entity_List_Delete:
-            selection.front().Delete();
-            entity_list->RefreshAllItems();
-            break;
-        case ID_Entity_List_Edit:
-            PropertyPanelRebuild();
-            break;
-    }*/
-}
-
-void MainFrame::OnEntityTypeChange(wxCommandEvent& event) {
-    /*
-    auto id = event.GetId()-ID_Entity_Change_Type;
-    
-    auto ent_constr = Editor::entityDatas.begin();
-    for (int i = 0; i < id; i++) ent_constr++;
-    
-    auto ent = selection.front().entity;
-    ent->ent_data = ent_constr->second();
-    
-    PropertyPanelRebuild();*/
-}
-
-
-
 
 #endif
 #ifdef NEKAD

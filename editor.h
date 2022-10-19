@@ -27,10 +27,12 @@ namespace Editor {
     
     namespace PropertyPanel {
         void SetCurrentSelection();
+        void Refresh();
     }
     
     namespace ObjectList {
         void SetCurrentSelection();
+        void Refresh();
     }
     
     
@@ -46,10 +48,35 @@ namespace Editor {
     };
     
     extern std::list<std::unique_ptr<Action>> performed_actions;
+    extern std::list<std::unique_ptr<Action>> unperformed_actions;
     
     template <typename action, typename ...Args> void PerformAction (Args && ...args) {
-        // TODO: check if performed_actions list isn't too full!
+        if (performed_actions.size() > 20) {
+            std::cout << "Redo/Undo list size exceeded, popping." << std::endl;
+            performed_actions.pop_front();
+        }
+        unperformed_actions.clear();
         performed_actions.push_back(std::make_unique<action>(std::forward<Args>(args)...));
+    }
+    
+    inline void Undo() {
+        if (performed_actions.size()) {
+            unperformed_actions.push_back(std::move(performed_actions.back()));
+            unperformed_actions.back()->Unperform();
+            performed_actions.pop_back();
+        } else {
+            std::cout << "Nothing to UNDO!" << std::endl;
+        }
+    }
+    
+    inline void Redo() {
+        if (unperformed_actions.size()) {
+            performed_actions.push_back(std::move(unperformed_actions.back()));
+            performed_actions.back()->Perform();
+            unperformed_actions.pop_back();
+        } else {
+            std::cout << "Nothing to REDO!" << std::endl;
+        }
     }
     
     enum PropertyType {
@@ -57,6 +84,7 @@ namespace Editor {
         PROPERTY_FLOAT,     // float
         PROPERTY_INT,       // int64_t
         PROPERTY_UINT,      // uint64_t
+        PROPERTY_ENUM,      // uint32_t
         PROPERTY_CATEGORY,
         PROPERTY_NULL
     };
@@ -70,12 +98,16 @@ namespace Editor {
         PropertyType type;
     };
     
+    extern std::unordered_map<std::string, std::vector<std::string>> property_enumerations;
+    
     struct PropertyValue {
         PropertyValue() { type = PROPERTY_NULL; }
         PropertyValue(const std::string& value) : str_value(value) { type = PROPERTY_STRING; }
         PropertyValue(const float& value) : float_value(value) { type = PROPERTY_FLOAT; }
         PropertyValue(const int64_t& value) : int_value(value) { type = PROPERTY_INT; }
         PropertyValue(const uint64_t& value) : uint_value(value) { type = PROPERTY_UINT; }
+        PropertyValue(const int32_t& value) : enum_value(value) { type = PROPERTY_ENUM; }
+        PropertyValue(const PropertyValue& value, PropertyType type) : PropertyValue(value) { this->type = type; }
         ~PropertyValue() { if (type == PROPERTY_STRING) str_value.~basic_string(); }
         PropertyValue (const PropertyValue& value) : PropertyValue() { *this = value; }
         PropertyValue& operator=(const PropertyValue& value) {
@@ -93,6 +125,9 @@ namespace Editor {
                     break;
                 case PROPERTY_UINT:
                     uint_value = value.uint_value;
+                    break;
+                case PROPERTY_ENUM:
+                    enum_value = value.enum_value;
                     break;
                 default:
                     break;
@@ -114,6 +149,8 @@ namespace Editor {
                     return int_value == other.int_value;
                 case PROPERTY_UINT:
                     return uint_value == other.uint_value;
+                case PROPERTY_ENUM:
+                    return enum_value == other.enum_value;
                 case PROPERTY_CATEGORY:
                     return false;
                 case PROPERTY_NULL:
@@ -128,6 +165,7 @@ namespace Editor {
             float float_value;
             int64_t int_value;
             uint64_t uint_value;
+            int32_t enum_value;
         };
     };
     
@@ -151,10 +189,9 @@ namespace Editor {
         
         void AddChild(std::shared_ptr<Object> child) { children.push_back(child); }
         void RemoveChild(std::shared_ptr<Object> child) { children.remove(child); }
-        // TODO: add a SwapChild() method
         virtual std::list<std::shared_ptr<Object>> GetChildren() { return children; }
     
-        bool hidden = true;
+        bool is_hidden = true;
         Object* parent = nullptr;
         
         //virtual std::list<std::shared_ptr<Object>> GetChildren() { std::cout << "GetChildren() not implemented for " << typeid(*this).name() << std::endl; abort(); }
@@ -182,13 +219,17 @@ namespace Editor {
         
         // takes in the property name and returns the value by copying it to the void* pointer
         //virtual PropertyValue GetProperty (std::string property_name) { std::cout << "GetProperty() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
-        PropertyValue GetProperty (std::string property_name) { return properties[property_name]; }
+        virtual PropertyValue GetProperty (std::string property_name) { return properties[property_name]; }
         
         // takes in the property name and copies the value from the void* pointer into it
         //virtual void SetProperty (std::string property_name, PropertyValue property_value) { std::cout << "SetProperty() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
-        void SetProperty (std::string property_name, PropertyValue property_value) { properties[property_name] = property_value; if (property_name == "name" && parent && parent->IsChildrenTreeable()) WorldTree::Rename(this); }
+        virtual void SetProperty (std::string property_name, PropertyValue property_value) { properties[property_name] = property_value; if (property_name == "name" && parent && parent->IsChildrenTreeable()) WorldTree::Rename(this); }
         
     };
+    
+    class WorldCell;
+    void LoadCell(WorldCell* cell);
+    void SaveCell(WorldCell* cell);
     
     class Selection {
     public:
@@ -199,6 +240,7 @@ namespace Editor {
 }
 
 namespace Editor {
+    struct EntityData;
     class Entity : public Object {
     public:
         Entity(Object* parent) : Entity(parent, "New Entity") {}
@@ -207,6 +249,10 @@ namespace Editor {
             properties["position-x"] = 0.0f;
             properties["position-y"] = 0.0f;
             properties["position-z"] = 0.0f;
+            properties["rotation-x"] = 0.0f;
+            properties["rotation-y"] = 0.0f;
+            properties["rotation-z"] = 0.0f;
+            properties["entity-type"] = (int32_t) 0;
         }
     
         bool IsChildrenTreeable() { return false; }
@@ -215,18 +261,15 @@ namespace Editor {
         bool IsRemovable() { return true; }
         bool IsEditable() { return true; }
         bool IsCopyable() { return true; }
+        bool IsHidden() { return is_hidden; }
         
-        std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
-            return std::vector<PropertyDefinition> {
-                {"group-entity", "Entity", "", PROPERTY_CATEGORY},
-                {"name", "Name", "group-entity", PROPERTY_STRING},
-                {"group-position", "Location", "", PROPERTY_CATEGORY},
-                {"position-x", "X", "", PROPERTY_FLOAT},
-                {"position-y", "Y", "", PROPERTY_FLOAT},
-                {"position-z", "Z", "", PROPERTY_FLOAT}
-            };
-        }
+        std::vector<PropertyDefinition> GetFullPropertyDefinitions();
         
+        PropertyValue GetProperty (std::string property_name);
+        
+        void SetProperty (std::string property_name, PropertyValue property_value);
+        
+        EntityData* entity_data = nullptr;
     };
     
     class EntityGroup : public Object {
@@ -381,6 +424,8 @@ namespace Editor {
         WorldCell(Object* parent) : WorldCell(parent, "WorldCell") {}
         WorldCell(Object* parent, std::string name) : Object(parent), group_manager(std::make_shared<EntityGroupManager>(this)) {
             properties["name"] = name;
+            
+            children.push_back(group_manager);
         }
         
         bool IsChildrenTreeable() { return true; }

@@ -8,13 +8,22 @@ using namespace Editor;
 std::vector<PropertyDefinition> columns;
 std::shared_ptr<Object> selected_object;
 
+auto GetSelectedObject() {
+    if (selection->objects.size() == 1) {
+        auto object = selection->objects.front();
+        return object->IsChildrenListable() ? object : object->GetParent();
+    } else {
+        return std::shared_ptr<Object>(nullptr);
+    }
+}
+
 void Editor::ObjectList::SetCurrentSelection() {
     object_list->DeleteAllColumns();
     columns.clear();
     
-    if (selection->objects.size() == 1) {
-        auto object = selection->objects.front();
-        selected_object = object->IsChildrenListable() ? object : object->GetParent();
+    selected_object = GetSelectedObject();
+    
+    if (selected_object) {
         columns = selected_object->GetListPropertyDefinitions();
         
         for (size_t i = 0; i < columns.size(); i++) {
@@ -24,6 +33,15 @@ void Editor::ObjectList::SetCurrentSelection() {
         object_list->SetItemCount(selected_object->GetChildren().size());
     } else {
         object_list->SetItemCount(0);
+    }
+}
+
+void Editor::ObjectList::Refresh() {
+    if (selected_object == GetSelectedObject()) {
+        object_list->SetItemCount(selected_object->GetChildren().size());
+        object_list->Refresh();
+    } else {
+        SetCurrentSelection();
     }
 }
 

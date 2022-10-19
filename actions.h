@@ -101,6 +101,9 @@ namespace Editor {
                 backup.first->SetProperties(backup.second);
                 backup.second = new_property;
             }
+            
+            Editor::PropertyPanel::Refresh();
+            Editor::ObjectList::Refresh();
         }
         
         // Swaps the new properties with the backed-up properties.
