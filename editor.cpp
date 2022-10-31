@@ -11,8 +11,9 @@
 //#include <pickup.h>
 
 namespace Editor {
+    // we'll need to move all of this entity handling stuff to a seperate file
     struct EntityData {
-        Core::SerializedEntityData* data = nullptr;
+        Core::SerializedEntityData* data = nullptr; // TODO: rename to serialized_data
         Core::RenderComponent* render_component = nullptr;
         
         void PropertiesToSerializedData (Entity* entity) {
@@ -45,20 +46,68 @@ namespace Editor {
             
             for (auto& prop : props) {
                 switch (prop.type) {
+                    // we're setting the properties directly, because otherwise
                     case Core::SerializedEntityData::FieldInfo::FIELD_UINT64:
-                        entity->SetProperty(prop.data_name, *(uint64_t*) prop.field);
+                        entity->properties[prop.data_name] =  *(uint64_t*) prop.field;
                         break;
                     case Core::SerializedEntityData::FieldInfo::FIELD_FLOAT:
-                        entity->SetProperty(prop.data_name, *(float*) prop.field);
+                        entity->properties[prop.data_name] =  *(float*) prop.field;
                         break;
                     case Core::SerializedEntityData::FieldInfo::FIELD_NAME:
-                        entity->SetProperty(prop.data_name, *(Core::name_t*) prop.field);
+                        entity->properties[prop.data_name] = std::string(Core::ReverseUID(*(Core::name_t*) prop.field));
                         break;
                 }
             }
         }
+        
+        void InitRenderComponent (Entity* entity) {
+            render_component = Core::PoolProxy<Core::RenderComponent>::New();
+            render_component->UpdateRotation(glm::quat(glm::vec3(
+                entity->properties["rotation-x"].float_value,
+                entity->properties["rotation-y"].float_value,
+                entity->properties["rotation-z"].float_value
+            )));
+            render_component->UpdateLocation(glm::vec3(
+                entity->properties["position-x"].float_value,
+                entity->properties["position-y"].float_value,
+                entity->properties["position-z"].float_value
+            ));
+            render_component->SetModel(data->GetEditorModel());
+            render_component->SetLightmap(Core::UID("fullbright"));
+            render_component->SetPose(Core::Render::poseList.begin().ptr);
+            render_component->Init();
+        }
+        
+        void UpdateRenderComponent (Entity* entity) {
+            if (!render_component) {
+                InitRenderComponent (entity);
+                return;
+            }
+            
+            if (data->GetEditorModel() != render_component->GetModel()) {
+                render_component->SetModel(data->GetEditorModel());
+            }
+            
+            render_component->UpdateRotation(glm::quat(glm::vec3(
+                entity->properties["rotation-x"].float_value,
+                entity->properties["rotation-y"].float_value,
+                entity->properties["rotation-z"].float_value
+            )));
+            render_component->UpdateLocation(glm::vec3(
+                entity->properties["position-x"].float_value,
+                entity->properties["position-y"].float_value,
+                entity->properties["position-z"].float_value
+            ));
+        }
+        
+        void RemoveRenderComponent (Entity* entity) {
+            render_component->Uninit();
+            Core::PoolProxy<Core::RenderComponent>::Delete(render_component);
+            render_component = nullptr;
+        }
     };
     
+    // this is kinda out of place
     std::shared_ptr<Selection> selection;
     std::shared_ptr<WorldCellManager> worldcells;
     std::list<std::unique_ptr<Action>> performed_actions;
@@ -69,12 +118,14 @@ namespace Editor {
     };
     
     std::unordered_map<size_t, Core::SerializedEntityData* (*)(void)> entity_data_constructors;
+    std::vector<std::string> entity_data_names = {"none"};
     
     void RegisterEntityType(Core::SerializedEntityData* (*constructor)(void)) {
         auto instance = constructor();
         
         auto index = property_enumerations["entity-type"].size();
         property_enumerations["entity-type"].push_back(instance->GetEditorName());
+        entity_data_names.push_back(instance->GetDataName());
         entity_data_constructors[index] = constructor;
         
         std::cout << "enum size: " << property_enumerations["entity-type"].size() << std::endl;
@@ -103,11 +154,12 @@ namespace Editor {
         } else if (property_name == "entity-type") {
             properties["entity-type"] = property_value;
             
+            // if you set the entity type to "none"
             if (property_value.enum_value == 0) {
                 if (entity_data) {
+                    // TODO: move these checks into the destructor of the entity_data
                     if (entity_data->render_component) {
-                        entity_data->render_component->Uninit();
-                        Core::PoolProxy<Core::RenderComponent>::Delete(entity_data->render_component);
+                        entity_data->RemoveRenderComponent(this);
                     }
                     
                     if (entity_data->data) {
@@ -120,38 +172,33 @@ namespace Editor {
                 return;
             }
             
+            // if you set the entity type to an actual type
             if (!entity_data) entity_data = new EntityData;
             if (entity_data->data) delete entity_data->data;
             entity_data->data = entity_data_constructors[property_value.enum_value]();
-            goto update_model;
         } else {
             properties[property_name] = property_value;
-            goto update_model;
         }
         
-        return;
+
+        if (entity_data && !is_hidden) {
+            entity_data->PropertiesToSerializedData(this);
+            entity_data->UpdateRenderComponent(this);
+        }
+    }
+    
+    void Entity::SetHidden(bool is_hidden) {
+        std::cout << "got asked to be hidden: " << is_hidden << std::endl; 
+        this->is_hidden = is_hidden;
         
-        update_model:
-        entity_data->PropertiesToSerializedData(this);
+        if (is_hidden && entity_data && entity_data->render_component) {
+            entity_data->RemoveRenderComponent(this);
+        }
         
-        /*if (entity_data->render_component) {
-            entity_data->render_component->SetModel(entity_data->data->GetEditorModel());
-        } else {
-            entity_data->render_component = Core::PoolProxy<Core::RenderComponent>::New();
-            entity_data->render_component->UpdateRotation(glm::quat(glm::vec3(
-                properties["rotation-x"].float_value,
-                properties["rotation-y"].float_value,
-                properties["rotation-z"].float_value
-            )));
-            entity_data->render_component->UpdateRotation(glm::vec3(
-                properties["position-x"].float_value,
-                properties["position-y"].float_value,
-                properties["position-z"].float_value
-            ));
-            entity_data->render_component->SetModel(entity_data->data->GetEditorModel());
-            entity_data->render_component->SetLightmap(Core::UID("fullbright"));
-            entity_data->render_component->Start();
-        }*/
+        if (!is_hidden && entity_data && !entity_data->render_component) {
+            entity_data->PropertiesToSerializedData(this);
+            entity_data->UpdateRenderComponent(this);
+        }
     }
     
     std::vector<PropertyDefinition> Entity::GetFullPropertyDefinitions() { 
@@ -172,6 +219,7 @@ namespace Editor {
         if (entity_data) {
             defs.push_back({"group-entity-special", entity_data->data->GetEditorName(), "", PROPERTY_CATEGORY});
             
+            // this will translate all of the engine entity properties into editor properties
             auto props = entity_data->data->GetEditorFieldInfo();
             for (auto& prop : props) {
                 switch (prop.type) {
@@ -261,7 +309,9 @@ namespace Editor {
     }*/
     
     // this function is absolutely terrible!
+    // TODO: wrap Core::SerializedEntityData::Field<TTT>().FromString(STR) function
     void LoadCell(WorldCell* cell) {
+        using namespace Core;
         std::ifstream file(std::string("data/") + std::string(cell->GetName()) + ".cell");
         EntityGroup* current_group = (EntityGroup*)cell->group_manager->GetChildren().front().get();
         assert(current_group->GetName() == "[default]");
@@ -276,15 +326,15 @@ namespace Editor {
                     std::string annotation_name = Core::ReverseUID(Core::SerializedEntityData::Field<Core::name_t>().FromStringAsName(str));
                     if (annotation_name == "cell") {
                         // TODO: stuff these where they belong
-                        bool is_interior = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
-                        bool is_interior_lighting = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
+                        //bool is_interior = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
+                        //bool is_interior_lighting = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
                     } else if (annotation_name == "group") {
                         auto new_group = current_group->parent->AddChild();
                         new_group->SetProperty("name", std::string(Core::ReverseUID(Core::SerializedEntityData::Field<Core::name_t>().FromStringAsName(str))));
                         current_group = (EntityGroup*) new_group.get();
                     }
                 } else if (ent_name == "transition") {
-                    Transition* trans = new Transition;
+                    /*Transition* trans = new Transition;
                     trans->name = Core::ReverseUID(Core::SerializedEntityData::Field<Core::name_t>().FromStringAsName(str));
                     trans->cell_into_name = Core::ReverseUID(Core::SerializedEntityData::Field<Core::name_t>().FromStringAsName(str));
                     trans->parent = this;
@@ -297,9 +347,9 @@ namespace Editor {
                         p->parent = trans;
                         trans->points.push_back(p);
                     }
-                    transitions.push_back(trans);
+                    transitions.push_back(trans);*/
                 } else if (ent_name == "path") {
-                    Path* path = new Path;
+                    /*Path* path = new Path;
                     path->name = Core::ReverseUID(Core::SerializedEntityData::Field<Core::name_t>().FromStringAsName(str));
                     path->parent = this;
                     uint64_t curve_count = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
@@ -325,9 +375,9 @@ namespace Editor {
                         c->parent = path;
                         path->curves.push_back(c);
                     }
-                    paths.push_back(path);
+                    paths.push_back(path);*/
                 } else if (ent_name == "navmesh") {
-                    Navmesh* navmesh = new Navmesh;
+                    /*Navmesh* navmesh = new Navmesh;
                     navmesh->name = Core::ReverseUID(Core::SerializedEntityData::Field<Core::name_t>().FromStringAsName(str));
                     navmesh->parent = this;
                     uint64_t node_count = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
@@ -344,21 +394,46 @@ namespace Editor {
                         n->parent = navmesh;
                         navmesh->nodes.push_back(n);
                     }
-                    navmeshes.push_back(navmesh);
+                    navmeshes.push_back(navmesh);*/
                 } else {
-                    auto ent = new Entity {.id = 0, .parent = this, .group = current_group};
-                    ent->FromString(str);
-                    ent->ent_data = entityDatas[ent_name]();
-                    ent->ent_data->FromString(str);
-                    if (current_group) {
-                        current_group->entities.push_back(ent);
-                    } else {
-                        entities.push_back(ent);
+                    auto entity = std::make_shared<Entity>(current_group);
+                    
+                    // need to find the index of the entity type
+                    size_t entity_type_index = 0;
+                    for (size_t i = 0; i < entity_data_names.size(); i++) {
+                        if (entity_data_names[i] == ent_name) {
+                            entity_type_index = i;
+                            break;
+                        }
                     }
+                    // TODO: find a way to nicely abort the program
+                    std::cout << ent_name << std::endl;
+                    assert(entity_type_index);
+                    
+                    entity->properties["name"] = std::string(ReverseUID(SerializedEntityData::Field<name_t>().FromStringAsName(str)));
+
+                    entity->properties["position-x"] = SerializedEntityData::Field<float>().FromString(str);
+                    entity->properties["position-y"] = SerializedEntityData::Field<float>().FromString(str);
+                    entity->properties["position-z"] = SerializedEntityData::Field<float>().FromString(str);
+
+                    entity->properties["rotation-x"] = SerializedEntityData::Field<float>().FromString(str);
+                    entity->properties["rotation-y"] = SerializedEntityData::Field<float>().FromString(str);
+                    entity->properties["rotation-z"] = SerializedEntityData::Field<float>().FromString(str);
+
+                    /*entity->properties["action"] =*/ ReverseUID(SerializedEntityData::Field<name_t>().FromStringAsName(str));
+                    
+                    // need the int32_t cast so that PropertyValue gets initialized to an enum type
+                    entity->SetProperty("entity-type", (int32_t) entity_type_index);
+                    assert(entity->entity_data && entity->entity_data->data);
+                    
+                    entity->entity_data->data->FromString(str);
+                    entity->entity_data->SerializedDataToProperties(entity.get());
+                    
+                    ((Object*)current_group)->AddChild(entity);
                 }
             }
         } else {
-            std::cout << "Can't find the cell file " << name << ".cell." << std::endl;
+            std::cout << "Can't find the cell file " << cell->GetName() << ".cell." << std::endl;
         }
     }
     /*
@@ -453,8 +528,9 @@ namespace Editor {
         }
     }*/
     
-    
+    // TODO: find from where this is being called right now and make it stop!
     void ProduceTestData() {
+        return;
         std::cout << "Creating some test data..." << std::endl;
         try {
             //std::shared_ptr<WorldCell> wcell1 = std::make_shared<WorldCell>();
@@ -472,7 +548,6 @@ namespace Editor {
     void Init(){
         Core::Init();
         
-        //worldcells = new WorldCellManager (nullptr);
         worldcells = std::make_shared<WorldCellManager>(nullptr);
         selection = std::make_shared<Selection>();
         
@@ -482,10 +557,12 @@ namespace Editor {
         
         std::ifstream file("data/editor_data.txt");
         
+        // TODO: clean this up a bit
         if (file.is_open()) {
             std::string line;
             while (std::getline(file, line)) {
-                std::static_pointer_cast<Object>(worldcells)->AddChild(std::make_shared<WorldCell>(worldcells.get(), line));
+                auto worldcell = std::make_shared<WorldCell>(worldcells.get(), line);
+                std::static_pointer_cast<Object>(worldcells)->AddChild(worldcell);
             }
         } else {
             std::cout << "Can't find the editor config file." << std::endl;

@@ -26,6 +26,8 @@ EditorObjectMenu* world_tree_popup = nullptr;
 
 #include <components/rendercomponent.h>
 
+std::unordered_map <Editor::Object*, std::vector<std::pair<char, Editor::PropertyValue>>> property_backup;
+
 class Viewport : public wxGLCanvas 
 {
     public:
@@ -206,8 +208,7 @@ void Viewport::OnRightClick(wxMouseEvent& event) {
 }
 
 void Viewport::OnMouseMove(wxMouseEvent& event) {
-    /*
-    if (mouse_captured && move_mode) {
+    if (mouse_captured /*&& move_mode*/) {
         int width, height;
         GetSize(&width, &height);
         int center_x = width/2, center_y = height/2;
@@ -219,7 +220,7 @@ void Viewport::OnMouseMove(wxMouseEvent& event) {
         Core::Render::CAMERA_ROTATION = glm::quat(glm::vec3(-glm::radians(mouse_y), -glm::radians(mouse_x), 0.0f));
         
         Refresh();
-    } else if (mouse_captured) {
+    } /*else if (mouse_captured) {
         if (entity_operation && entity_axis && parent_frame->selection.front().indirection_type == Editor::Selector::ENTITY) {
             auto selected_entity = parent_frame->selection.front().entity;
             float delta_x = cursor_x - event.GetX();
@@ -283,12 +284,11 @@ void Viewport::OnMouseMove(wxMouseEvent& event) {
 }
 
 void Viewport::OnKeydown(wxKeyEvent& event) {
-    /*
-    auto keycode = event.GetUnicodeKey();
+    //auto keycode = event.GetUnicodeKey();
     bool movement_key_pressed = false;
     bool any_movement = key_forward || key_backward || key_left  || key_right;
-    bool is_operation = keycode == 'G' || keycode == 'R';
-    bool is_axis = keycode == 'X' || keycode == 'Y' || keycode == 'Z';
+    //bool is_operation = keycode == 'G' || keycode == 'R';
+    //bool is_axis = keycode == 'X' || keycode == 'Y' || keycode == 'Z';
     
     if (event.GetUnicodeKey() == 'W') {
         movement_key_pressed = true;
@@ -314,7 +314,7 @@ void Viewport::OnKeydown(wxKeyEvent& event) {
         key_timer.Start(30);
     }
     
-    if (parent_frame->selection.front().indirection_type == Editor::Selector::ENTITY) {
+    /*if (parent_frame->selection.front().indirection_type == Editor::Selector::ENTITY) {
         auto selected_entity = parent_frame->selection.front().entity;
         if (is_operation || is_axis) {            
             if (entity_operation && entity_axis) {
@@ -381,7 +381,7 @@ void Viewport::OnKeydown(wxKeyEvent& event) {
 }
 
 void Viewport::OnKeyup(wxKeyEvent& event) {
-    /*
+    
     if (event.GetUnicodeKey() == 'W') {
         key_forward = false;
     }
@@ -401,19 +401,19 @@ void Viewport::OnKeyup(wxKeyEvent& event) {
     if (!(key_forward || key_backward || key_left  || key_right)) {
         key_timer.Stop();
         //std::cout << "stoppe" << std::endl;
-    }*/
+    }
 }
 
 void Viewport::OnTimer(wxTimerEvent& event) {
-    /*
     using namespace Core::Render;
+    using namespace Core;
     
-    if (key_forward) CAMERA_POSITION += CAMERA_ROTATION * CAMERA_FORWARD * 0.1f;
-    if (key_backward) CAMERA_POSITION -= CAMERA_ROTATION * CAMERA_FORWARD * 0.1f;
-    if (key_left) CAMERA_POSITION -= CAMERA_ROTATION * CAMERA_SIDE * 0.1f;
-    if (key_right) CAMERA_POSITION += CAMERA_ROTATION * CAMERA_SIDE * 0.1f;
+    if (key_forward) CAMERA_POSITION += CAMERA_ROTATION * DIRECTION_FORWARD * 0.1f;
+    if (key_backward) CAMERA_POSITION -= CAMERA_ROTATION * DIRECTION_FORWARD * 0.1f;
+    if (key_left) CAMERA_POSITION -= CAMERA_ROTATION * DIRECTION_SIDE * 0.1f;
+    if (key_right) CAMERA_POSITION += CAMERA_ROTATION * DIRECTION_SIDE * 0.1f;
     
-    Refresh();*/
+    Refresh();
 }
 
 void Viewport::OnSizeChange(wxSizeEvent& event) {
@@ -730,7 +730,9 @@ void MainFrame::OnAction(wxCommandEvent& event) {
 }
 
 void MainFrame::OnLoadCells(wxCommandEvent& event) {
-    wxProgressDialog progress_dialog (L"Ielādē šūnas", L"Notiek šūnu ielāde", 100, this);
+    //wxProgressDialog progress_dialog (L"Ielādē šūnas", L"Notiek šūnu ielāde", 100, this);
+    
+    
     /*auto progress_increment = (100 / Editor::worldCells.size()) - 1;
     auto progress = 0;
     for (auto cell : Editor::worldCells) {
@@ -741,7 +743,16 @@ void MainFrame::OnLoadCells(wxCommandEvent& event) {
     //BuildWorldCellTree();
     //PropertyPanelRebuild();
     //object_list->RefreshAllItems();
-    progress_dialog.Update(100, L"Pabeigts");
+    
+    
+    //progress_dialog.Update(100, L"Pabeigts");
+    
+    auto cells = Editor::worldcells->GetChildren();
+    for (auto& wcell : cells) {
+        auto cell = std::dynamic_pointer_cast<Editor::WorldCell>(wcell);
+        LoadCell(cell.get());
+    }
+    
     std::cout << "Loaded cells." << std::endl;
 }
 

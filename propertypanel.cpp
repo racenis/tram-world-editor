@@ -145,6 +145,7 @@ void PropertyPanel::OnChanged (wxPropertyGridEvent& event) {
         } else if (value.GetType() == "string") {
             object->SetProperty(value_name, value.GetString().ToStdString());
         } else if (value.GetType() == "long") {
+            // long in wxWidgets PropGrid is used for enums
             object->SetProperty(value_name, (int32_t) value.GetLong());
         } else {
             std::cout << "value type '" << value.GetType().c_str() << "' unrecognized!" << std::endl;

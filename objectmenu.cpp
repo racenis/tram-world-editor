@@ -31,6 +31,10 @@ void EditorObjectMenu::SetSelectionStatus(Editor::Selection* selection) {
 
 void EditorObjectMenu::OnIsVisibleCheckboxClick(wxCommandEvent& event) {
     std::cout << "Clicked on is visible!" << std::endl;
+    // TODO: move this code out into editor.h logic code
+    bool is_hidden = false;
+    for (auto& object : Editor::selection->objects) { if (object->IsHidden()) { is_hidden = true; break; } }
+    for (auto& object : Editor::selection->objects) { object->SetHidden(!is_hidden); }
 }
 
 void EditorObjectMenu::OnAddSelection(wxCommandEvent& event) {

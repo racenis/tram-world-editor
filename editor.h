@@ -263,6 +263,8 @@ namespace Editor {
         bool IsCopyable() { return true; }
         bool IsHidden() { return is_hidden; }
         
+        void SetHidden(bool is_hidden);
+        
         std::vector<PropertyDefinition> GetFullPropertyDefinitions();
         
         PropertyValue GetProperty (std::string property_name);
