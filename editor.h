@@ -35,6 +35,26 @@ namespace Editor {
         void Refresh();
     }
     
+    namespace Viewport {
+        void SetCurrentSelection();
+        void Refresh();
+    }
+    
+    namespace Settings {
+        enum Space {
+            SPACE_WORLD,
+            SPACE_ENTITY,
+            SPACE_ENTITYGROUP
+        };
+        
+        enum Rotation {
+            ROTATION_RADIANS,
+            ROTATION_DEGREES
+        };
+        
+        extern Space TRANSFORM_SPACE;
+        extern Rotation ROTATION_UNIT;
+    }
     
     void Init();
     void Yeet();

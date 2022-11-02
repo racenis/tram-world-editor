@@ -114,6 +114,44 @@ namespace Editor {
         std::list<std::pair<std::shared_ptr<Object>, std::unordered_map<std::string, PropertyValue>>> property_backups;
     };
     
+    // TODO: change all uses of ActionChangeProperties to ActionChangeProperties_Single
+    // then rename this class to just ActionChangeProperties
+    class ActionChangeProperties_Single : public Action {
+    public:
+        // This will back up the values of the properties of the selection.
+        ActionChangeProperties_Single(std::vector<std::string> properties) {
+            for (auto& object : selection->objects) {
+                for (auto& property : properties) {
+                    property_backups.push_back({object, {property, object->GetProperty(property)}});
+                }
+            }
+        }
+        
+        // Swaps the backed-up properties with the new properties.
+        void Perform () {
+            for (auto& backup : property_backups) {
+                auto new_property = backup.first->GetProperty(backup.second.property_name);
+                backup.first->SetProperty(backup.second.property_name, backup.second.property_value);
+                backup.second.property_value = new_property;
+            }
+            
+            Editor::PropertyPanel::Refresh();
+            Editor::ObjectList::Refresh();
+        }
+        
+        // Swaps the new properties with the backed-up properties.
+        void Unperform() {
+            Perform();
+        }
+        
+        struct PropertyBackup {
+            std::string property_name;
+            PropertyValue property_value;
+        };
+        
+        std::list<std::pair<std::shared_ptr<Object>, PropertyBackup>> property_backups;
+    };
+    
     /*class ActionSwapSelection : public Action {
     public:
         ActionSwapSelection (std::shared_ptr<Selection> new_selection) {

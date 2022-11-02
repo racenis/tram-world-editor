@@ -47,6 +47,23 @@ class Viewport : public wxGLCanvas
             space_entity = entity;
             space_group = group;
         }
+        
+        enum ViewportMode : uint8_t {
+            MODE_NONE,
+            MODE_MOVE,
+            MODE_ROTATE,
+            MODE_TRANSLATE
+        };
+        
+        enum TransformAxis : uint8_t {
+            AXIS_NONE = 0,
+            AXIS_X = 1,
+            AXIS_Y = 2,
+            AXIS_Z = 4
+        };
+        
+        ViewportMode viewport_mode = MODE_NONE;
+        uint8_t viewport_axis = AXIS_NONE;
     private:
             void OnPaint(wxPaintEvent& event);
             void OnLeftClick(wxMouseEvent& event);
@@ -56,6 +73,8 @@ class Viewport : public wxGLCanvas
             void OnKeydown(wxKeyEvent& event);
             void OnKeyup(wxKeyEvent& event);
             void OnTimer(wxTimerEvent& event);
+            
+            void CenterMousePointer();
             
             // stuff for viewport navigation
             bool mouse_captured = false;
@@ -157,67 +176,128 @@ Viewport::~Viewport()
 	SetCurrent(*m_context);
 }
 
+void Viewport::CenterMousePointer() {
+    int width, height;
+    GetSize(&width, &height);
+    WarpPointer(width/2, height/2);
+}
 
 void Viewport::OnLeftClick(wxMouseEvent& event) {
-    if (mouse_captured) {
-        mouse_captured = false;
-        entity_operation = 0;
-        entity_axis = 0;
-        if (!move_mode) {
-            move_mode = true;
-            //parent_frame->PropertyPanelRebuild();
-        }
+    if (viewport_mode == MODE_NONE) {
+        CaptureMouse();
+        CenterMousePointer();
         
+        viewport_mode = MODE_MOVE;
+        std::cout << "captured and centered the mouse!" << std::endl;
+    } else {
         ReleaseMouse();
         Refresh();
-        //std::cout << "released" << std::endl;
-    } else {
-        mouse_captured = true;
-        CaptureMouse();
         
-        // put the pointer in the center of viewport
-        int width, height;
-        GetSize(&width, &height);
-        WarpPointer(width/2, height/2);
-        //std::cout << "captured" << std::endl;
+        viewport_axis = AXIS_NONE;
+        viewport_mode = MODE_NONE;
+        std::cout << "released the mouse!" << std::endl;
     }
 }
 
 void Viewport::OnRightClick(wxMouseEvent& event) {
-    /*if (mouse_captured && !move_mode) {
-        mouse_captured = false;
-        entity_operation = 0;
-        entity_axis = 0;
-        move_mode = true;
-        // add more stuff
-        if (parent_frame->selection.front().indirection_type == Editor::Selector::ENTITY) {
-            parent_frame->selection.front().entity->location = location_restore;
-            parent_frame->selection.front().entity->rotation = rotation_restore;
-            parent_frame->selection.front().entity->ModelUpdate();
-        } else if (parent_frame->selection.front().indirection_type == Editor::Selector::TRANSITION_POINT) {
-            parent_frame->selection.front().point->location = location_restore;
-        } else if (parent_frame->selection.front().indirection_type == Editor::Selector::PATH_CURVE) {
-            parent_frame->selection.front().curve->location1 = location_restore;
-        } else if (parent_frame->selection.front().indirection_type == Editor::Selector::NAVMESH_NODE) {
-            parent_frame->selection.front().node->location = location_restore;
-        }
-
-        ReleaseMouse();
-        Refresh();
-    }*/
+    if (viewport_mode == MODE_TRANSLATE || viewport_mode == MODE_ROTATE) {
+        // TODO: do an undo in here
+        std::cout << "Canceling a transform not implemented!" << std::endl;
+    }
 }
 
 void Viewport::OnMouseMove(wxMouseEvent& event) {
-    if (mouse_captured /*&& move_mode*/) {
+    if (viewport_mode != MODE_NONE) {
         int width, height;
         GetSize(&width, &height);
         int center_x = width/2, center_y = height/2;
-        mouse_x += (float)(event.GetX() - center_x) * 0.1f;
-        mouse_y += (float)(event.GetY() - center_y) * 0.1f;
+        
+        float delta_x = (float)(event.GetX() - center_x);
+        float delta_y = (float)(event.GetY() - center_y);
         WarpPointer(center_x, center_y);
         
-        mouse_y = mouse_y > 90.0f ? 90.0f : mouse_y < -90.0f ? -90.0f : mouse_y;
-        Core::Render::CAMERA_ROTATION = glm::quat(glm::vec3(-glm::radians(mouse_y), -glm::radians(mouse_x), 0.0f));
+        
+        if (viewport_mode == MODE_MOVE) {
+            mouse_x += delta_x * 0.1f;
+            mouse_y += delta_y * 0.1f;
+            
+            mouse_y = mouse_y > 90.0f ? 90.0f : mouse_y < -90.0f ? -90.0f : mouse_y;
+            Core::Render::CAMERA_ROTATION = glm::quat(glm::vec3(-glm::radians(mouse_y), -glm::radians(mouse_x), 0.0f));
+        } else if (viewport_mode == MODE_TRANSLATE) {
+            glm::vec3 translation = glm::vec3 (0.0, 0.0f, 0.0f);
+            
+            if (viewport_axis & AXIS_X) translation += glm::vec3 (0.05f, 0.0f, 0.0f);
+            if (viewport_axis & AXIS_Y) translation += glm::vec3 (0.0f, 0.05f, 0.0f);
+            if (viewport_axis & AXIS_Z) translation += glm::vec3 (0.0f, 0.0f, 0.05f);
+            
+            translation *= delta_x + delta_x;
+            
+            for (auto& object : Editor::selection->objects) {
+                glm::vec3 object_position = glm::vec3 {
+                    object->GetProperty("position-x").float_value,
+                    object->GetProperty("position-y").float_value,
+                    object->GetProperty("position-z").float_value
+                };
+                
+                auto translation_adjusted = translation;
+                
+                if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITY) {
+                    glm::vec3 object_rotation = glm::vec3 {
+                        object->GetProperty("rotation-x").float_value,
+                        object->GetProperty("rotation-y").float_value,
+                        object->GetProperty("rotation-z").float_value
+                    };
+                    
+                    translation_adjusted = glm::quat(object_rotation) * translation;
+                }
+                
+                if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITYGROUP) {
+                    // TODO: implement entity group transforms
+                }
+                
+                object_position += translation_adjusted;
+                
+                object->SetProperty("position-x", object_position.x);
+                object->SetProperty("position-y", object_position.y);
+                object->SetProperty("position-z", object_position.z);
+            }
+        } else if (viewport_mode == MODE_ROTATE) {
+            glm::vec3 rotation = glm::vec3 (0.0, 0.0f, 0.0f);
+            
+            if (viewport_axis & AXIS_X) rotation += glm::vec3 (0.05f, 0.0f, 0.0f);
+            if (viewport_axis & AXIS_Y) rotation += glm::vec3 (0.0f, 0.05f, 0.0f);
+            if (viewport_axis & AXIS_Z) rotation += glm::vec3 (0.0f, 0.0f, 0.05f);
+            
+            rotation *= delta_x + delta_x;
+            
+            for (auto& object : Editor::selection->objects) {
+                glm::quat object_rotation = glm::vec3 {
+                    object->GetProperty("rotation-x").float_value,
+                    object->GetProperty("rotation-y").float_value,
+                    object->GetProperty("rotation-z").float_value
+                };
+                
+                if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_WORLD) {
+                    object_rotation = glm::quat(rotation) * object_rotation;
+                }
+                
+                if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITY) {
+                    object_rotation = object_rotation * glm::quat(rotation);
+                }
+                
+                if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITYGROUP) {
+                    // TODO: implement entity group transforms
+                }
+                
+                auto rotation_euler = glm::eulerAngles(object_rotation);
+                
+                object->SetProperty("rotation-x", rotation_euler.x);
+                object->SetProperty("rotation-y", rotation_euler.y);
+                object->SetProperty("rotation-z", rotation_euler.z);
+            }
+        }
+        
+
         
         Refresh();
     } /*else if (mouse_captured) {
@@ -312,6 +392,38 @@ void Viewport::OnKeydown(wxKeyEvent& event) {
     
     if (!any_movement && movement_key_pressed) {
         key_timer.Start(30);
+    }
+    
+    if (event.GetUnicodeKey() == 'X') {
+        viewport_axis = AXIS_X;
+    }
+    
+    if (event.GetUnicodeKey() == 'Y') {
+        viewport_axis = AXIS_Y;
+    }
+    
+    if (event.GetUnicodeKey() == 'Z') {
+        viewport_axis = AXIS_Z;
+    }
+    
+    if (event.GetUnicodeKey() == 'G') {
+        if (viewport_mode == MODE_NONE) {
+            CaptureMouse();
+            CenterMousePointer();
+        }
+        viewport_mode = MODE_TRANSLATE;
+        
+        Editor::PerformAction<Editor::ActionChangeProperties_Single>(std::vector<std::string> {"position-x", "position-y", "position-z"});
+    }
+    
+    if (event.GetUnicodeKey() == 'R') {
+        if (viewport_mode == MODE_NONE) {
+            CaptureMouse();
+            CenterMousePointer();
+        }
+        viewport_mode = MODE_ROTATE;
+        
+        Editor::PerformAction<Editor::ActionChangeProperties_Single>(std::vector<std::string> {"rotation-x", "rotation-y", "rotation-z"});
     }
     
     /*if (parent_frame->selection.front().indirection_type == Editor::Selector::ENTITY) {
@@ -434,6 +546,30 @@ void Viewport::OnPaint(wxPaintEvent& event)
     using namespace Core;
     using namespace Core::Render;
     
+    for (auto& object : Editor::selection->objects) {
+        // TODO: make this code not ugly
+        if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_WORLD) space = glm::vec3(0.0f);
+        if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITY) space = glm::quat(glm::vec3 {
+                    object->GetProperty("rotation-x").float_value,
+                    object->GetProperty("rotation-y").float_value,
+                    object->GetProperty("rotation-z").float_value
+                });
+        if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITYGROUP) space = glm::vec3(glm::radians(180.0f));
+        
+        
+        glm::vec3 gizmo_location = glm::vec3 {
+            object->GetProperty("position-x").float_value,
+            object->GetProperty("position-y").float_value,
+            object->GetProperty("position-z").float_value
+        };
+        AddLine(gizmo_location, gizmo_location + space * glm::vec3(1.0f, 0.0f, 0.0f), COLOR_RED);
+        AddLine(gizmo_location, gizmo_location + space * glm::vec3(0.0f, 1.0f, 0.0f), COLOR_GREEN);
+        AddLine(gizmo_location, gizmo_location + space * glm::vec3(0.0f, 0.0f, 1.0f), COLOR_BLUE);
+        
+        if (viewport_axis == AXIS_X) AddLine(gizmo_location - space * glm::vec3(100.0f, 0.0f, 0.0f), gizmo_location + space * glm::vec3(100.0f, 0.0f, 0.0f), COLOR_RED);
+        if (viewport_axis == AXIS_Y) AddLine(gizmo_location - space * glm::vec3(0.0f, 100.0f, 0.0f), gizmo_location + space * glm::vec3(0.0f, 100.0f, 0.0f), COLOR_GREEN);
+        if (viewport_axis == AXIS_Z) AddLine(gizmo_location - space * glm::vec3(0.0f, 0.0f, 100.0f), gizmo_location + space * glm::vec3(0.0f, 0.0f, 100.0f), COLOR_BLUE);
+    }
     /*if (parent_frame->selection.size() > 0 && move_mode) {
         if (space_world) space = glm::vec3(0.0f);
         if (space_entity) space = glm::quat(parent_frame->selection.front().entity->rotation);
@@ -693,25 +829,31 @@ void MainFrame::OnHello(wxCommandEvent& event)
 }
 
 void MainFrame::OnSettingsChange(wxCommandEvent& event) {
+    using namespace Editor::Settings;
     switch (event.GetId()) {
         case ID_Settings_Angle_Radians:
-            property_panel_degrees = false;
-            property_panel_radians = true;
+            //property_panel_degrees = false;
+            //property_panel_radians = true;
             //PropertyPanelRebuild();
+            ROTATION_UNIT = ROTATION_RADIANS;
             break;
         case ID_Settings_Angle_Degrees:
-            property_panel_degrees = true;
-            property_panel_radians = false;
+            //property_panel_degrees = true;
+            //property_panel_radians = false;
             //PropertyPanelRebuild();
+            ROTATION_UNIT = ROTATION_DEGREES;
             break;
         case ID_Settings_Space_World:
-            viewport->SetSpaces(true, false, false);
+            //viewport->SetSpaces(true, false, false);
+            TRANSFORM_SPACE = SPACE_WORLD;
             break;
         case ID_Settings_Space_Entity:
-            viewport->SetSpaces(false, true, false);
+            //viewport->SetSpaces(false, true, false);
+            TRANSFORM_SPACE = SPACE_ENTITY;
             break;
         case ID_Settings_Space_Group:
-            viewport->SetSpaces(false, false, true);
+            //viewport->SetSpaces(false, false, true);
+            TRANSFORM_SPACE = SPACE_ENTITYGROUP;
             break;
         default:
             std::cout << "settings error" << std::endl;

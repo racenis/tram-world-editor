@@ -113,6 +113,11 @@ namespace Editor {
     std::list<std::unique_ptr<Action>> performed_actions;
     std::list<std::unique_ptr<Action>> unperformed_actions;
     
+    namespace Settings {
+        Space TRANSFORM_SPACE = SPACE_WORLD;
+        Rotation ROTATION_UNIT = ROTATION_RADIANS;
+    }
+    
     std::unordered_map<std::string, std::vector<std::string>> property_enumerations = {
         {"entity-type", {"[none]"}}
     };
