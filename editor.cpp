@@ -239,9 +239,9 @@ namespace Editor {
                         break;
                 }
             }
-            std::cout << "entity_data is!" << std::endl;
+            //std::cout << "entity_data is!" << std::endl;
         } else {
-            std::cout << "entity_data is NOT!" << std::endl;
+            //std::cout << "entity_data is NOT!" << std::endl;
         }
         
         return defs;

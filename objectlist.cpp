@@ -9,7 +9,7 @@ std::vector<PropertyDefinition> columns;
 std::shared_ptr<Object> selected_object;
 
 auto GetSelectedObject() {
-    if (selection->objects.size() == 1) {
+    if (selection->objects.size() > 0) {
         auto object = selection->objects.front();
         return object->IsChildrenListable() ? object : object->GetParent();
     } else {
@@ -87,6 +87,6 @@ void ObjectListCtrl::OnSelectionChanged(wxListEvent& event) {
 }
 
 void ObjectListCtrl::OnItemActivated(wxListEvent& event) {
-    Editor::PropertyPanel::SetCurrentSelection();
-    Editor::ObjectList::SetCurrentSelection();
+    //Editor::PropertyPanel::SetCurrentSelection();
+    //Editor::ObjectList::SetCurrentSelection();
 }

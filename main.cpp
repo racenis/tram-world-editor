@@ -1,11 +1,11 @@
 #ifndef NEKAD
-#include <glad.h>
 
 #include <widgets.h>
 #include <objectlist.h>
 #include <objectmenu.h>
 #include <propertypanel.h>
 #include <worldtree.h>
+#include <viewport.h>
 
 // TODO: move these out of here
 MainFrame* main_frame = nullptr;
@@ -13,668 +13,11 @@ WorldTree* world_tree = nullptr;
 ObjectListCtrl* object_list = nullptr;
 PropertyPanel* property_panel = nullptr;
 EditorObjectMenu* world_tree_popup = nullptr;
+ViewportCtrl* viewport = nullptr;
 
 // TODO: check which of these can be yeeted
 #include <editor.h>
 #include <actions.h>
-
-
-#include <wx/glcanvas.h>
-#include <core.h>
-#include <async.h>
-#include <render/render.h>
-
-#include <components/rendercomponent.h>
-
-std::unordered_map <Editor::Object*, std::vector<std::pair<char, Editor::PropertyValue>>> property_backup;
-
-class Viewport : public wxGLCanvas 
-{
-    public:
-        Viewport(wxWindow* parent, wxWindowID id = wxID_ANY, 
-            const int* attribList = 0,
-            const wxPoint& pos = wxDefaultPosition, 
-            const wxSize& size = wxDefaultSize, long style = 0L, 
-            const wxString& name = L"GLCanvas", 
-            const wxPalette& palette = wxNullPalette);
-        virtual ~Viewport();
-        Viewport(const Viewport& tc) = delete;
-        Viewport(Viewport&& tc) = delete;
-        Viewport& operator=(const Viewport& tc) = delete; 
-        Viewport& operator=(Viewport&& tc) = delete; 
-        void SetSpaces (bool world, bool entity, bool group) {
-            space_world = world;
-            space_entity = entity;
-            space_group = group;
-        }
-        
-        enum ViewportMode : uint8_t {
-            MODE_NONE,
-            MODE_MOVE,
-            MODE_ROTATE,
-            MODE_TRANSLATE
-        };
-        
-        enum TransformAxis : uint8_t {
-            AXIS_NONE = 0,
-            AXIS_X = 1,
-            AXIS_Y = 2,
-            AXIS_Z = 4
-        };
-        
-        ViewportMode viewport_mode = MODE_NONE;
-        uint8_t viewport_axis = AXIS_NONE;
-    private:
-            void OnPaint(wxPaintEvent& event);
-            void OnLeftClick(wxMouseEvent& event);
-            void OnRightClick(wxMouseEvent& event);
-            void OnMouseMove(wxMouseEvent& event);
-            void OnSizeChange(wxSizeEvent& event);
-            void OnKeydown(wxKeyEvent& event);
-            void OnKeyup(wxKeyEvent& event);
-            void OnTimer(wxTimerEvent& event);
-            
-            void CenterMousePointer();
-            
-            // stuff for viewport navigation
-            bool mouse_captured = false;
-            bool move_mode = true; //rename to fly_mode
-            float mouse_x = 0;
-            float mouse_y = 0;
-            bool key_forward = false;
-            bool key_backward = false;
-            bool key_left = false;
-            bool key_right = false;
-            wxTimer key_timer;
-            
-            // stuff for entity moving
-            float transf_val;
-            glm::vec3 location_restore;
-            glm::vec3 rotation_restore;
-            char entity_operation = 0;
-            char entity_axis = 0;
-            float cursor_x;
-            float cursor_y;
-            glm::quat space;
-            bool space_world = true;
-            bool space_entity = false;
-            bool space_group = false;
-
-            wxGLContext* m_context;
-            
-            
-            Core::RenderComponent* monguser;
-            
-            MainFrame* parent_frame;
-};
-
-Viewport::Viewport(wxWindow* parent, wxWindowID id, 
-        const int* attribList, const wxPoint& pos, const wxSize& size,
-        long style, const wxString& name, const wxPalette& palette)
-        : wxGLCanvas(parent, id, attribList, pos, size, style, name, palette),
-        key_timer(this), parent_frame((MainFrame*)parent) {
-	m_context = new wxGLContext(this);
-	Bind(wxEVT_PAINT, &Viewport::OnPaint, this);
-    Bind(wxEVT_LEFT_UP, &Viewport::OnLeftClick, this);
-    Bind(wxEVT_RIGHT_UP, &Viewport::OnRightClick, this);
-    Bind(wxEVT_MOTION, &Viewport::OnMouseMove, this);
-    Bind(wxEVT_SIZE, &Viewport::OnSizeChange, this);
-    Bind(wxEVT_KEY_DOWN, &Viewport::OnKeydown, this);
-    Bind(wxEVT_KEY_UP, &Viewport::OnKeyup, this);
-    Bind(wxEVT_TIMER, &Viewport::OnTimer, this);
-	
-	SetCurrent(*m_context);
-	
-    gladLoadGL();
-
-    std::cout << "OpenGL: " << glGetString(GL_VERSION) << std::endl;
-    
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    
-    using namespace Core;
-    using namespace Core::Render;
-    Core::Init();
-    Core::Render::Init();
-    Core::Async::Init();
-    
-    Material::SetErrorMaterial(new Material(UID("defaulttexture"), Material::TEXTURE));
-    Model::SetErrorModel(new Model(UID("errorstatic")));
-
-    LoadText("data/lv.lang");
-    
-    Material::LoadMaterialInfo("data/texture.list");
-    
-    // transition for the demo level
-    //auto demo_trans = PoolProxy<WorldCell::Transition>::New();
-    //demo_trans->AddPoint(glm::vec3(-5.0f, 0.0f, -5.0f));
-    //demo_trans->AddPoint(glm::vec3(5.0f, 0.0f, -5.0f));
-    //demo_trans->AddPoint(glm::vec3(-5.0f, 0.0f, 5.0f));
-    //demo_trans->AddPoint(glm::vec3(5.0f, 0.0f, 5.0f));
-    //demo_trans->AddPoint(glm::vec3(-5.0f, 5.0f, -5.0f));
-    //demo_trans->AddPoint(glm::vec3(5.0f, 5.0f, -5.0f));
-    //demo_trans->AddPoint(glm::vec3(-5.0f, 5.0f, 5.0f));
-    //demo_trans->AddPoint(glm::vec3(5.0f, 5.0f, 5.0f));
-    
-    //demo_trans->GeneratePlanes();
-    
-    // create the mongus model
-    //monguser = PoolProxy<RenderComponent>::New();
-    //monguser->SetModel(UID("mongus"));
-    //monguser->SetPose(poseList.begin());
-    //monguser->Init();
-    //monguser->UpdateLocation(glm::vec3(0.0f, 0.0f, 0.0f));
-    //monguser->UpdateRotation(glm::quat(glm::vec3(0.0f, 0.0f, 0.0f)));
-    
-    CAMERA_POSITION = glm::vec3(0.0f, 0.0f, 5.0f);
-    CAMERA_ROTATION = glm::quat(glm::vec3(0.0f, 0.0f, 0.0f));
-}
-
-Viewport::~Viewport()
-{
-    Core::Async::Yeet();
-	SetCurrent(*m_context);
-}
-
-void Viewport::CenterMousePointer() {
-    int width, height;
-    GetSize(&width, &height);
-    WarpPointer(width/2, height/2);
-}
-
-void Viewport::OnLeftClick(wxMouseEvent& event) {
-    if (viewport_mode == MODE_NONE) {
-        CaptureMouse();
-        CenterMousePointer();
-        
-        viewport_mode = MODE_MOVE;
-        std::cout << "captured and centered the mouse!" << std::endl;
-    } else {
-        ReleaseMouse();
-        Refresh();
-        
-        viewport_axis = AXIS_NONE;
-        viewport_mode = MODE_NONE;
-        std::cout << "released the mouse!" << std::endl;
-    }
-}
-
-void Viewport::OnRightClick(wxMouseEvent& event) {
-    if (viewport_mode == MODE_TRANSLATE || viewport_mode == MODE_ROTATE) {
-        // TODO: do an undo in here
-        std::cout << "Canceling a transform not implemented!" << std::endl;
-    }
-}
-
-void Viewport::OnMouseMove(wxMouseEvent& event) {
-    if (viewport_mode != MODE_NONE) {
-        int width, height;
-        GetSize(&width, &height);
-        int center_x = width/2, center_y = height/2;
-        
-        float delta_x = (float)(event.GetX() - center_x);
-        float delta_y = (float)(event.GetY() - center_y);
-        WarpPointer(center_x, center_y);
-        
-        
-        if (viewport_mode == MODE_MOVE) {
-            mouse_x += delta_x * 0.1f;
-            mouse_y += delta_y * 0.1f;
-            
-            mouse_y = mouse_y > 90.0f ? 90.0f : mouse_y < -90.0f ? -90.0f : mouse_y;
-            Core::Render::CAMERA_ROTATION = glm::quat(glm::vec3(-glm::radians(mouse_y), -glm::radians(mouse_x), 0.0f));
-        } else if (viewport_mode == MODE_TRANSLATE) {
-            glm::vec3 translation = glm::vec3 (0.0, 0.0f, 0.0f);
-            
-            if (viewport_axis & AXIS_X) translation += glm::vec3 (0.05f, 0.0f, 0.0f);
-            if (viewport_axis & AXIS_Y) translation += glm::vec3 (0.0f, 0.05f, 0.0f);
-            if (viewport_axis & AXIS_Z) translation += glm::vec3 (0.0f, 0.0f, 0.05f);
-            
-            translation *= delta_x + delta_x;
-            
-            for (auto& object : Editor::selection->objects) {
-                glm::vec3 object_position = glm::vec3 {
-                    object->GetProperty("position-x").float_value,
-                    object->GetProperty("position-y").float_value,
-                    object->GetProperty("position-z").float_value
-                };
-                
-                auto translation_adjusted = translation;
-                
-                if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITY) {
-                    glm::vec3 object_rotation = glm::vec3 {
-                        object->GetProperty("rotation-x").float_value,
-                        object->GetProperty("rotation-y").float_value,
-                        object->GetProperty("rotation-z").float_value
-                    };
-                    
-                    translation_adjusted = glm::quat(object_rotation) * translation;
-                }
-                
-                if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITYGROUP) {
-                    // TODO: implement entity group transforms
-                }
-                
-                object_position += translation_adjusted;
-                
-                object->SetProperty("position-x", object_position.x);
-                object->SetProperty("position-y", object_position.y);
-                object->SetProperty("position-z", object_position.z);
-            }
-        } else if (viewport_mode == MODE_ROTATE) {
-            glm::vec3 rotation = glm::vec3 (0.0, 0.0f, 0.0f);
-            
-            if (viewport_axis & AXIS_X) rotation += glm::vec3 (0.05f, 0.0f, 0.0f);
-            if (viewport_axis & AXIS_Y) rotation += glm::vec3 (0.0f, 0.05f, 0.0f);
-            if (viewport_axis & AXIS_Z) rotation += glm::vec3 (0.0f, 0.0f, 0.05f);
-            
-            rotation *= delta_x + delta_x;
-            
-            for (auto& object : Editor::selection->objects) {
-                glm::quat object_rotation = glm::vec3 {
-                    object->GetProperty("rotation-x").float_value,
-                    object->GetProperty("rotation-y").float_value,
-                    object->GetProperty("rotation-z").float_value
-                };
-                
-                if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_WORLD) {
-                    object_rotation = glm::quat(rotation) * object_rotation;
-                }
-                
-                if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITY) {
-                    object_rotation = object_rotation * glm::quat(rotation);
-                }
-                
-                if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITYGROUP) {
-                    // TODO: implement entity group transforms
-                }
-                
-                auto rotation_euler = glm::eulerAngles(object_rotation);
-                
-                object->SetProperty("rotation-x", rotation_euler.x);
-                object->SetProperty("rotation-y", rotation_euler.y);
-                object->SetProperty("rotation-z", rotation_euler.z);
-            }
-        }
-        
-
-        
-        Refresh();
-    } /*else if (mouse_captured) {
-        if (entity_operation && entity_axis && parent_frame->selection.front().indirection_type == Editor::Selector::ENTITY) {
-            auto selected_entity = parent_frame->selection.front().entity;
-            float delta_x = cursor_x - event.GetX();
-            float delta_y = cursor_y - event.GetY();
-            float new_val = ((delta_x + delta_y) * 0.01f) + transf_val;
-            
-            glm::vec3 transform_location = glm::vec3(0.0f);
-            glm::vec3 transform_rotation = glm::vec3(0.0f);
-            
-            if (entity_operation == 'G') {
-                if (entity_axis == 'X') transform_location = glm::vec3(1.0f, 0.0f, 0.0f) * new_val;
-                if (entity_axis == 'Y') transform_location = glm::vec3(0.0f, 1.0f, 0.0f) * new_val;
-                if (entity_axis == 'Z') transform_location = glm::vec3(0.0f, 0.0f, 1.0f) * new_val;
-            } else {
-                if (entity_axis == 'X') transform_rotation = glm::vec3(1.0f, 0.0f, 0.0f) * new_val;
-                if (entity_axis == 'Y') transform_rotation = glm::vec3(0.0f, 1.0f, 0.0f) * new_val;
-                if (entity_axis == 'Z') transform_rotation = glm::vec3(0.0f, 0.0f, 1.0f) * new_val;
-            }
-            
-            if (space_world) {
-                selected_entity->location = location_restore + transform_location;
-                selected_entity->rotation = glm::eulerAngles(glm::quat(transform_rotation) * glm::quat(rotation_restore));
-            }
-            
-            if (space_entity) {
-                selected_entity->location = location_restore + glm::quat(rotation_restore) * transform_location;
-                selected_entity->rotation = glm::eulerAngles(glm::quat(rotation_restore) * glm::quat(transform_rotation));
-            }
-            
-            selected_entity->ModelUpdate();
-            Refresh();
-        } else if (entity_operation && entity_axis) {
-            glm::vec3* location;
-            if (parent_frame->selection.front().indirection_type == Editor::Selector::TRANSITION_POINT) {
-                location = &parent_frame->selection.front().point->location;
-            } else if (parent_frame->selection.front().indirection_type == Editor::Selector::PATH_CURVE) {
-                location = &parent_frame->selection.front().curve->location1;
-            } else if (parent_frame->selection.front().indirection_type == Editor::Selector::NAVMESH_NODE) {
-                location = &parent_frame->selection.front().node->location;
-            } else {
-                return;
-            }
-            
-            float delta_x = cursor_x - event.GetX();
-            float delta_y = cursor_y - event.GetY();
-            float new_val = ((delta_x + delta_y) * 0.01f) + transf_val;
-            
-            glm::vec3 transform_location = glm::vec3(0.0f);
-            
-            if (entity_operation == 'G') {
-                if (entity_axis == 'X') transform_location = glm::vec3(1.0f, 0.0f, 0.0f) * new_val;
-                if (entity_axis == 'Y') transform_location = glm::vec3(0.0f, 1.0f, 0.0f) * new_val;
-                if (entity_axis == 'Z') transform_location = glm::vec3(0.0f, 0.0f, 1.0f) * new_val;
-            }
-            
-            *location = location_restore + transform_location;
-
-            Refresh();
-        }
-    }*/
-}
-
-void Viewport::OnKeydown(wxKeyEvent& event) {
-    //auto keycode = event.GetUnicodeKey();
-    bool movement_key_pressed = false;
-    bool any_movement = key_forward || key_backward || key_left  || key_right;
-    //bool is_operation = keycode == 'G' || keycode == 'R';
-    //bool is_axis = keycode == 'X' || keycode == 'Y' || keycode == 'Z';
-    
-    if (event.GetUnicodeKey() == 'W') {
-        movement_key_pressed = true;
-        key_forward = true;
-    }
-    
-    if (event.GetUnicodeKey() == 'A') {
-        movement_key_pressed = true;
-        key_left = true;
-    }
-    
-    if (event.GetUnicodeKey() == 'S') {
-        movement_key_pressed = true;
-        key_backward = true;
-    }
-    
-    if (event.GetUnicodeKey() == 'D') {
-        movement_key_pressed = true;
-        key_right = true;
-    }
-    
-    if (!any_movement && movement_key_pressed) {
-        key_timer.Start(30);
-    }
-    
-    if (event.GetUnicodeKey() == 'X') {
-        viewport_axis = AXIS_X;
-    }
-    
-    if (event.GetUnicodeKey() == 'Y') {
-        viewport_axis = AXIS_Y;
-    }
-    
-    if (event.GetUnicodeKey() == 'Z') {
-        viewport_axis = AXIS_Z;
-    }
-    
-    if (event.GetUnicodeKey() == 'G') {
-        if (viewport_mode == MODE_NONE) {
-            CaptureMouse();
-            CenterMousePointer();
-        }
-        viewport_mode = MODE_TRANSLATE;
-        
-        Editor::PerformAction<Editor::ActionChangeProperties_Single>(std::vector<std::string> {"position-x", "position-y", "position-z"});
-    }
-    
-    if (event.GetUnicodeKey() == 'R') {
-        if (viewport_mode == MODE_NONE) {
-            CaptureMouse();
-            CenterMousePointer();
-        }
-        viewport_mode = MODE_ROTATE;
-        
-        Editor::PerformAction<Editor::ActionChangeProperties_Single>(std::vector<std::string> {"rotation-x", "rotation-y", "rotation-z"});
-    }
-    
-    /*if (parent_frame->selection.front().indirection_type == Editor::Selector::ENTITY) {
-        auto selected_entity = parent_frame->selection.front().entity;
-        if (is_operation || is_axis) {            
-            if (entity_operation && entity_axis) {
-                 selected_entity->location = location_restore;
-                 selected_entity->rotation = rotation_restore;
-            }
-            
-            if (is_operation) {
-                entity_operation = keycode;
-            } else {
-                entity_axis = keycode;
-            }
-            
-            transf_val = 0.0f;
-            
-            location_restore = selected_entity->location;
-            rotation_restore = selected_entity->rotation;
-            
-            move_mode = false;
-            cursor_x = event.GetX();
-            cursor_y = event.GetY();
-            
-            if (!mouse_captured) {
-                mouse_captured = true;
-                CaptureMouse();
-            }
-        }
-    } else {
-         if (is_operation || is_axis) {
-            glm::vec3* location;
-
-            if (parent_frame->selection.front().indirection_type == Editor::Selector::TRANSITION_POINT) {
-                location = &parent_frame->selection.front().point->location;
-            } else if (parent_frame->selection.front().indirection_type == Editor::Selector::PATH_CURVE) {
-                location = &parent_frame->selection.front().curve->location1;
-            } else if (parent_frame->selection.front().indirection_type == Editor::Selector::NAVMESH_NODE) {
-                location = &parent_frame->selection.front().node->location;
-            } else {
-                return;
-            }
-
-            if (entity_operation && entity_axis) {
-                *location = location_restore;
-            }
-            
-            if (is_operation) {
-                entity_operation = keycode;
-            } else {
-                entity_axis = keycode;
-            }
-             
-            location_restore = *location;    
-
-            move_mode = false;
-            cursor_x = event.GetX();
-            cursor_y = event.GetY();
-
-            if (!mouse_captured) {
-                mouse_captured = true;
-                CaptureMouse();
-            }
-         }
-    }*/
-}
-
-void Viewport::OnKeyup(wxKeyEvent& event) {
-    
-    if (event.GetUnicodeKey() == 'W') {
-        key_forward = false;
-    }
-    
-    if (event.GetUnicodeKey() == 'A') {
-        key_left = false;
-    }
-    
-    if (event.GetUnicodeKey() == 'S') {
-        key_backward = false;
-    }
-    
-    if (event.GetUnicodeKey() == 'D') {
-        key_right = false;
-    }
-    
-    if (!(key_forward || key_backward || key_left  || key_right)) {
-        key_timer.Stop();
-        //std::cout << "stoppe" << std::endl;
-    }
-}
-
-void Viewport::OnTimer(wxTimerEvent& event) {
-    using namespace Core::Render;
-    using namespace Core;
-    
-    if (key_forward) CAMERA_POSITION += CAMERA_ROTATION * DIRECTION_FORWARD * 0.1f;
-    if (key_backward) CAMERA_POSITION -= CAMERA_ROTATION * DIRECTION_FORWARD * 0.1f;
-    if (key_left) CAMERA_POSITION -= CAMERA_ROTATION * DIRECTION_SIDE * 0.1f;
-    if (key_right) CAMERA_POSITION += CAMERA_ROTATION * DIRECTION_SIDE * 0.1f;
-    
-    Refresh();
-}
-
-void Viewport::OnSizeChange(wxSizeEvent& event) {
-    int width, height;
-    GetSize(&width, &height);
-    glViewport(0, 0, width, height);
-    Core::Render::ScreenSize(width, height);
-}
-
-void Viewport::OnPaint(wxPaintEvent& event)
-{
-	SetCurrent(*m_context);
-
-	// set background to black
-	glClearColor(0.0, 0.0, 0.0, 1.0);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
-    using namespace Core;
-    using namespace Core::Render;
-    
-    for (auto& object : Editor::selection->objects) {
-        // TODO: make this code not ugly
-        if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_WORLD) space = glm::vec3(0.0f);
-        if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITY) space = glm::quat(glm::vec3 {
-                    object->GetProperty("rotation-x").float_value,
-                    object->GetProperty("rotation-y").float_value,
-                    object->GetProperty("rotation-z").float_value
-                });
-        if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITYGROUP) space = glm::vec3(glm::radians(180.0f));
-        
-        
-        glm::vec3 gizmo_location = glm::vec3 {
-            object->GetProperty("position-x").float_value,
-            object->GetProperty("position-y").float_value,
-            object->GetProperty("position-z").float_value
-        };
-        AddLine(gizmo_location, gizmo_location + space * glm::vec3(1.0f, 0.0f, 0.0f), COLOR_RED);
-        AddLine(gizmo_location, gizmo_location + space * glm::vec3(0.0f, 1.0f, 0.0f), COLOR_GREEN);
-        AddLine(gizmo_location, gizmo_location + space * glm::vec3(0.0f, 0.0f, 1.0f), COLOR_BLUE);
-        
-        if (viewport_axis == AXIS_X) AddLine(gizmo_location - space * glm::vec3(100.0f, 0.0f, 0.0f), gizmo_location + space * glm::vec3(100.0f, 0.0f, 0.0f), COLOR_RED);
-        if (viewport_axis == AXIS_Y) AddLine(gizmo_location - space * glm::vec3(0.0f, 100.0f, 0.0f), gizmo_location + space * glm::vec3(0.0f, 100.0f, 0.0f), COLOR_GREEN);
-        if (viewport_axis == AXIS_Z) AddLine(gizmo_location - space * glm::vec3(0.0f, 0.0f, 100.0f), gizmo_location + space * glm::vec3(0.0f, 0.0f, 100.0f), COLOR_BLUE);
-    }
-    /*if (parent_frame->selection.size() > 0 && move_mode) {
-        if (space_world) space = glm::vec3(0.0f);
-        if (space_entity) space = glm::quat(parent_frame->selection.front().entity->rotation);
-        if (space_group) space = glm::vec3(glm::radians(180.0f));
-    }
-    
-    if (parent_frame->selection.size() > 0 && parent_frame->selection.front().indirection_type == Editor::Selector::ENTITY) {
-        auto& ent = *parent_frame->selection.front().entity;
-        AddLine(ent.location, ent.location + space * glm::vec3(1.0f, 0.0f, 0.0f), COLOR_RED);
-        AddLine(ent.location, ent.location + space * glm::vec3(0.0f, 1.0f, 0.0f), COLOR_GREEN);
-        AddLine(ent.location, ent.location + space * glm::vec3(0.0f, 0.0f, 1.0f), COLOR_BLUE);
-    } else if (parent_frame->selection.size() > 0) {
-        glm::vec3 gizmo_location;
-        if (parent_frame->selection.front().indirection_type == Editor::Selector::TRANSITION_POINT) gizmo_location = parent_frame->selection.front().point->location;
-        if (parent_frame->selection.front().indirection_type == Editor::Selector::NAVMESH_NODE) gizmo_location = parent_frame->selection.front().node->location;
-        if (parent_frame->selection.front().indirection_type == Editor::Selector::PATH_CURVE) gizmo_location = parent_frame->selection.front().curve->location1;
-        AddLine(gizmo_location, gizmo_location + glm::vec3(1.0f, 0.0f, 0.0f), COLOR_RED);
-        AddLine(gizmo_location, gizmo_location + glm::vec3(0.0f, 1.0f, 0.0f), COLOR_GREEN);
-        AddLine(gizmo_location, gizmo_location + glm::vec3(0.0f, 0.0f, 1.0f), COLOR_BLUE);
-    }
-    
-    if (entity_axis) {
-        glm::vec3 axis_location;
-        if (parent_frame->selection.front().indirection_type == Editor::Selector::TRANSITION_POINT) axis_location = parent_frame->selection.front().point->location;
-        if (parent_frame->selection.front().indirection_type == Editor::Selector::NAVMESH_NODE) axis_location = parent_frame->selection.front().node->location;
-        if (parent_frame->selection.front().indirection_type == Editor::Selector::PATH_CURVE) axis_location = parent_frame->selection.front().curve->location1;
-        if (parent_frame->selection.front().indirection_type == Editor::Selector::ENTITY) axis_location = parent_frame->selection.front().entity->location;
-        if (entity_axis == 'X') AddLine(axis_location - space * glm::vec3(100.0f, 0.0f, 0.0f), axis_location + space * glm::vec3(100.0f, 0.0f, 0.0f), COLOR_RED);
-        if (entity_axis == 'Y') AddLine(axis_location - space * glm::vec3(0.0f, 100.0f, 0.0f), axis_location + space * glm::vec3(0.0f, 100.0f, 0.0f), COLOR_GREEN);
-        if (entity_axis == 'Z') AddLine(axis_location - space * glm::vec3(0.0f, 0.0f, 100.0f), axis_location + space * glm::vec3(0.0f, 0.0f, 100.0f), COLOR_BLUE);
-    }
-    
-    for (auto cell : Editor::worldCells) {
-        if (cell->is_transitions_visible) {
-            for (auto trans : cell->transitions) {
-                if (trans->is_visible) {
-                    for (auto ps : trans->points) {
-                        for (auto pe : trans->points) {
-                            AddLine(ps->location, pe->location, COLOR_CYAN);
-                        }
-                    }
-                }
-            }
-        }
-        
-        if (cell->is_paths_visible) {
-            for (auto path : cell->paths) {
-                if (path->is_visible) {
-                    for (auto curve : path->curves) {
-                        for (float t = 0.0f; t < 1.0f; t += 0.1f) {
-                            glm::vec3 l1 = glm::mix(curve->location1, curve->location2, t);
-                            glm::vec3 l2 = glm::mix(curve->location3, curve->location4, t);
-                            glm::vec3 l3 = glm::mix(curve->location1, curve->location2, t + 0.1f);
-                            glm::vec3 l4 = glm::mix(curve->location3, curve->location4, t + 0.1f);
-                            glm::vec3 p1 = glm::mix(l1, l2, t);
-                            glm::vec3 p2 = glm::mix(l3, l4, t + 0.1f);
-                            AddLine(p1, p2, COLOR_GREEN);
-                        }
-                    }
-                }
-            }
-        }
-        
-        if (cell->is_navmeshes_visible) {
-            for (auto navmesh : cell->navmeshes) {
-                if (navmesh->is_visible) {
-                    for (auto ns : navmesh->nodes) {
-                        for (auto ne : navmesh->nodes) {
-                            if (ne->id == ns->next_id || ne->id == ns->prev_id || ne->id == ns->left_id || ne->id == ns->right_id)
-                            AddLine(ns->location, ne->location, COLOR_GREEN);
-                        }
-                    }
-                }
-            }
-        }
-    }*/
-    
-    
-    
-    
-    AddLineMarker(glm::vec3(0.0f, 0.0f, 0.0f), COLOR_CYAN);
-    
-    SetSun(time_of_day);
-
-    
-    Async::ResourceLoader2ndStage();
-    Async::FinishResource();
-    
-    //Render::UpdateArmatures();
-    Render::Render();
-    
-	glFlush();
-	SwapBuffers();
-}
-
-
-
-
-
-
-
-
-
-
-
 
 // TODO: check of which these can be yeeted
 enum {
@@ -765,16 +108,15 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā progra
     Bind(wxEVT_MENU, &MainFrame::OnAction, this, ID_Action_Redo);
     Bind(wxEVT_MENU, &MainFrame::OnAction, this, ID_Action_Undo);
     
-    Bind(wxEVT_MENU, &MainFrame::OnSettingsChange, this, ID_Settings_Angle_Radians);
-    Bind(wxEVT_MENU, &MainFrame::OnSettingsChange, this, ID_Settings_Angle_Degrees);
-    Bind(wxEVT_MENU, &MainFrame::OnSettingsChange, this, ID_Settings_Space_World);
-    Bind(wxEVT_MENU, &MainFrame::OnSettingsChange, this, ID_Settings_Space_Entity);
-    Bind(wxEVT_MENU, &MainFrame::OnSettingsChange, this, ID_Settings_Space_Group);
+    Bind(wxEVT_MENU, &MainFrame::OnAction, this, ID_Settings_Angle_Radians);
+    Bind(wxEVT_MENU, &MainFrame::OnAction, this, ID_Settings_Angle_Degrees);
+    Bind(wxEVT_MENU, &MainFrame::OnAction, this, ID_Settings_Space_World);
+    Bind(wxEVT_MENU, &MainFrame::OnAction, this, ID_Settings_Space_Entity);
+    Bind(wxEVT_MENU, &MainFrame::OnAction, this, ID_Settings_Space_Group);
     
     // --- POP-UP MENUS ---
     world_tree_popup = new EditorObjectMenu;
     
-     // notify wxAUI which frame to use
     m_mgr.SetManagedWindow(this);
 
     wxTextCtrl* output_text_ctrl = new wxTextCtrl(this, -1, "", wxDefaultPosition, wxSize(200,150), wxNO_BORDER | wxTE_READONLY | wxTE_MULTILINE);
@@ -782,7 +124,7 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā progra
     world_tree = new WorldTree(this);
     property_panel = new PropertyPanel(this);
     object_list = new ObjectListCtrl(this);
-    viewport = new Viewport(this, wxID_ANY, nullptr, { 0, 0 }, { 800, 800 });
+    viewport = new ViewportCtrl(this);
 
     m_mgr.AddPane(world_tree, wxLEFT, L"Pasaule");
     m_mgr.AddPane(property_panel, wxLEFT, L"Īpašības");
@@ -816,7 +158,7 @@ void MainFrame::OnAbout(wxCommandEvent& event)
 {
     wxAboutDialogInfo aboutInfo;
     aboutInfo.SetName(L"Līmeņu rediģējamā programma");
-    aboutInfo.SetVersion(L"v0.0.1");
+    aboutInfo.SetVersion(L"v0.0.3");
     aboutInfo.SetDescription(L"Episkā līmeņu programmma.");
     aboutInfo.SetCopyright(L"Autortiesības (C) Lielais Jānis Dambergs 2022");
     aboutInfo.SetWebSite(L"https://github.com/racenis/tram-sdk");
@@ -828,39 +170,8 @@ void MainFrame::OnHello(wxCommandEvent& event)
     wxLogMessage("Hello world from wxWidgets!");
 }
 
-void MainFrame::OnSettingsChange(wxCommandEvent& event) {
-    using namespace Editor::Settings;
-    switch (event.GetId()) {
-        case ID_Settings_Angle_Radians:
-            //property_panel_degrees = false;
-            //property_panel_radians = true;
-            //PropertyPanelRebuild();
-            ROTATION_UNIT = ROTATION_RADIANS;
-            break;
-        case ID_Settings_Angle_Degrees:
-            //property_panel_degrees = true;
-            //property_panel_radians = false;
-            //PropertyPanelRebuild();
-            ROTATION_UNIT = ROTATION_DEGREES;
-            break;
-        case ID_Settings_Space_World:
-            //viewport->SetSpaces(true, false, false);
-            TRANSFORM_SPACE = SPACE_WORLD;
-            break;
-        case ID_Settings_Space_Entity:
-            //viewport->SetSpaces(false, true, false);
-            TRANSFORM_SPACE = SPACE_ENTITY;
-            break;
-        case ID_Settings_Space_Group:
-            //viewport->SetSpaces(false, false, true);
-            TRANSFORM_SPACE = SPACE_ENTITYGROUP;
-            break;
-        default:
-            std::cout << "settings error" << std::endl;
-    }
-}
-
 void MainFrame::OnAction(wxCommandEvent& event) {
+    using namespace Editor::Settings;
     switch (event.GetId()) {
         case ID_Action_Redo:
             Editor::Redo();
@@ -868,6 +179,23 @@ void MainFrame::OnAction(wxCommandEvent& event) {
         case ID_Action_Undo:
             Editor::Undo();
             break;
+        case ID_Settings_Angle_Radians:
+            ROTATION_UNIT = ROTATION_RADIANS;
+            break;
+        case ID_Settings_Angle_Degrees:
+            ROTATION_UNIT = ROTATION_DEGREES;
+            break;
+        case ID_Settings_Space_World:
+            TRANSFORM_SPACE = SPACE_WORLD;
+            break;
+        case ID_Settings_Space_Entity:
+            TRANSFORM_SPACE = SPACE_ENTITY;
+            break;
+        case ID_Settings_Space_Group:
+            TRANSFORM_SPACE = SPACE_ENTITYGROUP;
+            break;
+        default:
+            std::cout << "settings error" << std::endl;
     }
 }
 

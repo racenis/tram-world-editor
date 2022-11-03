@@ -59,6 +59,7 @@ namespace Editor::WorldTree {
         world_tree->SetItemText(obj_to_treeId[object], std::string(object->GetName()));
     }
     
+    // this one's not used? yeet it?
     void AddChildren (wxTreeItemId parent_tree_node, Object* object) {
         auto tree_node = world_tree->AppendItem(parent_tree_node, std::string(object->GetName()));
         
@@ -117,7 +118,9 @@ void WorldTree::OnSelectionChanged (wxTreeEvent& event) {
     Editor::PerformAction<Editor::ActionChangeSelection>(new_selection);
 }
 
+// this method gets called when you double-click an item
+// idk what to do with it..
 void WorldTree::OnItemActivated (wxTreeEvent& event) {
-    Editor::PropertyPanel::SetCurrentSelection();
-    Editor::ObjectList::SetCurrentSelection();
+    //Editor::PropertyPanel::SetCurrentSelection();
+    //Editor::ObjectList::SetCurrentSelection();
 }

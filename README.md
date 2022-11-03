@@ -16,12 +16,14 @@
 - A menu that shows undo/redo history
 	- Need to add some metadata to undo/redo actions
 - Localization
+- Viewport transforms better when multiple axis
 - Record the mouse pointer position when capturing it for the viewport and restore it when releasing it
 
 ### Optimizations
 - Undo/redo makes a copy of all of the properties of the object before they are modified
 	- It's possible to save some memory by copying only those properties that will actually be modified
 - Rewrite the viewport movement code
+- Add std::move() to where it would be useful
 
 ### Bugs
 - Undo/redo does not change the name of the object in the tree menu

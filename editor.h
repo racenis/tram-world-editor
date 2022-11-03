@@ -25,6 +25,7 @@ namespace Editor {
         std::shared_ptr<Object> GetObject(void* Id);
     }
     
+    // I think that we should remove SetCurrentSelection() functions from all of these
     namespace PropertyPanel {
         void SetCurrentSelection();
         void Refresh();

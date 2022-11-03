@@ -14,15 +14,22 @@ namespace Editor {
         }
         
         void Perform() {
-            std::cout << "New selection: ";
-            for (auto& obj : next_selection->objects) std::cout << obj->GetName() << " ";
-            std::cout << std::endl;
+            //std::cout << "New selection: ";
+            //for (auto& obj : next_selection->objects) std::cout << obj->GetName() << " ";
+            //std::cout << std::endl;
             selection = next_selection;
             
+            Editor::PropertyPanel::Refresh();
+            Editor::ObjectList::Refresh();
+            Editor::Viewport::Refresh();
         }
         
         void Unperform() {
             selection = prev_selection;
+            
+            Editor::PropertyPanel::Refresh();
+            Editor::ObjectList::Refresh();
+            Editor::Viewport::Refresh();
         }
         
         std::shared_ptr<Selection> prev_selection = nullptr;
@@ -104,6 +111,7 @@ namespace Editor {
             
             Editor::PropertyPanel::Refresh();
             Editor::ObjectList::Refresh();
+            Editor::Viewport::Refresh();
         }
         
         // Swaps the new properties with the backed-up properties.
@@ -137,6 +145,7 @@ namespace Editor {
             
             Editor::PropertyPanel::Refresh();
             Editor::ObjectList::Refresh();
+            Editor::Viewport::Refresh();
         }
         
         // Swaps the new properties with the backed-up properties.

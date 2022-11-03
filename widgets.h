@@ -12,7 +12,7 @@
 
 class MainFrame;
 class ObjectListCtrl;
-class Viewport;
+class ViewportCtrl;
 class EditorObjectMenu;
 class PropertyPanel;
 class WorldTree;
@@ -26,6 +26,7 @@ extern WorldTree* world_tree;
 extern ObjectListCtrl* object_list;
 extern PropertyPanel* property_panel;
 extern EditorObjectMenu* world_tree_popup;
+extern ViewportCtrl* viewport;
 
 namespace Editor { class Selection; }
 
@@ -47,17 +48,11 @@ protected:
     
     void OnAction(wxCommandEvent& event);
     
-    void OnSettingsChange(wxCommandEvent& event);
-    
     void OnLoadCells(wxCommandEvent& event);
     void OnSaveCells(wxCommandEvent& event);
 
     bool property_panel_degrees = false;
     bool property_panel_radians = true;
-
-    
-    // for viewport
-    Viewport* viewport;
     
     wxStreamToTextRedirector* std_cout_redirect;
 };

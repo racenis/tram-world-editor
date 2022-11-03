@@ -77,7 +77,6 @@ void Editor::PropertyPanel::SetCurrentSelection() {
                     first = false;
                     if (value.type == PROPERTY_NULL) goto not_matching;
                 } else if (value != next_value) {
-                    std::cout << "[PROPS] VALUE not matching !! " << std::endl;
                     goto not_matching;
                 }
             }
@@ -132,7 +131,7 @@ void PropertyPanel::OnChanged (wxPropertyGridEvent& event) {
     auto value_name = event.GetPropertyName().ToStdString();
     
     // make a back-up of the properties of the selected objects 
-    Editor::PerformAction<Editor::ActionChangeProperties>();
+    Editor::PerformAction<Editor::ActionChangeProperties_Single>(std::vector<std::string> {value_name});
     
     // TODO: cache the result of value.GetType() == "type"
     for (auto& object : Editor::selection->objects) {
@@ -153,6 +152,7 @@ void PropertyPanel::OnChanged (wxPropertyGridEvent& event) {
     }
     
     Editor::ObjectList::Refresh();
+    Editor::Viewport::Refresh();
 }
 
 void PropertyPanel::OnCollapsed (wxPropertyGridEvent& event) {
