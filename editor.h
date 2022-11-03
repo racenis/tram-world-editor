@@ -121,6 +121,7 @@ namespace Editor {
     
     extern std::unordered_map<std::string, std::vector<std::string>> property_enumerations;
     
+    // maybe add a move constructor to this class?
     struct PropertyValue {
         PropertyValue() { type = PROPERTY_NULL; }
         PropertyValue(const std::string& value) : str_value(value) { type = PROPERTY_STRING; }
@@ -215,11 +216,8 @@ namespace Editor {
         bool is_hidden = true;
         Object* parent = nullptr;
         
-        //virtual std::list<std::shared_ptr<Object>> GetChildren() { std::cout << "GetChildren() not implemented for " << typeid(*this).name() << std::endl; abort(); }
-        //virtual std::string_view GetName() { std::cout << "GetName() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
         virtual bool IsChildrenTreeable() { std::cout << "IsChildrenTreeable() not implemented for " << typeid(*this).name() << std::endl; abort(); }
         virtual bool IsChildrenListable() { std::cout << "IsChildrenListable() not implemented for " << typeid(*this).name() << std::endl; abort(); }
-        //virtual void SetHidden(bool is_hidden) { std::cout << "SetHidden() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
         virtual void SetHidden(bool is_hidden) { for (auto& child : children) child->SetHidden(is_hidden); }
         virtual std::shared_ptr<Object> AddChild() { std::cout << "AddChild(void) not implemented for " << typeid(*this).name() << std::endl; abort(); }
 
@@ -227,9 +225,6 @@ namespace Editor {
         virtual bool IsRemovable() { std::cout << "IsRemovable() not implemented for " << typeid(*this).name() << std::endl; abort(); }
         virtual bool IsEditable() { std::cout << "IsEditable() not implemented for " << typeid(*this).name() << std::endl; abort(); }
         virtual bool IsCopyable() { std::cout << "IsCopyable() not implemented for " << typeid(*this).name() << std::endl; abort(); }
-        
-        
-        //virtual bool IsHidden() { std::cout << "IsHidden() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
         virtual bool IsHidden() { for (auto& child : children) if (child->IsHidden()) return true; return false; }
         
         // these are the properties that will be shown in the object list
@@ -239,11 +234,9 @@ namespace Editor {
         virtual std::vector<PropertyDefinition> GetFullPropertyDefinitions() { std::cout << "GetFullPropertyDefinitions() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
         
         // takes in the property name and returns the value by copying it to the void* pointer
-        //virtual PropertyValue GetProperty (std::string property_name) { std::cout << "GetProperty() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
         virtual PropertyValue GetProperty (std::string property_name) { return properties[property_name]; }
         
         // takes in the property name and copies the value from the void* pointer into it
-        //virtual void SetProperty (std::string property_name, PropertyValue property_value) { std::cout << "SetProperty() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
         virtual void SetProperty (std::string property_name, PropertyValue property_value) { properties[property_name] = property_value; if (property_name == "name" && parent && parent->IsChildrenTreeable()) WorldTree::Rename(this); }
         
     };
@@ -267,6 +260,7 @@ namespace Editor {
         Entity(Object* parent) : Entity(parent, "New Entity") {}
         Entity(Object* parent, std::string name) : Object(parent) {
             properties["name"] = name;
+            properties["action"] = std::string("none");
             properties["position-x"] = 0.0f;
             properties["position-y"] = 0.0f;
             properties["position-z"] = 0.0f;
@@ -366,20 +360,68 @@ namespace Editor {
     class Transition : public Object {
     public:
         class Node : public Object {
-            glm::vec3 location;
-            Transition* parent;
+        public:
+            Node (Object* parent) : Object(parent) {
+                properties["position-x"] = 0.0f;
+                properties["position-y"] = 0.0f;
+                properties["position-z"] = 0.0f;
+            }
+            
+            std::string_view GetName() { return "Transition Node"; }
+            
+            bool IsChildrenTreeable() { return false; }
+            bool IsChildrenListable() { return false; }
+            bool IsAddable() { return false; }
+            bool IsRemovable() { return true; }
+            bool IsEditable() { return true; }
+            bool IsCopyable() { return true; }
+            
+            /*std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
+                return std::vector<PropertyDefinition> {
+                    {"name", "Name", "", PROPERTY_STRING},
+                    {"position-x", "X", "", PROPERTY_FLOAT},
+                    {"position-y", "Y", "", PROPERTY_FLOAT},
+                    {"position-z", "Z", "", PROPERTY_FLOAT}
+                };
+            }*/
+            
+            std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
+                return std::vector<PropertyDefinition> {
+                    {"group-transition-node", "Transition Node", "", PROPERTY_CATEGORY},
+                    {"position-x", "X", "group-transition-node", PROPERTY_FLOAT},
+                    {"position-y", "Y", "group-transition-node", PROPERTY_FLOAT},
+                    {"position-z", "Z", "group-transition-node", PROPERTY_FLOAT}
+                };
+            }
         };
 
-        Transition(Object* parent) : Object(parent) {}
-        //Transition(Object* parent) : Transition(parent, "untitled transition", "none") {}
-        //Transition(Object* parent, std::string_view name, std::string_view cell_into) : Object(parent){}
+        Transition(Object* parent) : Object(parent) {
+            properties["name"] = std::string("Transition");
+        }
         
-        bool IsChildrenTreeable() { return true; }
+        bool IsChildrenTreeable() { return false; }
         bool IsChildrenListable() { return true; }
         bool IsAddable() { return true; }
         bool IsRemovable() { return true; }
         bool IsEditable() { return true; }
         bool IsCopyable() { return true; }
+        
+        std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
+            return std::vector<PropertyDefinition> {
+                {"position-x", "X", "", PROPERTY_FLOAT},
+                {"position-y", "Y", "", PROPERTY_FLOAT},
+                {"position-z", "Z", "", PROPERTY_FLOAT}
+            };
+        }
+        
+        std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
+            return std::vector<PropertyDefinition> {
+                {"group-transition", "Transition", "", PROPERTY_CATEGORY},
+                {"name", "Name", "group-transition", PROPERTY_STRING}
+            };
+        }
+        
+        std::shared_ptr<Object> AddChild() { auto child = std::make_shared<Node>(this); children.push_back(child); return child; }
     };
     
     class TransitionManager : public Object {
@@ -387,6 +429,27 @@ namespace Editor {
         TransitionManager(Object* parent) : Object(parent) {}
         
         std::string_view GetName() { return "Transitions"; }
+        
+        bool IsChildrenTreeable() { return true; }
+        bool IsChildrenListable() { return true; }
+        bool IsAddable() { return true; }
+        bool IsRemovable() { return true; }
+        bool IsEditable() { return false; }
+        bool IsCopyable() { return false; }
+        
+        std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
+            return std::vector<PropertyDefinition> {
+                {"name", "Name", "", PROPERTY_STRING}
+            };
+        }
+        
+        std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
+            return std::vector<PropertyDefinition> {
+                {"group-transition-manager", "Transition Manager", "", PROPERTY_CATEGORY}
+            };
+        }
+        
+        std::shared_ptr<Object> AddChild() { auto child = std::make_shared<Transition>(this); children.push_back(child); return child; }
     };
     
     
@@ -445,10 +508,12 @@ namespace Editor {
     class WorldCell : public Object {
     public:
         WorldCell(Object* parent) : WorldCell(parent, "WorldCell") {}
-        WorldCell(Object* parent, std::string name) : Object(parent), group_manager(std::make_shared<EntityGroupManager>(this)) {
+        WorldCell(Object* parent, std::string name) : Object(parent), group_manager(std::make_shared<EntityGroupManager>(this)), 
+            transition_manager(std::make_shared<TransitionManager>(this)) {
             properties["name"] = name;
             
             children.push_back(group_manager);
+            children.push_back(transition_manager);
         }
         
         bool IsChildrenTreeable() { return true; }
@@ -471,9 +536,10 @@ namespace Editor {
             };
         }
         
-        std::list<std::shared_ptr<Object>> GetChildren() { return std::list<std::shared_ptr<Object>> { group_manager }; }
+        //std::list<std::shared_ptr<Object>> GetChildren() { return std::list<std::shared_ptr<Object>> { group_manager }; }
         
         std::shared_ptr<EntityGroupManager> group_manager;
+        std::shared_ptr<TransitionManager> transition_manager;
     };
     
     class WorldCellManager : public Object {
