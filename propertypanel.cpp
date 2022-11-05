@@ -133,7 +133,6 @@ PropertyPanel::PropertyPanel (wxWindow* parent) : wxPropertyGrid(parent, -1) {
 }
 
 void PropertyPanel::OnChanged (wxPropertyGridEvent& event) {
-    std::cout << "Something changed!" << std::endl;
     auto value = event.GetValue();
     auto value_name = event.GetPropertyName().ToStdString();
     
@@ -156,7 +155,7 @@ void PropertyPanel::OnChanged (wxPropertyGridEvent& event) {
         } else if (value.GetType() == "bool") {
             object->SetProperty(value_name, value.GetBool());
         } else {
-            std::cout << "value type '" << value.GetType().c_str() << "' unrecognized!" << std::endl;
+            std::cout << "VALUE_TYPE '" << value.GetType().c_str() << "' UNRECOGNIZED" << std::endl;
         }
     }
     

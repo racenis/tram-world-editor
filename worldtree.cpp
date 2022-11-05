@@ -101,13 +101,11 @@ WorldTree::WorldTree (wxWindow* parent) : wxTreeCtrl(parent, -1, wxDefaultPositi
 }
 
 void WorldTree::OnMenuOpen (wxTreeEvent& event) {
-    std::cout << "Opened tree menu!" << std::endl;
     world_tree_popup->SetSelectionStatus(Editor::selection.get());
     main_frame->PopupMenu(world_tree_popup);
 }
 
 void WorldTree::OnSelectionChanged (wxTreeEvent& event) {
-    std::cout << "Selection changed!" << std::endl;
     wxArrayTreeItemIds selected_ids;
     size_t selected_count = GetSelections(selected_ids);
     

@@ -55,9 +55,9 @@ class TramEditor : public wxApp {
 public:
     bool OnInit() {
         Editor::Settings::Load();
+        Editor::selected_language = Editor::Languages[Editor::Settings::INTERFACE_LANGUAGE];
         Editor::Init();
         Editor::Reset();
-        Editor::selected_language = Editor::Languages[Editor::Settings::INTERFACE_LANGUAGE];
         
         main_frame = new MainFrame();
         main_frame->Show(true);

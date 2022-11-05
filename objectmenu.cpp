@@ -1,12 +1,13 @@
 #include <objectmenu.h>
 #include <editor.h>
+#include <language.h>
 #include <actions.h>
 
 EditorObjectMenu::EditorObjectMenu () : wxMenu() {
-    is_visible_checkbox = AppendCheckItem(1, L"Rādīt", L"Parāda šūnas apakšsadaļas saturu 3D skatā.");
-    add_selection = Append(2, L"Pievienot jaunu", L"Pievieno jaunu šūnu");
-    edit_selection = Append(3, L"Rediģēt", L"Rediģēt šūnu.");
-    delete_selection = Append(4, L"Dzēst", L"Pievieno jaunu šūnu");
+    is_visible_checkbox = AppendCheckItem(1, Editor::selected_language->dialog_show); 
+    add_selection = Append(2, Editor::selected_language->dialog_add_new);
+    edit_selection = Append(3, Editor::selected_language->dialog_edit);
+    delete_selection = Append(4, Editor::selected_language->dialog_delete);
     
     this->Bind(wxEVT_MENU, &EditorObjectMenu::OnIsVisibleCheckboxClick, this, 1);
     this->Bind(wxEVT_MENU, &EditorObjectMenu::OnAddSelection, this, 2);

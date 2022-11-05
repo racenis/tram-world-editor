@@ -86,7 +86,6 @@ namespace Editor {
     
     template <typename action, typename ...Args> void PerformAction (Args && ...args) {
         if (performed_actions.size() > 20) {
-            std::cout << "Redo/Undo list size exceeded, popping." << std::endl;
             performed_actions.pop_front();
         }
         unperformed_actions.clear();
@@ -98,8 +97,6 @@ namespace Editor {
             unperformed_actions.push_back(std::move(performed_actions.back()));
             unperformed_actions.back()->Unperform();
             performed_actions.pop_back();
-        } else {
-            std::cout << "Nothing to UNDO!" << std::endl;
         }
     }
     
@@ -108,8 +105,6 @@ namespace Editor {
             performed_actions.push_back(std::move(unperformed_actions.back()));
             performed_actions.back()->Perform();
             unperformed_actions.pop_back();
-        } else {
-            std::cout << "Nothing to REDO!" << std::endl;
         }
     }
     

@@ -1,4 +1,5 @@
 #include <editor.h>
+#include <language.h>
 #include <iostream>
 #include <fstream>
 #include <filesystem>
@@ -137,9 +138,6 @@ namespace Editor {
         entity_data_names.push_back(instance->GetDataName());
         entity_data_constructors[index] = constructor;
         
-        std::cout << "enum size: " << property_enumerations["entity-type"].size() << std::endl;
-        std::cout << "map size: " << entity_data_constructors.size() << std::endl;
-        
         delete instance;
     }
     
@@ -197,7 +195,6 @@ namespace Editor {
     }
     
     void Entity::SetHidden(bool is_hidden) {
-        std::cout << "got asked to be hidden: " << is_hidden << std::endl; 
         this->is_hidden = is_hidden;
         
         if (is_hidden && entity_data && entity_data->render_component) {
@@ -284,7 +281,7 @@ namespace Editor {
                 }
             }
         } else {
-            std::cout << "Settings file was not found!" << std::endl;
+            std::wcout << selected_language->dialog_settings_not_found << std::endl;
         }
     }
     
@@ -308,68 +305,7 @@ namespace Editor {
             }
         }
     }
-    /*
-    void Entity::Show () {
-        if (model || !ent_data) return;
-        model = Core::PoolProxy<Core::RenderComponent>::New();
-        model->SetModel(ent_data->GetEditorModel());
-        model->SetLightmap(Core::UID("fullbright"));
-        model->SetPose(Core::Render::poseList.begin().ptr);
-        model->UpdateLocation(location);
-        model->UpdateRotation(glm::quat(rotation));
-        model->Init();
-    }
     
-    void Entity::Hide () {
-        if (!model) return;
-        model->Uninit();
-        Core::PoolProxy<Core::RenderComponent>::Delete(model);
-        model = nullptr;
-    }
-    
-    void Entity::ModelUpdate () {
-        if (!model && parent->is_visible) Show();
-        if (!model) return;
-        model->UpdateLocation(location);
-        model->UpdateRotation(glm::quat(rotation));
-        if (model->GetModel() != ent_data->GetEditorModel()) {
-            std::cout << "owo model changed" << std::endl;
-            //std::cout << model->GetModel() << "<- rn model | next model ->" << ent_data->GetEditorModel() << std::endl;
-            std::cout << Core::ReverseUID(model->GetModel()) << "  " << Core::ReverseUID(ent_data->GetEditorModel()) << std::endl;
-            model->Uninit();
-            model->SetModel(ent_data->GetEditorModel());
-            model->Init();
-        }
-    }
-    
-    void Entity::FromString (std::string_view& str) {
-        using namespace Core;
-        name = ReverseUID(SerializedEntityData::Field<name_t>().FromStringAsName(str));
-
-        location.x = SerializedEntityData::Field<float>().FromString(str);
-        location.y = SerializedEntityData::Field<float>().FromString(str);
-        location.z = SerializedEntityData::Field<float>().FromString(str);
-
-        rotation.x = SerializedEntityData::Field<float>().FromString(str);
-        rotation.y = SerializedEntityData::Field<float>().FromString(str);
-        rotation.z = SerializedEntityData::Field<float>().FromString(str);
-
-        action = ReverseUID(SerializedEntityData::Field<name_t>().FromStringAsName(str));
-    }
-    
-    void Entity::ToString (std::string& str) {
-        using namespace Core;
-        str += " " + name;
-        SerializedEntityData::Field<float>(location.x).ToString(str);
-        SerializedEntityData::Field<float>(location.y).ToString(str);
-        SerializedEntityData::Field<float>(location.z).ToString(str);
-        
-        SerializedEntityData::Field<float>(rotation.x).ToString(str);
-        SerializedEntityData::Field<float>(rotation.y).ToString(str);
-        SerializedEntityData::Field<float>(rotation.z).ToString(str);
-        
-        str += " " + action;
-    }*/
     
     // this function is absolutely terrible!
     // TODO: wrap Core::SerializedEntityData::Field<TTT>().FromString(STR) function
@@ -377,7 +313,7 @@ namespace Editor {
         using namespace Core;
         std::ifstream file(std::string("data/") + std::string(cell->GetName()) + ".cell");
         EntityGroup* current_group = (EntityGroup*)cell->group_manager->GetChildren().front().get();
-        assert(current_group->GetName() == "[default]");
+        //assert(current_group->GetName() == "[default]");
         
         if (file.is_open()) {
             std::string line;
@@ -473,7 +409,7 @@ namespace Editor {
                     entity->properties["rotation-y"] = SerializedEntityData::Field<float>().FromString(str);
                     entity->properties["rotation-z"] = SerializedEntityData::Field<float>().FromString(str);
 
-                    /*entity->properties["action"] =*/ ReverseUID(SerializedEntityData::Field<name_t>().FromStringAsName(str));
+                    entity->properties["action"] = std::string(ReverseUID(SerializedEntityData::Field<name_t>().FromStringAsName(str)));
                     
                     // need the int32_t cast so that PropertyValue gets initialized to an enum type
                     entity->SetProperty("entity-type", (int32_t) entity_type_index);
@@ -486,7 +422,7 @@ namespace Editor {
                 }
             }
         } else {
-            std::cout << "Can't find the cell file " << cell->GetName() << ".cell." << std::endl;
+            std::wcout << selected_language->dialog_cell_not_found << std::wstring(cell->GetName().begin(), cell->GetName().end()) << ".cell." << std::endl;
         }
     }
     
@@ -584,7 +520,7 @@ namespace Editor {
             }
             
         } else {
-            std::cout << "Can't write to the cell file " << std::string(cell->GetName()) << ".cell." << std::endl;
+            std::wcout << selected_language->dialog_cell_not_write << std::wstring(cell->GetName().begin(), cell->GetName().end()) << ".cell." << std::endl;
         }
     }
     

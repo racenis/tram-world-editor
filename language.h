@@ -64,6 +64,15 @@ namespace Editor {
         std::wstring dialog_about_name = L"Līmeņu rediģējamā programma";
         std::wstring dialog_description = L"Episkā līmeņu programmma.";
         std::wstring dialog_copyright = L"Autortiesības";
+        
+        std::wstring dialog_cell_not_found = L"Can't find the cell file ";
+        std::wstring dialog_cell_not_write = L"Can't write to the cell file ";
+        std::wstring dialog_settings_not_found = L"Settings file was not found!";
+
+        std::wstring dialog_show = L"Rādīt";
+        std::wstring dialog_add_new = L"Pievienot jaunu";
+        std::wstring dialog_edit = L"Rediģēt";
+        std::wstring dialog_delete = L"Dzēst";
     };
     
     extern Language* selected_language;
@@ -73,7 +82,10 @@ namespace Editor {
         .title_bar = L"Tramway SDK Level Editing App"
     };
     
-    static Language* Languages[2] = {&Language_LV, &Language_EN};
+    extern Language* Languages[2];
+    
+    void ResetRename();
+    std::wstring Rename (const std::string& name);
 }
 
 #endif // LANGUAGE_H
