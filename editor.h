@@ -55,9 +55,22 @@ namespace Editor {
         
         extern Space TRANSFORM_SPACE;
         extern Rotation ROTATION_UNIT;
+        
+        extern bool CELL_LIST_FROM_FILESYSTEM;
+        
+        enum Language {
+            LANGUAGE_LV,
+            LANGUAGE_EN
+        };
+        
+        extern Language INTERFACE_LANGUAGE;
+        
+        void Save();
+        void Load();
     }
     
     void Init();
+    void Reset();
     void Yeet();
     void ProduceTestData();
 

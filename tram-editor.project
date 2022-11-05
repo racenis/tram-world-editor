@@ -3,6 +3,8 @@
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="src">
+    <File Name="language.cpp"/>
+    <File Name="language.h"/>
     <File Name="viewport.cpp"/>
     <File Name="viewport.h"/>
     <File Name="objectmenu.h"/>

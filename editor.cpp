@@ -1,6 +1,7 @@
 #include <editor.h>
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 
 #include <components/rendercomponent.h>
 
@@ -117,6 +118,8 @@ namespace Editor {
     namespace Settings {
         Space TRANSFORM_SPACE = SPACE_WORLD;
         Rotation ROTATION_UNIT = ROTATION_RADIANS;
+        bool CELL_LIST_FROM_FILESYSTEM = true;
+        Language INTERFACE_LANGUAGE = LANGUAGE_EN;
     }
     
     std::unordered_map<std::string, std::vector<std::string>> property_enumerations = {
@@ -248,10 +251,64 @@ namespace Editor {
         return defs;
     }
     
+    std::unordered_map<std::string, std::pair<PropertyType, void*>> setting_map = {
+        {"TRANSFORM_SPACE", {PROPERTY_ENUM, &Settings::TRANSFORM_SPACE}},
+        {"ROTATION_UNIT", {PROPERTY_ENUM, &Settings::ROTATION_UNIT}},
+        {"CELL_LIST_FROM_FILESYSTEM", {PROPERTY_BOOL, &Settings::CELL_LIST_FROM_FILESYSTEM}},
+        {"INTERFACE_LANGUAGE", {PROPERTY_ENUM, &Settings::INTERFACE_LANGUAGE}}
+    };
+    
+    void Settings::Load() {
+        std::ifstream file ("data/editor_settings.ini");
+        
+        if (file.is_open()) {
+            std::string line;
+            while (std::getline(file, line)) {
+                size_t eq_pos = line.find('=');
+                if (eq_pos == std::string::npos) continue;
+                
+                std::string key = line.substr(0, eq_pos);
+                std::string value = line.substr(++eq_pos);
+                
+                auto& bepis = setting_map[std::string(key)];
+                if (!bepis.second) continue;
+                switch (bepis.first) {
+                    case PROPERTY_ENUM:
+                        *(uint32_t*) bepis.second = std::stoull(value);
+                        break;
+                    case PROPERTY_BOOL:
+                        *(bool*) bepis.second = std::stoull(value);;
+                        break;
+                    default:
+                        break;
+                }
+            }
+        } else {
+            std::cout << "Settings file was not found!" << std::endl;
+        }
+    }
+    
+    void Settings::Save() {
+        std::ofstream file ("data/editor_settings.ini");
+        
+        if (file.is_open()) {
+            for (auto& entry : setting_map) {
+                file << entry.first << "=";
+                switch (entry.second.first) {
+                    case PROPERTY_ENUM:
+                        file << *(uint32_t*) entry.second.second;
+                    break;
+                    case PROPERTY_BOOL:
+                        file << *(bool*) entry.second.second;
+                    break;
+                    default:
+                        file << "0";
+                }
+                file << std::endl;
+            }
+        }
+    }
     /*
-    
-    
-    
     void Entity::Show () {
         if (model || !ent_data) return;
         model = Core::PoolProxy<Core::RenderComponent>::New();
@@ -548,27 +605,34 @@ namespace Editor {
         }
     }
     
-    void Init(){
-        Core::Init();
+    void Reset() {
+        if (Settings::CELL_LIST_FROM_FILESYSTEM || worldcells == nullptr) {
+            worldcells = std::make_shared<WorldCellManager>(nullptr);
+        }
         
-        worldcells = std::make_shared<WorldCellManager>(nullptr);
         selection = std::make_shared<Selection>();
         
+        Editor::performed_actions.clear();
+        Editor::unperformed_actions.clear();
+        Editor::data_modified = false;
+        
+        if (Settings::CELL_LIST_FROM_FILESYSTEM) {
+            auto dir = std::filesystem::directory_iterator("data/");
+            for (auto& cell : dir) {
+                if (cell.is_regular_file() && cell.path().extension() == ".cell") {
+                    auto cell_name = cell.path().stem().string();
+                    auto worldcell = std::make_shared<WorldCell>(worldcells.get(), cell_name);
+                    std::static_pointer_cast<Object>(worldcells)->AddChild(worldcell);
+                }
+            }
+        }
+    }
+    
+    void Init() {
+        Core::Init();
+                
         RegisterEntityType([]() -> Core::SerializedEntityData* { auto d = new Core::Crate::Data; d->collmodel = 0; d->model = 0; return d; });
         RegisterEntityType([]() -> Core::SerializedEntityData* { auto d = new Core::Lamp::Data; return d; });
         RegisterEntityType([]() -> Core::SerializedEntityData* { auto d = new Core::StaticWorldObject::Data; d->lightmap = 0; d->model = 0; return d; });
-        
-        std::ifstream file("data/editor_data.txt");
-        
-        // TODO: clean this up a bit
-        if (file.is_open()) {
-            std::string line;
-            while (std::getline(file, line)) {
-                auto worldcell = std::make_shared<WorldCell>(worldcells.get(), line);
-                std::static_pointer_cast<Object>(worldcells)->AddChild(worldcell);
-            }
-        } else {
-            std::cout << "Can't find the editor config file." << std::endl;
-        }
     }
 }

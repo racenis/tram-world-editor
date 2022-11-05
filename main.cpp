@@ -6,6 +6,7 @@
 #include <propertypanel.h>
 #include <worldtree.h>
 #include <viewport.h>
+#include <language.h>
 
 // TODO: move these out of here
 MainFrame* main_frame = nullptr;
@@ -18,6 +19,8 @@ ViewportCtrl* viewport = nullptr;
 // TODO: check which of these can be yeeted
 #include <editor.h>
 #include <actions.h>
+
+auto& lang = Editor::selected_language;
 
 // TODO: check of which these can be yeeted
 enum {
@@ -43,6 +46,7 @@ enum {
     ID_Settings_Space_World = 107,
     ID_Settings_Space_Entity = 108,
     ID_Settings_Space_Group = 109,
+    ID_Settings_Language = 200
 };
 
 
@@ -50,6 +54,11 @@ enum {
 class TramEditor : public wxApp {
 public:
     bool OnInit() {
+        Editor::Settings::Load();
+        Editor::Init();
+        Editor::Reset();
+        Editor::selected_language = Editor::Languages[Editor::Settings::INTERFACE_LANGUAGE];
+        
         main_frame = new MainFrame();
         main_frame->Show(true);
         return true;
@@ -59,45 +68,51 @@ public:
 wxIMPLEMENT_APP(TramEditor);
 
 // TODO: move this into a seperate file
-MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā programma", wxDefaultPosition, wxSize(800, 600), wxDEFAULT_FRAME_STYLE) {
-    Editor::Init();
+MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, lang->title_bar, wxDefaultPosition, wxSize(800, 600), wxDEFAULT_FRAME_STYLE) {    
+    using namespace Editor::Settings;
     
     // --- MENUS ---
     wxMenu* file_menu = new wxMenu;
-    file_menu->Append(ID_Load_Cells, L"Ielādēt šūnas", L"Ielādē šūnas kas atrodas konfigurācijas failā.");
-    file_menu->Append(ID_Save_Cells, L"Saglabāt šūnas", L"Saglabā atvērtās šūnas.");
+    file_menu->Append(ID_Load_Cells, lang->file_menu_load, lang->file_menu_load_info);
+    file_menu->Append(ID_Save_Cells, lang->file_menu_save, lang->file_menu_save_info);
     file_menu->AppendSeparator();
-    file_menu->Append(wxID_EXIT, L"Beidzēt\tCtrl-Q", L"Izbeigt programmu.");
+    file_menu->Append(wxID_EXIT, lang->file_menu_quit, lang->file_menu_quit_info);
  
     wxMenu* edit_menu = new wxMenu;
-    edit_menu->Append(ID_Action_Undo, L"Undo\tCtrl-Z", L"Atceļ pēdējās izmaiņas.");
-    edit_menu->Append(ID_Action_Redo, L"Redo\tCtrl-Y", L"Atkal izpilda atceltās izmaiņas.");
+    edit_menu->Append(ID_Action_Undo, lang->edit_menu_undo, lang->edit_menu_undo_info);
+    edit_menu->Append(ID_Action_Redo, lang->edit_menu_redo, lang->edit_menu_undo_info);
  
     wxMenu* settings_menu = new wxMenu;
-    settings_menu->AppendRadioItem(ID_Settings_Space_World, L"Pasaules telpa", L"Rotācijas un relokācijas notiek pasaules telpā.");
-    settings_menu->AppendRadioItem(ID_Settings_Space_Entity, L"Entītijas telpa", L"Rotācijas un relokācijas notiek entītijas telpā.");
-    settings_menu->AppendRadioItem(ID_Settings_Space_World, L"Grupas telpa", L"Rotācijas un relokācijas notiek entītiju grupas telpā.");
+    settings_menu->AppendRadioItem(ID_Settings_Space_World, lang->settings_menu_world_space, lang->settings_menu_world_space_info)->Check(TRANSFORM_SPACE == SPACE_WORLD);
+    settings_menu->AppendRadioItem(ID_Settings_Space_Entity, lang->settings_menu_entity_space, lang->settings_menu_entity_space_info)->Check(TRANSFORM_SPACE == SPACE_ENTITY);
+    settings_menu->AppendRadioItem(ID_Settings_Space_World, lang->settings_menu_entity_group_space, lang->settings_menu_entity_group_space_info)->Check(TRANSFORM_SPACE == SPACE_ENTITYGROUP);
     settings_menu->AppendSeparator();
-    settings_menu->AppendRadioItem(ID_Settings_Angle_Radians, L"Radiāni", L"Rotācijas norādītas radiānos.");
-    settings_menu->AppendRadioItem(ID_Settings_Angle_Degrees, L"Grādi", L"Rotācijas norādītas grādos.");
- 
+    settings_menu->AppendRadioItem(ID_Settings_Angle_Radians, lang->settings_menu_radians, lang->settings_menu_radians_info)->Check(ROTATION_UNIT == ROTATION_RADIANS);
+    settings_menu->AppendRadioItem(ID_Settings_Angle_Degrees, lang->settings_menu_degrees, lang->settings_menu_degrees_info)->Check(ROTATION_UNIT == ROTATION_DEGREES);
+    
+    wxMenu* language_menu = new wxMenu;
+    language_menu->AppendRadioItem((int) ID_Settings_Language + LANGUAGE_LV, L"Latviešu", L"Latvijas Republikas un Roņu Salas Autonomās Teritorijas valoda.")->Check(INTERFACE_LANGUAGE == LANGUAGE_LV);
+    language_menu->AppendRadioItem((int) ID_Settings_Language + LANGUAGE_EN, L"English", L"Language of United Kingdom, Canada, Australia and New Zealand.")->Check(INTERFACE_LANGUAGE == LANGUAGE_EN);
+    
     wxMenu* help_menu = new wxMenu;
-    help_menu->Append(ID_Hello, L"Labrīt", L"Labrīt.");
-    help_menu->Append(wxID_ABOUT, L"Par", L"Par programmu.");
+    help_menu->Append(ID_Hello, lang->help_menu_hello, lang->help_menu_hello_info);
+    help_menu->Append(wxID_ABOUT, lang->help_menu_about, lang->help_menu_about_info);
  
     wxMenuBar* menu_bar = new wxMenuBar;
-    menu_bar->Append(file_menu, L"&Fails");
-    menu_bar->Append(edit_menu, L"&Rediģēt");
-    menu_bar->Append(settings_menu, L"&Iestatījumi");
-    menu_bar->Append(help_menu, L"&Palīdzība");
+    menu_bar->Append(file_menu, lang->file_menu);
+    menu_bar->Append(edit_menu, lang->edit_menu);
+    menu_bar->Append(settings_menu, lang->settings_menu);
+    menu_bar->Append(language_menu, lang->language_menu);
+    menu_bar->Append(help_menu, lang->help_menu);
 
  
     SetMenuBar(menu_bar);
  
     CreateStatusBar();
-    SetStatusText(L"Paldies par uzmanību!");
+    SetStatusText(lang->info_ready);
     
- 
+    Bind(wxEVT_MENU, &MainFrame::OnAction, this);
+    
     Bind(wxEVT_MENU, &MainFrame::OnHello, this, ID_Hello);
     Bind(wxEVT_MENU, &MainFrame::OnAbout, this, wxID_ABOUT);
     Bind(wxEVT_MENU, &MainFrame::OnExit, this, wxID_EXIT);
@@ -107,12 +122,6 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā progra
     
     Bind(wxEVT_MENU, &MainFrame::OnAction, this, ID_Action_Redo);
     Bind(wxEVT_MENU, &MainFrame::OnAction, this, ID_Action_Undo);
-    
-    Bind(wxEVT_MENU, &MainFrame::OnAction, this, ID_Settings_Angle_Radians);
-    Bind(wxEVT_MENU, &MainFrame::OnAction, this, ID_Settings_Angle_Degrees);
-    Bind(wxEVT_MENU, &MainFrame::OnAction, this, ID_Settings_Space_World);
-    Bind(wxEVT_MENU, &MainFrame::OnAction, this, ID_Settings_Space_Entity);
-    Bind(wxEVT_MENU, &MainFrame::OnAction, this, ID_Settings_Space_Group);
     
     Bind(wxEVT_CLOSE_WINDOW, &MainFrame::OnClose, this);
     
@@ -127,12 +136,14 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā progra
     property_panel = new PropertyPanel(this);
     object_list = new ObjectListCtrl(this);
     viewport = new ViewportCtrl(this);
+    
+    
 
-    m_mgr.AddPane(world_tree, wxLEFT, L"Pasaule");
-    m_mgr.AddPane(property_panel, wxLEFT, L"Īpašības");
-    m_mgr.AddPane(object_list, wxBOTTOM, L"Saturs");
-    m_mgr.AddPane(output_text_ctrl, wxBOTTOM, L"Konsole");
-    m_mgr.AddPane(viewport, wxCENTER, L"GIANT PENIS");
+    m_mgr.AddPane(world_tree, wxLEFT, lang->world_tree);
+    m_mgr.AddPane(property_panel, wxLEFT, lang->property_panel);
+    m_mgr.AddPane(object_list, wxBOTTOM, lang->object_list);
+    m_mgr.AddPane(output_text_ctrl, wxBOTTOM, lang->output_text);
+    m_mgr.AddPane(viewport, wxCENTER, L"HUMONGOUS");
     
     m_mgr.GetPane(world_tree).CloseButton(false);
     m_mgr.GetPane(property_panel).CloseButton(false);
@@ -152,28 +163,30 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā progra
 }
 
 void SaveCells() {
-    wxProgressDialog progress_dialog (L"Saglabā šūnas", L"Notiek šūnu ielāde", 100, main_frame);
+    wxProgressDialog progress_dialog (lang->dialog_saving_title, lang->dialog_saving_info, 100, main_frame);
     
     auto progress = 0;
     auto cells = Editor::worldcells->GetChildren();
     auto progress_increment = (100 / cells.size()) - 1;
     for (auto& wcell : cells) {
-        progress_dialog.Update(progress, wxString(L"Saglabā ") + std::string(wcell->GetName()));
+        progress_dialog.Update(progress, lang->dialog_saving_cell + std::string(wcell->GetName()));
         auto cell = std::dynamic_pointer_cast<Editor::WorldCell>(wcell);
         SaveCell(cell.get());
         progress += progress_increment;
     }
     
-    Editor::WorldTree::Rebuild();
+    Editor::Settings::Save();
     
-    progress_dialog.Update(100, L"Pabeigts");
+    progress_dialog.Update(100, lang->dialog_finished);
     
-    std::cout << "Saved cells." << std::endl;
+    std::cout << lang->dialog_finished << std::endl;
 }
+
+
 
 void MainFrame::OnClose(wxCloseEvent& event) {
     if (event.CanVeto() && Editor::data_modified) {
-        wxMessageDialog confirmation (this, L"Jūs esat veicis izmaiņas. Šīs izmaiņas nav saglabātas. Saglabāt izmaiņas?", L"Iespējams datu zudums!", wxYES_NO | wxCANCEL | wxCANCEL_DEFAULT | wxICON_EXCLAMATION);
+        wxMessageDialog confirmation (this, lang->dialog_save_data, lang->dialog_data_loss, wxYES_NO | wxCANCEL | wxCANCEL_DEFAULT | wxICON_EXCLAMATION);
         auto result = confirmation.ShowModal();
         
         if(result == wxID_YES) {
@@ -193,13 +206,15 @@ void MainFrame::OnExit(wxCommandEvent& event) {
     Close();
 }
  
+
+
 void MainFrame::OnAbout(wxCommandEvent& event)
 {
     wxAboutDialogInfo aboutInfo;
-    aboutInfo.SetName(L"Līmeņu rediģējamā programma");
+    aboutInfo.SetName(lang->dialog_about_name);
     aboutInfo.SetVersion(L"v0.0.3");
-    aboutInfo.SetDescription(L"Episkā līmeņu programmma.");
-    aboutInfo.SetCopyright(L"Autortiesības (C) Lielais Jānis Dambergs 2022");
+    aboutInfo.SetDescription(lang->dialog_description);
+    aboutInfo.SetCopyright(lang->dialog_copyright + L" (C) Lielais Jānis Dambergs 2022");
     aboutInfo.SetWebSite(L"https://github.com/racenis/tram-sdk");
     wxAboutBox(aboutInfo);
 }
@@ -234,30 +249,34 @@ void MainFrame::OnAction(wxCommandEvent& event) {
             TRANSFORM_SPACE = SPACE_ENTITYGROUP;
             break;
         default:
-            std::cout << "settings error" << std::endl;
+            int lang = event.GetId() - ID_Settings_Language;
+            std::cout << "Lang num: " << lang << std::endl;
+            if (lang >= 0 && lang < 100) {
+                INTERFACE_LANGUAGE = (Language) lang;
+                Editor::selected_language = Editor::Languages[lang];
+            } else {
+                std::cout << "SETTINGS_ERROR" << std::endl;
+            }
     }
 }
 
 void MainFrame::OnLoadCells(wxCommandEvent& event) {
     if (Editor::data_modified) {
-        wxMessageDialog confirmation (this, L"Jūs esat veicis izmaiņas. Ielādējot šūnas no diska šīs izmaiņas tiks zaudētas. Turpināt?", L"Iespējams datu zudums!", wxYES_NO | wxCANCEL | wxCANCEL_DEFAULT | wxICON_EXCLAMATION);
+        wxMessageDialog confirmation (this, lang->dialog_data_loss, lang->dialog_load_data, wxYES_NO | wxCANCEL | wxCANCEL_DEFAULT | wxICON_EXCLAMATION);
         if(confirmation.ShowModal() != wxID_YES) {
             return;
         }
     }
     
-    Editor::selection->objects.clear();
-    Editor::performed_actions.clear();
-    Editor::unperformed_actions.clear();
-    Editor::data_modified = false;
-    
-    wxProgressDialog progress_dialog (L"Ielādē šūnas", L"Notiek šūnu ielāde", 100, this);
+    Editor::Reset();
+        
+    wxProgressDialog progress_dialog (lang->dialog_loading_title, lang->dialog_loading_info, 100, this);
     
     auto progress = 0;
     auto cells = Editor::worldcells->GetChildren();
     auto progress_increment = (100 / cells.size()) - 1;
     for (auto& wcell : cells) {
-        progress_dialog.Update(progress, wxString(L"Ielādē ") + std::string(wcell->GetName()));
+        progress_dialog.Update(progress, lang->dialog_loading_cell + std::string(wcell->GetName()));
         auto cell = std::dynamic_pointer_cast<Editor::WorldCell>(wcell);
         LoadCell(cell.get());
         progress += progress_increment;
@@ -265,9 +284,9 @@ void MainFrame::OnLoadCells(wxCommandEvent& event) {
     
     Editor::WorldTree::Rebuild();
     
-    progress_dialog.Update(100, L"Pabeigts");
+    progress_dialog.Update(100, lang->dialog_finished);
     
-    std::cout << "Loaded cells." << std::endl;
+    std::cout << lang->dialog_finished << std::endl;
 }
 
 void MainFrame::OnSaveCells(wxCommandEvent& event) {

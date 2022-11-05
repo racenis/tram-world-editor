@@ -66,7 +66,7 @@ AS       := C:/mingw64/bin/as.exe
 CodeLiteDir:=C:\Program Files\CodeLite
 WXWIN:=C:\Users\Poga\Desktop\miskaste\wxwidgets
 WXCFG:=gcc_dll\mswu
-Objects0=$(IntermediateDirectory)/main.cpp$(ObjectSuffix) $(IntermediateDirectory)/editor.cpp$(ObjectSuffix) $(IntermediateDirectory)/viewport.cpp$(ObjectSuffix) $(IntermediateDirectory)/objectlist.cpp$(ObjectSuffix) $(IntermediateDirectory)/objectmenu.cpp$(ObjectSuffix) $(IntermediateDirectory)/propertypanel.cpp$(ObjectSuffix) $(IntermediateDirectory)/worldtree.cpp$(ObjectSuffix) $(IntermediateDirectory)/benis.cpp$(ObjectSuffix) 
+Objects0=$(IntermediateDirectory)/language.cpp$(ObjectSuffix) $(IntermediateDirectory)/main.cpp$(ObjectSuffix) $(IntermediateDirectory)/editor.cpp$(ObjectSuffix) $(IntermediateDirectory)/viewport.cpp$(ObjectSuffix) $(IntermediateDirectory)/objectlist.cpp$(ObjectSuffix) $(IntermediateDirectory)/objectmenu.cpp$(ObjectSuffix) $(IntermediateDirectory)/propertypanel.cpp$(ObjectSuffix) $(IntermediateDirectory)/worldtree.cpp$(ObjectSuffix) $(IntermediateDirectory)/benis.cpp$(ObjectSuffix) 
 
 
 
@@ -97,6 +97,14 @@ PreBuild:
 ##
 ## Objects
 ##
+$(IntermediateDirectory)/language.cpp$(ObjectSuffix): language.cpp $(IntermediateDirectory)/language.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/language.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/language.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/language.cpp$(DependSuffix): language.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/language.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/language.cpp$(DependSuffix) -MM language.cpp
+
+$(IntermediateDirectory)/language.cpp$(PreprocessSuffix): language.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/language.cpp$(PreprocessSuffix) language.cpp
+
 $(IntermediateDirectory)/main.cpp$(ObjectSuffix): main.cpp $(IntermediateDirectory)/main.cpp$(DependSuffix)
 	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/main.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/main.cpp$(ObjectSuffix) $(IncludePath)
 $(IntermediateDirectory)/main.cpp$(DependSuffix): main.cpp
