@@ -106,6 +106,7 @@ namespace Editor {
         PROPERTY_INT,       // int64_t
         PROPERTY_UINT,      // uint64_t
         PROPERTY_ENUM,      // uint32_t
+        PROPERTY_BOOL,      // bool
         PROPERTY_CATEGORY,
         PROPERTY_NULL
     };
@@ -129,6 +130,7 @@ namespace Editor {
         PropertyValue(const int64_t& value) : int_value(value) { type = PROPERTY_INT; }
         PropertyValue(const uint64_t& value) : uint_value(value) { type = PROPERTY_UINT; }
         PropertyValue(const int32_t& value) : enum_value(value) { type = PROPERTY_ENUM; }
+        PropertyValue(const bool& value) : bool_value(value) { type = PROPERTY_BOOL; }
         PropertyValue(const PropertyValue& value, PropertyType type) : PropertyValue(value) { this->type = type; }
         ~PropertyValue() { if (type == PROPERTY_STRING) str_value.~basic_string(); }
         PropertyValue (const PropertyValue& value) : PropertyValue() { *this = value; }
@@ -150,6 +152,9 @@ namespace Editor {
                     break;
                 case PROPERTY_ENUM:
                     enum_value = value.enum_value;
+                    break;
+                case PROPERTY_BOOL:
+                    bool_value = value.bool_value;
                     break;
                 default:
                     break;
@@ -173,6 +178,8 @@ namespace Editor {
                     return uint_value == other.uint_value;
                 case PROPERTY_ENUM:
                     return enum_value == other.enum_value;
+                case PROPERTY_BOOL:
+                    return bool_value == other.bool_value;
                 case PROPERTY_CATEGORY:
                     return false;
                 case PROPERTY_NULL:
@@ -181,6 +188,13 @@ namespace Editor {
             return false;
         }
         
+        operator std::string() { assert(type == PROPERTY_STRING); return str_value; }
+        operator float() { assert(type == PROPERTY_FLOAT); return float_value; }
+        operator int64_t() { assert(type == PROPERTY_INT); return int_value; }
+        operator uint64_t() { assert(type == PROPERTY_UINT); return uint_value; }
+        operator int32_t() { assert(type == PROPERTY_ENUM); return enum_value; }
+        operator bool() { assert(type == PROPERTY_BOOL); return bool_value; }
+        
         PropertyType type;
         union {
             std::string str_value;
@@ -188,6 +202,7 @@ namespace Editor {
             int64_t int_value;
             uint64_t uint_value;
             int32_t enum_value;
+            bool bool_value;
         };
     };
     
@@ -250,6 +265,7 @@ namespace Editor {
         std::list<std::shared_ptr<Object>> objects;
     };
     
+    extern bool data_modified;
     extern std::shared_ptr<Selection> selection;
 }
 
@@ -427,7 +443,9 @@ namespace Editor {
     
     class TransitionManager : public Object {
     public:
-        TransitionManager(Object* parent) : Object(parent) {}
+        TransitionManager(Object* parent) : Object(parent) {
+            properties["name"] = std::string("Transitions");
+        }
         
         std::string_view GetName() { return "Transitions"; }
         
@@ -548,7 +566,9 @@ namespace Editor {
     
     class PathManager : public Object {
     public:
-        PathManager(Object* parent) : Object(parent) {}
+        PathManager(Object* parent) : Object(parent) {
+            properties["name"] = std::string("Paths");
+        }
         
         std::string_view GetName() { return "Paths"; }
         
@@ -647,7 +667,9 @@ namespace Editor {
     
     class NavmeshManager : public Object {
     public:
-        NavmeshManager(Object* parent) : Object(parent) {}
+        NavmeshManager(Object* parent) : Object(parent) {
+            properties["name"] = std::string("Navmeshes");
+        }
         
         std::string_view GetName() { return "Navmeshes"; }
         
@@ -686,6 +708,8 @@ namespace Editor {
             path_manager(std::make_shared<PathManager>(this)),
             navmesh_manager(std::make_shared<NavmeshManager>(this)) {
             properties["name"] = name;
+            properties["is-interior"] = false;
+            properties["is-interior-lighting"] = false;
             
             children.push_back(group_manager);
             children.push_back(transition_manager);
@@ -709,7 +733,9 @@ namespace Editor {
         std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
             return std::vector<PropertyDefinition> {
                 {"group-worldcell", "Worldcell", "", PROPERTY_CATEGORY},
-                {"name", "Name", "group-worldcell", PROPERTY_STRING}
+                {"name", "Name", "group-worldcell", PROPERTY_STRING},
+                {"is-interior", "Interior", "group-worldcell", PROPERTY_BOOL},
+                {"is-interior-lighting", "Interior Lighting", "group-worldcell", PROPERTY_BOOL}
             };
         }
         

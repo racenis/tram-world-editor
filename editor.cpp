@@ -112,6 +112,7 @@ namespace Editor {
     std::shared_ptr<WorldCellManager> worldcells;
     std::list<std::unique_ptr<Action>> performed_actions;
     std::list<std::unique_ptr<Action>> unperformed_actions;
+    bool data_modified = false;
     
     namespace Settings {
         Space TRANSFORM_SPACE = SPACE_WORLD;
@@ -330,8 +331,8 @@ namespace Editor {
                 if (ent_name == "#") {
                     std::string annotation_name = Core::ReverseUID(Core::SerializedEntityData::Field<Core::name_t>().FromStringAsName(str));
                     if (annotation_name == "cell") {
-                        cell->SetProperty("is-interior", Core::SerializedEntityData::Field<uint64_t>().FromString(str));
-                        cell->SetProperty("is-interior-lighting", Core::SerializedEntityData::Field<uint64_t>().FromString(str));
+                        cell->SetProperty("is-interior", (bool) Core::SerializedEntityData::Field<uint64_t>().FromString(str));
+                        cell->SetProperty("is-interior-lighting", (bool) Core::SerializedEntityData::Field<uint64_t>().FromString(str));
                     } else if (annotation_name == "group") {
                         auto new_group = current_group->parent->AddChild();
                         new_group->SetProperty("name", std::string(Core::ReverseUID(Core::SerializedEntityData::Field<Core::name_t>().FromStringAsName(str))));
@@ -437,8 +438,8 @@ namespace Editor {
         
         if (file.is_open()) {
             std::string output_line = "# cell";
-            output_line += " " + std::to_string(cell->GetProperty("is-interior").uint_value);
-            output_line += " " + std::to_string(cell->GetProperty("is-interior-lighting").uint_value);
+            output_line += " " + std::to_string(cell->GetProperty("is-interior").bool_value);
+            output_line += " " + std::to_string(cell->GetProperty("is-interior-lighting").bool_value);
             file << output_line << std::endl;
                         
             for (auto& group : cell->group_manager->GetChildren()) {

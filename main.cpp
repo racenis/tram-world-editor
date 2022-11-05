@@ -114,6 +114,8 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā progra
     Bind(wxEVT_MENU, &MainFrame::OnAction, this, ID_Settings_Space_Entity);
     Bind(wxEVT_MENU, &MainFrame::OnAction, this, ID_Settings_Space_Group);
     
+    Bind(wxEVT_CLOSE_WINDOW, &MainFrame::OnClose, this);
+    
     // --- POP-UP MENUS ---
     world_tree_popup = new EditorObjectMenu;
     
@@ -149,9 +151,46 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, L"Līmeņu rediģējamā progra
     Editor::WorldTree::Rebuild();
 }
 
-void MainFrame::OnExit(wxCommandEvent& event)
-{
-    Close(true);
+void SaveCells() {
+    wxProgressDialog progress_dialog (L"Saglabā šūnas", L"Notiek šūnu ielāde", 100, main_frame);
+    
+    auto progress = 0;
+    auto cells = Editor::worldcells->GetChildren();
+    auto progress_increment = (100 / cells.size()) - 1;
+    for (auto& wcell : cells) {
+        progress_dialog.Update(progress, wxString(L"Saglabā ") + std::string(wcell->GetName()));
+        auto cell = std::dynamic_pointer_cast<Editor::WorldCell>(wcell);
+        SaveCell(cell.get());
+        progress += progress_increment;
+    }
+    
+    Editor::WorldTree::Rebuild();
+    
+    progress_dialog.Update(100, L"Pabeigts");
+    
+    std::cout << "Saved cells." << std::endl;
+}
+
+void MainFrame::OnClose(wxCloseEvent& event) {
+    if (event.CanVeto() && Editor::data_modified) {
+        wxMessageDialog confirmation (this, L"Jūs esat veicis izmaiņas. Šīs izmaiņas nav saglabātas. Saglabāt izmaiņas?", L"Iespējams datu zudums!", wxYES_NO | wxCANCEL | wxCANCEL_DEFAULT | wxICON_EXCLAMATION);
+        auto result = confirmation.ShowModal();
+        
+        if(result == wxID_YES) {
+            SaveCells();
+        }
+        
+        if (result == wxID_CANCEL) {
+            event.Veto();
+            return;
+        }
+    }
+    
+    Destroy();
+}
+
+void MainFrame::OnExit(wxCommandEvent& event) {
+    Close();
 }
  
 void MainFrame::OnAbout(wxCommandEvent& event)
@@ -200,48 +239,40 @@ void MainFrame::OnAction(wxCommandEvent& event) {
 }
 
 void MainFrame::OnLoadCells(wxCommandEvent& event) {
-    // TODO: clear out:
-    // - delete current selection
-    // - delete undo/redo list
-    // - delete all entities and stuff
-    // - if dirty flag set, then ask before this a dialog
+    if (Editor::data_modified) {
+        wxMessageDialog confirmation (this, L"Jūs esat veicis izmaiņas. Ielādējot šūnas no diska šīs izmaiņas tiks zaudētas. Turpināt?", L"Iespējams datu zudums!", wxYES_NO | wxCANCEL | wxCANCEL_DEFAULT | wxICON_EXCLAMATION);
+        if(confirmation.ShowModal() != wxID_YES) {
+            return;
+        }
+    }
     
-    //wxProgressDialog progress_dialog (L"Ielādē šūnas", L"Notiek šūnu ielāde", 100, this);
+    Editor::selection->objects.clear();
+    Editor::performed_actions.clear();
+    Editor::unperformed_actions.clear();
+    Editor::data_modified = false;
     
+    wxProgressDialog progress_dialog (L"Ielādē šūnas", L"Notiek šūnu ielāde", 100, this);
     
-    /*auto progress_increment = (100 / Editor::worldCells.size()) - 1;
     auto progress = 0;
-    for (auto cell : Editor::worldCells) {
-        progress_dialog.Update(progress, wxString(L"Ielādē ") + cell->name);
-        cell->Load();
-        progress += progress_increment;
-    }*/
-    //BuildWorldCellTree();
-    //PropertyPanelRebuild();
-    //object_list->RefreshAllItems();
-    
-    
-    //progress_dialog.Update(100, L"Pabeigts");
-    
     auto cells = Editor::worldcells->GetChildren();
+    auto progress_increment = (100 / cells.size()) - 1;
     for (auto& wcell : cells) {
+        progress_dialog.Update(progress, wxString(L"Ielādē ") + std::string(wcell->GetName()));
         auto cell = std::dynamic_pointer_cast<Editor::WorldCell>(wcell);
         LoadCell(cell.get());
+        progress += progress_increment;
     }
     
     Editor::WorldTree::Rebuild();
+    
+    progress_dialog.Update(100, L"Pabeigts");
     
     std::cout << "Loaded cells." << std::endl;
 }
 
 void MainFrame::OnSaveCells(wxCommandEvent& event) {
-    auto cells = Editor::worldcells->GetChildren();
-    for (auto& wcell : cells) {
-        auto cell = std::dynamic_pointer_cast<Editor::WorldCell>(wcell);
-        SaveCell(cell.get());
-    }
-    
-    std::cout << "Loaded cells." << std::endl;
+    SaveCells();
+    Editor::data_modified = false;
 }
 
 #endif

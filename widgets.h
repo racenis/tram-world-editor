@@ -50,6 +50,8 @@ protected:
     
     void OnLoadCells(wxCommandEvent& event);
     void OnSaveCells(wxCommandEvent& event);
+    
+    void OnClose(wxCloseEvent& event);
 
     bool property_panel_degrees = false;
     bool property_panel_radians = true;

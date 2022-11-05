@@ -39,6 +39,10 @@ void Editor::PropertyPanel::SetCurrentSelection() {
                                 field_ptr = new wxEnumProperty(field.display_name, field.name, choices);
                             }
                             break;
+                        case PROPERTY_BOOL:
+                            field_ptr = new wxBoolProperty(field.display_name, field.name);
+                            field_ptr->SetAttribute("UseCheckbox", 1);
+                            break;
                         case PROPERTY_CATEGORY:
                             field_ptr = new wxPropertyCategory(field.display_name, field.name);
                             field_ptr->ChangeFlag(wxPG_PROP_COLLAPSED, category_is_collapsed[field.name]);
@@ -97,6 +101,9 @@ void Editor::PropertyPanel::SetCurrentSelection() {
                 case PROPERTY_ENUM:
                     field->SetValue((long) value.uint_value);
                     break;
+                case PROPERTY_BOOL:
+                    field->SetValue(value.bool_value);
+                    break;
                 default:
                     break;
             }
@@ -131,7 +138,7 @@ void PropertyPanel::OnChanged (wxPropertyGridEvent& event) {
     auto value_name = event.GetPropertyName().ToStdString();
     
     // make a back-up of the properties of the selected objects 
-    Editor::PerformAction<Editor::ActionChangeProperties_Single>(std::vector<std::string> {value_name});
+    Editor::PerformAction<Editor::ActionChangeProperties>(std::vector<std::string> {value_name});
     
     // TODO: cache the result of value.GetType() == "type"
     for (auto& object : Editor::selection->objects) {
@@ -146,6 +153,8 @@ void PropertyPanel::OnChanged (wxPropertyGridEvent& event) {
         } else if (value.GetType() == "long") {
             // long in wxWidgets PropGrid is used for enums
             object->SetProperty(value_name, (int32_t) value.GetLong());
+        } else if (value.GetType() == "bool") {
+            object->SetProperty(value_name, value.GetBool());
         } else {
             std::cout << "value type '" << value.GetType().c_str() << "' unrecognized!" << std::endl;
         }

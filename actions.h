@@ -80,6 +80,8 @@ namespace Editor {
                 objects.first->RemoveChild(objects.second);
                 if (objects.first->IsChildrenTreeable()) Editor::WorldTree::Remove(objects.second.get());
             }
+            
+            Editor::data_modified = true;
         }
         
         void Unperform() {
@@ -92,7 +94,7 @@ namespace Editor {
         std::list<std::pair<std::shared_ptr<Object>, std::shared_ptr<Object>>> removal_list;
     };
     
-    class ActionChangeProperties : public Action {
+    /*class ActionChangeProperties : public Action {
     public:
         // Makes a backup of the properties of the selected objects.
         ActionChangeProperties() {
@@ -120,19 +122,18 @@ namespace Editor {
         }
         
         std::list<std::pair<std::shared_ptr<Object>, std::unordered_map<std::string, PropertyValue>>> property_backups;
-    };
+    };*/
     
-    // TODO: change all uses of ActionChangeProperties to ActionChangeProperties_Single
-    // then rename this class to just ActionChangeProperties
-    class ActionChangeProperties_Single : public Action {
+    class ActionChangeProperties : public Action {
     public:
         // This will back up the values of the properties of the selection.
-        ActionChangeProperties_Single(std::vector<std::string> properties) {
+        ActionChangeProperties(std::vector<std::string> properties) {
             for (auto& object : selection->objects) {
                 for (auto& property : properties) {
                     property_backups.push_back({object, {property, object->GetProperty(property)}});
                 }
             }
+            Editor::data_modified = true;
         }
         
         // Swaps the backed-up properties with the new properties.
@@ -142,6 +143,8 @@ namespace Editor {
                 backup.first->SetProperty(backup.second.property_name, backup.second.property_value);
                 backup.second.property_value = new_property;
             }
+            
+            Editor::data_modified = true;
             
             Editor::PropertyPanel::Refresh();
             Editor::ObjectList::Refresh();

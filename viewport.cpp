@@ -247,7 +247,7 @@ void ViewportCtrl::OnKeydown(wxKeyEvent& event) {
         }
         viewport_mode = MODE_TRANSLATE;
         
-        Editor::PerformAction<Editor::ActionChangeProperties_Single>(std::vector<std::string> {"position-x", "position-y", "position-z"});
+        Editor::PerformAction<Editor::ActionChangeProperties>(std::vector<std::string> {"position-x", "position-y", "position-z"});
     }
     
     if (keycode == 'R') {
@@ -257,7 +257,7 @@ void ViewportCtrl::OnKeydown(wxKeyEvent& event) {
         }
         viewport_mode = MODE_ROTATE;
         
-        Editor::PerformAction<Editor::ActionChangeProperties_Single>(std::vector<std::string> {"rotation-x", "rotation-y", "rotation-z"});
+        Editor::PerformAction<Editor::ActionChangeProperties>(std::vector<std::string> {"rotation-x", "rotation-y", "rotation-z"});
     }
 }
 
