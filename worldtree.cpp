@@ -55,7 +55,7 @@ namespace Editor::WorldTree {
     }
     
     void Rename (Object* object) {
-        assert(obj_to_treeId[object]);
+        if (!obj_to_treeId[object]) return;
         world_tree->SetItemText(obj_to_treeId[object], std::string(object->GetName()));
     }
     
@@ -75,6 +75,8 @@ namespace Editor::WorldTree {
     void Rebuild() {
         world_tree->DeleteAllItems();
         root_node = world_tree->AddRoot(std::string(worldcells->GetName()));
+        obj_to_treeId.clear();
+        treeId_to_obj.clear();
         
         obj_to_treeId[worldcells.get()] = root_node.GetID();
         treeId_to_obj[root_node.GetID()] = worldcells.get();

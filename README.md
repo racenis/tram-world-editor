@@ -2,7 +2,15 @@
 
 ## To-do list
 - reimplement loading/saving
-- redo viewport
+- When conclude moving in viewport -- update PROPERTY panel and OBJECT list
+- Add "action" property to entities.
+- Add and also their managers
+	- Transition
+	- Navmesh
+	- Path
+- Add entity type registration plug
+- Add some kind of an "unsaved changes" flag
+- Add "Ctrl" suffix to all widget classes
 
 
 ### Small features
@@ -17,6 +25,7 @@
 	- Need to add some metadata to undo/redo actions
 - Localization
 - Viewport transforms better when multiple axis
+- Viewport mouse picking
 - Record the mouse pointer position when capturing it for the viewport and restore it when releasing it
 
 ### Optimizations
@@ -28,6 +37,9 @@
 ### Bugs
 - Undo/redo does not change the name of the object in the tree menu
 	- Will be fixed when an optimization is implemented
+- Switching the type on a visible entity causes an assertion to fail
+	- RenderComponent does not support switching out its models while it is initialized
+	- Either the component needs to be re-initialized, or fixed in the engine code
 	
 ### Other features
 - 2D viewport

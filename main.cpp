@@ -200,6 +200,12 @@ void MainFrame::OnAction(wxCommandEvent& event) {
 }
 
 void MainFrame::OnLoadCells(wxCommandEvent& event) {
+    // TODO: clear out:
+    // - delete current selection
+    // - delete undo/redo list
+    // - delete all entities and stuff
+    // - if dirty flag set, then ask before this a dialog
+    
     //wxProgressDialog progress_dialog (L"Ielādē šūnas", L"Notiek šūnu ielāde", 100, this);
     
     
@@ -223,20 +229,19 @@ void MainFrame::OnLoadCells(wxCommandEvent& event) {
         LoadCell(cell.get());
     }
     
+    Editor::WorldTree::Rebuild();
+    
     std::cout << "Loaded cells." << std::endl;
 }
 
 void MainFrame::OnSaveCells(wxCommandEvent& event) {
-    wxProgressDialog progress_dialog (L"Saglabā šūnas", L"Notiek šūnu saglābe", 100, this);
-    /*auto progress_increment = (100 / Editor::worldCells.size()) - 1;
-    auto progress = 0;
-    for (auto cell : Editor::worldCells) {
-        progress_dialog.Update(progress, wxString(L"Saglabā ") + cell->name);
-        cell->Save();
-        progress += progress_increment;
-    }*/
-    progress_dialog.Update(100, L"Pabeigts");
-    std::cout << "Saved cells." << std::endl;
+    auto cells = Editor::worldcells->GetChildren();
+    for (auto& wcell : cells) {
+        auto cell = std::dynamic_pointer_cast<Editor::WorldCell>(wcell);
+        SaveCell(cell.get());
+    }
+    
+    std::cout << "Loaded cells." << std::endl;
 }
 
 #endif

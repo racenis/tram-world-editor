@@ -330,76 +330,66 @@ namespace Editor {
                 if (ent_name == "#") {
                     std::string annotation_name = Core::ReverseUID(Core::SerializedEntityData::Field<Core::name_t>().FromStringAsName(str));
                     if (annotation_name == "cell") {
-                        // TODO: stuff these where they belong
-                        //bool is_interior = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
-                        //bool is_interior_lighting = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
+                        cell->SetProperty("is-interior", Core::SerializedEntityData::Field<uint64_t>().FromString(str));
+                        cell->SetProperty("is-interior-lighting", Core::SerializedEntityData::Field<uint64_t>().FromString(str));
                     } else if (annotation_name == "group") {
                         auto new_group = current_group->parent->AddChild();
                         new_group->SetProperty("name", std::string(Core::ReverseUID(Core::SerializedEntityData::Field<Core::name_t>().FromStringAsName(str))));
                         current_group = (EntityGroup*) new_group.get();
                     }
                 } else if (ent_name == "transition") {
-                    /*Transition* trans = new Transition;
-                    trans->name = Core::ReverseUID(Core::SerializedEntityData::Field<Core::name_t>().FromStringAsName(str));
-                    trans->cell_into_name = Core::ReverseUID(Core::SerializedEntityData::Field<Core::name_t>().FromStringAsName(str));
-                    trans->parent = this;
+                    auto trans = std::make_shared<Transition>(cell->transition_manager.get());
+                    trans->SetProperty("name", std::string(Core::ReverseUID(Core::SerializedEntityData::Field<Core::name_t>().FromStringAsName(str))));
+                    trans->SetProperty("cell-into", std::string(Core::ReverseUID(Core::SerializedEntityData::Field<Core::name_t>().FromStringAsName(str))));
                     uint64_t point_count = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
                     for (uint64_t i = 0; i < point_count; i++) {
-                        Transition::Point* p = new Transition::Point;
-                        p->location.x = Core::SerializedEntityData::Field<float>().FromString(str);
-                        p->location.y = Core::SerializedEntityData::Field<float>().FromString(str);
-                        p->location.z = Core::SerializedEntityData::Field<float>().FromString(str);
-                        p->parent = trans;
-                        trans->points.push_back(p);
+                        auto p = trans->AddChild();
+                        p->SetProperty("position-x", Core::SerializedEntityData::Field<float>().FromString(str));
+                        p->SetProperty("position-y", Core::SerializedEntityData::Field<float>().FromString(str));
+                        p->SetProperty("position-z", Core::SerializedEntityData::Field<float>().FromString(str));
                     }
-                    transitions.push_back(trans);*/
+                    static_cast<Object*>(cell->transition_manager.get())->AddChild(trans);
                 } else if (ent_name == "path") {
-                    /*Path* path = new Path;
-                    path->name = Core::ReverseUID(Core::SerializedEntityData::Field<Core::name_t>().FromStringAsName(str));
-                    path->parent = this;
+                    auto path = std::make_shared<Path>(cell->path_manager.get());
+                    path->SetProperty("name", std::string(Core::ReverseUID(Core::SerializedEntityData::Field<Core::name_t>().FromStringAsName(str))));
                     uint64_t curve_count = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
                     for (uint64_t i = 0; i < curve_count; i++) {
-                        Path::Curve* c = new Path::Curve;
-                        c->id = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
-                        c->next_id = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
-                        c->prev_id = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
-                        c->left_id = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
-                        c->right_id = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
-                        c->location1.x = Core::SerializedEntityData::Field<float>().FromString(str);
-                        c->location1.y = Core::SerializedEntityData::Field<float>().FromString(str);
-                        c->location1.z = Core::SerializedEntityData::Field<float>().FromString(str);
-                        c->location2.x = Core::SerializedEntityData::Field<float>().FromString(str);
-                        c->location2.y = Core::SerializedEntityData::Field<float>().FromString(str);
-                        c->location2.z = Core::SerializedEntityData::Field<float>().FromString(str);
-                        c->location3.x = Core::SerializedEntityData::Field<float>().FromString(str);
-                        c->location3.y = Core::SerializedEntityData::Field<float>().FromString(str);
-                        c->location3.z = Core::SerializedEntityData::Field<float>().FromString(str);
-                        c->location4.x = Core::SerializedEntityData::Field<float>().FromString(str);
-                        c->location4.y = Core::SerializedEntityData::Field<float>().FromString(str);
-                        c->location4.z = Core::SerializedEntityData::Field<float>().FromString(str);
-                        c->parent = path;
-                        path->curves.push_back(c);
+                        auto c = path->AddChild();
+                        c->SetProperty("id", Core::SerializedEntityData::Field<uint64_t>().FromString(str));
+                        c->SetProperty("next-id", Core::SerializedEntityData::Field<uint64_t>().FromString(str));
+                        c->SetProperty("prev-id", Core::SerializedEntityData::Field<uint64_t>().FromString(str));
+                        c->SetProperty("left-id", Core::SerializedEntityData::Field<uint64_t>().FromString(str));
+                        c->SetProperty("right-id", Core::SerializedEntityData::Field<uint64_t>().FromString(str));
+                        c->SetProperty("position-x", Core::SerializedEntityData::Field<float>().FromString(str));
+                        c->SetProperty("position-y", Core::SerializedEntityData::Field<float>().FromString(str));
+                        c->SetProperty("position-z", Core::SerializedEntityData::Field<float>().FromString(str));
+                        c->SetProperty("position-x-2", Core::SerializedEntityData::Field<float>().FromString(str));
+                        c->SetProperty("position-y-2", Core::SerializedEntityData::Field<float>().FromString(str));
+                        c->SetProperty("position-z-2", Core::SerializedEntityData::Field<float>().FromString(str));
+                        c->SetProperty("position-x-3", Core::SerializedEntityData::Field<float>().FromString(str));
+                        c->SetProperty("position-y-3", Core::SerializedEntityData::Field<float>().FromString(str));
+                        c->SetProperty("position-z-3", Core::SerializedEntityData::Field<float>().FromString(str));
+                        c->SetProperty("position-x-4", Core::SerializedEntityData::Field<float>().FromString(str));
+                        c->SetProperty("position-y-4", Core::SerializedEntityData::Field<float>().FromString(str));
+                        c->SetProperty("position-z-4", Core::SerializedEntityData::Field<float>().FromString(str));
                     }
-                    paths.push_back(path);*/
+                    static_cast<Object*>(cell->path_manager.get())->AddChild(path);
                 } else if (ent_name == "navmesh") {
-                    /*Navmesh* navmesh = new Navmesh;
-                    navmesh->name = Core::ReverseUID(Core::SerializedEntityData::Field<Core::name_t>().FromStringAsName(str));
-                    navmesh->parent = this;
+                    auto navmesh = std::make_shared<Path>(cell->navmesh_manager.get());
+                    navmesh->SetProperty("name", std::string(Core::ReverseUID(Core::SerializedEntityData::Field<Core::name_t>().FromStringAsName(str))));
                     uint64_t node_count = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
                     for (uint64_t i = 0; i < node_count; i++) {
-                        Navmesh::Node* n = new Navmesh::Node;
-                        n->id = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
-                        n->next_id = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
-                        n->prev_id = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
-                        n->left_id = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
-                        n->right_id = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
-                        n->location.x = Core::SerializedEntityData::Field<float>().FromString(str);
-                        n->location.y = Core::SerializedEntityData::Field<float>().FromString(str);
-                        n->location.z = Core::SerializedEntityData::Field<float>().FromString(str);
-                        n->parent = navmesh;
-                        navmesh->nodes.push_back(n);
+                        auto n = navmesh->AddChild();
+                        n->SetProperty("id", Core::SerializedEntityData::Field<uint64_t>().FromString(str));
+                        n->SetProperty("next-id", Core::SerializedEntityData::Field<uint64_t>().FromString(str));
+                        n->SetProperty("prev-id", Core::SerializedEntityData::Field<uint64_t>().FromString(str));
+                        n->SetProperty("left-id", Core::SerializedEntityData::Field<uint64_t>().FromString(str));
+                        n->SetProperty("right-id", Core::SerializedEntityData::Field<uint64_t>().FromString(str));
+                        n->SetProperty("position-x", Core::SerializedEntityData::Field<float>().FromString(str));
+                        n->SetProperty("position-y", Core::SerializedEntityData::Field<float>().FromString(str));
+                        n->SetProperty("position-z", Core::SerializedEntityData::Field<float>().FromString(str));
                     }
-                    navmeshes.push_back(navmesh);*/
+                    static_cast<Object*>(cell->navmesh_manager.get())->AddChild(navmesh);
                 } else {
                     auto entity = std::make_shared<Entity>(current_group);
                     
@@ -412,7 +402,7 @@ namespace Editor {
                         }
                     }
                     // TODO: find a way to nicely abort the program
-                    std::cout << ent_name << std::endl;
+                    //std::cout << ent_name << std::endl;
                     assert(entity_type_index);
                     
                     entity->properties["name"] = std::string(ReverseUID(SerializedEntityData::Field<name_t>().FromStringAsName(str)));
@@ -441,97 +431,104 @@ namespace Editor {
             std::cout << "Can't find the cell file " << cell->GetName() << ".cell." << std::endl;
         }
     }
-    /*
-    void WorldCell::Save() { 
-        
-        std::ofstream file (std::string("data/") + name + ".cell");
+    
+    void SaveCell(WorldCell* cell) { 
+        std::ofstream file (std::string("data/") + std::string(cell->GetName()) + ".cell");
         
         if (file.is_open()) {
             std::string output_line = "# cell";
-            output_line += " " + std::to_string(is_interior);
-            output_line += " " + std::to_string(is_interior_lighting);
+            output_line += " " + std::to_string(cell->GetProperty("is-interior").uint_value);
+            output_line += " " + std::to_string(cell->GetProperty("is-interior-lighting").uint_value);
             file << output_line << std::endl;
-            
-            for (auto ent : entities) {
-                std::string output_line = ent->ent_data->GetDataName();
-                ent->ToString(output_line);
-                if (ent->ent_data) ent->ent_data->ToString(output_line);
-                file << output_line << std::endl;
-            }
-            
-            for (auto group : groups) {
-                std::string output_line = "# group ";
-                output_line += group->name;
-                file << output_line << std::endl;
-                
-                for (auto ent : group->entities) {
-                    std::string output_line = ent->ent_data->GetDataName();
-                    ent->ToString(output_line);
-                    if (ent->ent_data) ent->ent_data->ToString(output_line);
+                        
+            for (auto& group : cell->group_manager->GetChildren()) {
+                if (group->GetName() != "[default]") {
+                    std::string output_line = "# group ";
+                    output_line += group->GetName();
                     file << output_line << std::endl;
+                }
+
+                for (auto& ent : group->GetChildren()) {
+                    using namespace Core;
+                    auto entity = (Entity*)ent.get();
+                    std::string str = entity->entity_data->data->GetDataName();
+                    
+                    str += " " + std::string(ent->GetName());
+                    SerializedEntityData::Field<float>(ent->GetProperty("position-x").float_value).ToString(str);
+                    SerializedEntityData::Field<float>(ent->GetProperty("position-y").float_value).ToString(str);
+                    SerializedEntityData::Field<float>(ent->GetProperty("position-z").float_value).ToString(str);
+                    
+                    SerializedEntityData::Field<float>(ent->GetProperty("rotation-x").float_value).ToString(str);
+                    SerializedEntityData::Field<float>(ent->GetProperty("rotation-y").float_value).ToString(str);
+                    SerializedEntityData::Field<float>(ent->GetProperty("rotation-z").float_value).ToString(str);
+                    
+                    str += " " + ent->GetProperty("action").str_value;
+                    
+                    if (entity->entity_data->data) entity->entity_data->data->ToString(str);
+                    file << str << std::endl;
                 }
             }
             
-            for (auto trans : transitions) {
+            for (auto& trans : cell->transition_manager->GetChildren()) {
                 std::string output_line = "transition";
-                output_line += " " + trans->name;
-                output_line += " " + trans->cell_into_name;
-                output_line += " " + std::to_string(trans->points.size());
-                for (auto point : trans->points) {
-                    output_line += " " + std::to_string(point->location.x);
-                    output_line += " " + std::to_string(point->location.y);
-                    output_line += " " + std::to_string(point->location.z);
+                output_line += " " + trans->GetProperty("name").str_value;
+                output_line += " " + trans->GetProperty("cell-into").str_value;
+                output_line += " " + std::to_string(trans->GetChildren().size());
+                for (auto& point : trans->GetChildren()) {
+                    output_line += " " + std::to_string(point->GetProperty("position-x").float_value);
+                    output_line += " " + std::to_string(point->GetProperty("position-y").float_value);
+                    output_line += " " + std::to_string(point->GetProperty("position-z").float_value);
                 } 
                 file << output_line << std::endl;
             }
             
-            for (auto path : paths) {
+            for (auto& path : cell->path_manager->GetChildren()) {
                 std::string output_line = "path";
-                output_line += " " + path->name;
-                output_line += " " + std::to_string(path->curves.size());
-                for (auto curve : path->curves) {
-                    output_line += " " + std::to_string(curve->id);
-                    output_line += " " + std::to_string(curve->next_id);
-                    output_line += " " + std::to_string(curve->prev_id);
-                    output_line += " " + std::to_string(curve->left_id);
-                    output_line += " " + std::to_string(curve->right_id);
-                    output_line += " " + std::to_string(curve->location1.x);
-                    output_line += " " + std::to_string(curve->location1.y);
-                    output_line += " " + std::to_string(curve->location1.z);
-                    output_line += " " + std::to_string(curve->location2.x);
-                    output_line += " " + std::to_string(curve->location2.y);
-                    output_line += " " + std::to_string(curve->location2.z);
-                    output_line += " " + std::to_string(curve->location3.x);
-                    output_line += " " + std::to_string(curve->location3.y);
-                    output_line += " " + std::to_string(curve->location3.z);
-                    output_line += " " + std::to_string(curve->location4.x);
-                    output_line += " " + std::to_string(curve->location4.y);
-                    output_line += " " + std::to_string(curve->location4.z);
+                output_line += " " + path->GetProperty("name").str_value;
+                output_line += " " + std::to_string(path->GetChildren().size());
+                for (auto& curve : path->GetChildren()) {
+                    output_line += " " + std::to_string(curve->GetProperty("id").uint_value);
+                    output_line += " " + std::to_string(curve->GetProperty("next-id").uint_value);
+                    output_line += " " + std::to_string(curve->GetProperty("prev-id").uint_value);
+                    output_line += " " + std::to_string(curve->GetProperty("left-id").uint_value);
+                    output_line += " " + std::to_string(curve->GetProperty("right-id").uint_value);
+                    output_line += " " + std::to_string(curve->GetProperty("position-x").float_value);
+                    output_line += " " + std::to_string(curve->GetProperty("position-y").float_value);
+                    output_line += " " + std::to_string(curve->GetProperty("position-z").float_value);
+                    output_line += " " + std::to_string(curve->GetProperty("position-x-2").float_value);
+                    output_line += " " + std::to_string(curve->GetProperty("position-y-2").float_value);
+                    output_line += " " + std::to_string(curve->GetProperty("position-z-2").float_value);
+                    output_line += " " + std::to_string(curve->GetProperty("position-x-3").float_value);
+                    output_line += " " + std::to_string(curve->GetProperty("position-y-3").float_value);
+                    output_line += " " + std::to_string(curve->GetProperty("position-z-3").float_value);
+                    output_line += " " + std::to_string(curve->GetProperty("position-x-4").float_value);
+                    output_line += " " + std::to_string(curve->GetProperty("position-y-4").float_value);
+                    output_line += " " + std::to_string(curve->GetProperty("position-z-4").float_value);
                 }
                 file << output_line << std::endl;
             }
             
-            for (auto navmesh : navmeshes) {
+            for (auto& navmesh : cell->navmesh_manager->GetChildren()) {
                 std::string output_line = "navmesh";
-                output_line += " " + navmesh->name;
-                output_line += " " + std::to_string(navmesh->nodes.size());
-                for (auto node : navmesh->nodes) {
-                    output_line += " " + std::to_string(node->id);
-                    output_line += " " + std::to_string(node->next_id);
-                    output_line += " " + std::to_string(node->prev_id);
-                    output_line += " " + std::to_string(node->left_id);
-                    output_line += " " + std::to_string(node->right_id);
-                    output_line += " " + std::to_string(node->location.x);
-                    output_line += " " + std::to_string(node->location.y);
-                    output_line += " " + std::to_string(node->location.z);
+                output_line += " " + navmesh->GetProperty("name").str_value;
+                output_line += " " + std::to_string(navmesh->GetChildren().size());
+                for (auto& node : navmesh->GetChildren()) {
+                    output_line += " " + std::to_string(node->GetProperty("id").uint_value);
+                    output_line += " " + std::to_string(node->GetProperty("next-id").uint_value);
+                    output_line += " " + std::to_string(node->GetProperty("prev-id").uint_value);
+                    output_line += " " + std::to_string(node->GetProperty("left-id").uint_value);
+                    output_line += " " + std::to_string(node->GetProperty("right-id").uint_value);
+                    output_line += " " + std::to_string(node->GetProperty("position-x").float_value);
+                    output_line += " " + std::to_string(node->GetProperty("position-y").float_value);
+                    output_line += " " + std::to_string(node->GetProperty("position-z").float_value);
                 }
                 file << output_line << std::endl;
             }
             
         } else {
-            std::cout << "Can't write to the cell file " << name << ".cell." << std::endl;
+            std::cout << "Can't write to the cell file " << std::string(cell->GetName()) << ".cell." << std::endl;
         }
-    }*/
+    }
     
     // TODO: find from where this is being called right now and make it stop!
     void ProduceTestData() {

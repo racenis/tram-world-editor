@@ -397,6 +397,7 @@ namespace Editor {
 
         Transition(Object* parent) : Object(parent) {
             properties["name"] = std::string("Transition");
+            properties["cell-into"] = std::string("none");
         }
         
         bool IsChildrenTreeable() { return false; }
@@ -456,20 +457,93 @@ namespace Editor {
     
 
     class Path : public Object {
+    public:
         class Node : public Object {
-            uint64_t id;
-            uint64_t next_id;
-            uint64_t prev_id;
-            uint64_t left_id;
-            uint64_t right_id;
-            glm::vec3 location1;
-            glm::vec3 location2;
-            glm::vec3 location3;
-            glm::vec3 location4;
+        public:
+            Node (Object* parent) : Object(parent) {
+                properties["id"] = 0;
+                properties["next-id"] = 0;
+                properties["prev-id"] = 0;
+                properties["left-id"] = 0;
+                properties["right-id"] = 0;
+                properties["position-x"] = 0.0f;
+                properties["position-y"] = 0.0f;
+                properties["position-z"] = 0.0f;
+                properties["position-x-2"] = 0.0f;
+                properties["position-y-2"] = 0.0f;
+                properties["position-z-2"] = 0.0f;
+                properties["position-x-3"] = 0.0f;
+                properties["position-y-3"] = 0.0f;
+                properties["position-z-3"] = 0.0f;
+                properties["position-x-4"] = 0.0f;
+                properties["position-y-4"] = 0.0f;
+                properties["position-z-4"] = 0.0f;
+            }
+            
+            std::string_view GetName() { return "Path Node"; }
+            
+            bool IsChildrenTreeable() { return false; }
+            bool IsChildrenListable() { return false; }
+            bool IsAddable() { return false; }
+            bool IsRemovable() { return true; }
+            bool IsEditable() { return true; }
+            bool IsCopyable() { return true; }
+            
+            std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
+                return std::vector<PropertyDefinition> {
+                    {"group-path-node", "Path Node", "", PROPERTY_CATEGORY},
+                    {"id", "ID", "group-path-node", PROPERTY_UINT},
+                    {"next-id", "Next ID", "group-path-node", PROPERTY_UINT},
+                    {"prev-id", "Prev ID", "group-path-node", PROPERTY_UINT},
+                    {"left-id", "Left ID", "group-path-node", PROPERTY_UINT},
+                    {"right-id", "Right ID", "group-path-node", PROPERTY_UINT},
+                    {"group-path-node-pos-1", "Position 1", "group-path-node", PROPERTY_CATEGORY},
+                    {"position-x", "X", "group-path-node-pos-1", PROPERTY_FLOAT},
+                    {"position-y", "Y", "group-path-node-pos-1", PROPERTY_FLOAT},
+                    {"position-z", "Z", "group-path-node-pos-1", PROPERTY_FLOAT},
+                    {"group-path-node-pos-2", "Position 2", "group-path-node", PROPERTY_CATEGORY},
+                    {"position-x-2", "X", "group-path-node-pos-2", PROPERTY_FLOAT},
+                    {"position-y-2", "Y", "group-path-node-pos-2", PROPERTY_FLOAT},
+                    {"position-z-2", "Z", "group-path-node-pos-2", PROPERTY_FLOAT},
+                    {"group-path-node-pos-3", "Position 3", "group-path-node", PROPERTY_CATEGORY},
+                    {"position-x-3", "X", "group-path-node-pos-3", PROPERTY_FLOAT},
+                    {"position-y-3", "Y", "group-path-node-pos-3", PROPERTY_FLOAT},
+                    {"position-z-3", "Z", "group-path-node-pos-3", PROPERTY_FLOAT},
+                    {"group-path-node-pos-4", "Position 4", "group-path-node", PROPERTY_CATEGORY},
+                    {"position-x-4", "X", "group-path-node-pos-4", PROPERTY_FLOAT},
+                    {"position-y-4", "Y", "group-path-node-pos-4", PROPERTY_FLOAT},
+                    {"position-z-4", "Z", "group-path-node-pos-4", PROPERTY_FLOAT}
+                };
+            }
         };
         
-        Path(Object* parent) : Object(parent) {}
-        //Path(Object* parent, std::string_view name) : Object(parent), name(name) {}
+        Path (Object* parent) : Object(parent) {
+            properties["name"] = std::string("Path");
+        }
+        
+        bool IsChildrenTreeable() { return false; }
+        bool IsChildrenListable() { return true; }
+        bool IsAddable() { return true; }
+        bool IsRemovable() { return true; }
+        bool IsEditable() { return true; }
+        bool IsCopyable() { return true; }
+        
+        std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
+            return std::vector<PropertyDefinition> {
+                {"position-x", "X", "", PROPERTY_FLOAT},
+                {"position-y", "Y", "", PROPERTY_FLOAT},
+                {"position-z", "Z", "", PROPERTY_FLOAT}
+            };
+        }
+        
+        std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
+            return std::vector<PropertyDefinition> {
+                {"group-path", "Path", "", PROPERTY_CATEGORY},
+                {"name", "Name", "group-path", PROPERTY_STRING}
+            };
+        }
+        
+        std::shared_ptr<Object> AddChild() { auto child = std::make_shared<Node>(this); children.push_back(child); return child; }
     };
     
     class PathManager : public Object {
@@ -477,20 +551,98 @@ namespace Editor {
         PathManager(Object* parent) : Object(parent) {}
         
         std::string_view GetName() { return "Paths"; }
+        
+        bool IsChildrenTreeable() { return true; }
+        bool IsChildrenListable() { return true; }
+        bool IsAddable() { return true; }
+        bool IsRemovable() { return true; }
+        bool IsEditable() { return false; }
+        bool IsCopyable() { return false; }
+        
+        std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
+            return std::vector<PropertyDefinition> {
+                {"name", "Name", "", PROPERTY_STRING}
+            };
+        }
+        
+        std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
+            return std::vector<PropertyDefinition> {
+                {"group-path-manager", "Path Manager", "", PROPERTY_CATEGORY}
+            };
+        }
+        
+        std::shared_ptr<Object> AddChild() { auto child = std::make_shared<Path>(this); children.push_back(child); return child; }
     };
     
     
 
     class Navmesh : public Object {
+    public:
         class Node : public Object {
-            uint64_t id;
-            uint64_t next_id;
-            uint64_t prev_id;
-            uint64_t left_id;
-            uint64_t right_id;
-            glm::vec3 location;
-            Navmesh* parent;
+        public:
+            Node (Object* parent) : Object(parent) {
+                properties["id"] = 0;
+                properties["next-id"] = 0;
+                properties["prev-id"] = 0;
+                properties["left-id"] = 0;
+                properties["right-id"] = 0;
+                properties["position-x"] = 0.0f;
+                properties["position-y"] = 0.0f;
+                properties["position-z"] = 0.0f;
+            }
+            
+            std::string_view GetName() { return "Navmesh Node"; }
+            
+            bool IsChildrenTreeable() { return false; }
+            bool IsChildrenListable() { return false; }
+            bool IsAddable() { return false; }
+            bool IsRemovable() { return true; }
+            bool IsEditable() { return true; }
+            bool IsCopyable() { return true; }
+            
+            std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
+                return std::vector<PropertyDefinition> {
+                    {"group-navmesh-node", "Navmesh Node", "", PROPERTY_CATEGORY},
+                    {"id", "ID", "group-navmesh-node", PROPERTY_UINT},
+                    {"next-id", "Next ID", "group-navmesh-node", PROPERTY_UINT},
+                    {"prev-id", "Prev ID", "group-navmesh-node", PROPERTY_UINT},
+                    {"left-id", "Left ID", "group-navmesh-node", PROPERTY_UINT},
+                    {"right-id", "Right ID", "group-navmesh-node", PROPERTY_UINT},
+                    {"group-navmesh-node-position", "Position", "group-navmesh-node", PROPERTY_CATEGORY},
+                    {"position-x", "X", "group-navmesh-node-position", PROPERTY_FLOAT},
+                    {"position-y", "Y", "group-navmesh-node-position", PROPERTY_FLOAT},
+                    {"position-z", "Z", "group-navmesh-node-position", PROPERTY_FLOAT}
+                };
+            }
         };
+        
+        Navmesh (Object* parent) : Object(parent) {
+            properties["name"] = std::string("Navmesh");
+        }
+        
+        bool IsChildrenTreeable() { return false; }
+        bool IsChildrenListable() { return true; }
+        bool IsAddable() { return true; }
+        bool IsRemovable() { return true; }
+        bool IsEditable() { return true; }
+        bool IsCopyable() { return true; }
+        
+        std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
+            return std::vector<PropertyDefinition> {
+                {"position-x", "X", "", PROPERTY_FLOAT},
+                {"position-y", "Y", "", PROPERTY_FLOAT},
+                {"position-z", "Z", "", PROPERTY_FLOAT}
+            };
+        }
+        
+        std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
+            return std::vector<PropertyDefinition> {
+                {"group-path", "Path", "", PROPERTY_CATEGORY},
+                {"name", "Name", "group-path", PROPERTY_STRING}
+            };
+        }
+        
+        std::shared_ptr<Object> AddChild() { auto child = std::make_shared<Node>(this); children.push_back(child); return child; }
     };
     
     class NavmeshManager : public Object {
@@ -498,7 +650,27 @@ namespace Editor {
         NavmeshManager(Object* parent) : Object(parent) {}
         
         std::string_view GetName() { return "Navmeshes"; }
-
+        
+        bool IsChildrenTreeable() { return true; }
+        bool IsChildrenListable() { return true; }
+        bool IsAddable() { return true; }
+        bool IsRemovable() { return true; }
+        bool IsEditable() { return false; }
+        bool IsCopyable() { return false; }
+        
+        std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
+            return std::vector<PropertyDefinition> {
+                {"name", "Name", "", PROPERTY_STRING}
+            };
+        }
+        
+        std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
+            return std::vector<PropertyDefinition> {
+                {"group-navmesh-manager", "Navmesh Manager", "", PROPERTY_CATEGORY}
+            };
+        }
+        
+        std::shared_ptr<Object> AddChild() { auto child = std::make_shared<Navmesh>(this); children.push_back(child); return child; }
     };
 
 
@@ -508,12 +680,17 @@ namespace Editor {
     class WorldCell : public Object {
     public:
         WorldCell(Object* parent) : WorldCell(parent, "WorldCell") {}
-        WorldCell(Object* parent, std::string name) : Object(parent), group_manager(std::make_shared<EntityGroupManager>(this)), 
-            transition_manager(std::make_shared<TransitionManager>(this)) {
+        WorldCell(Object* parent, std::string name) : Object(parent), 
+            group_manager(std::make_shared<EntityGroupManager>(this)), 
+            transition_manager(std::make_shared<TransitionManager>(this)),
+            path_manager(std::make_shared<PathManager>(this)),
+            navmesh_manager(std::make_shared<NavmeshManager>(this)) {
             properties["name"] = name;
             
             children.push_back(group_manager);
             children.push_back(transition_manager);
+            children.push_back(path_manager);
+            children.push_back(navmesh_manager);
         }
         
         bool IsChildrenTreeable() { return true; }
@@ -540,6 +717,8 @@ namespace Editor {
         
         std::shared_ptr<EntityGroupManager> group_manager;
         std::shared_ptr<TransitionManager> transition_manager;
+        std::shared_ptr<PathManager> path_manager;
+        std::shared_ptr<NavmeshManager> navmesh_manager;
     };
     
     class WorldCellManager : public Object {
