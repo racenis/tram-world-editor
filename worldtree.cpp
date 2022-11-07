@@ -1,4 +1,5 @@
 #include <editor.h>
+#include <language.h>
 #include <actions.h>
 #include <widgets.h>
 #include <objectmenu.h>
@@ -24,7 +25,7 @@ namespace Editor::WorldTree {
         
         // if parent is in tree and object isn't in the tree
         auto node_to_parent_to =  wxTreeItemId(obj_to_treeId[object->parent]);
-        auto new_node = world_tree->AppendItem(node_to_parent_to, std::string(object->GetName()));
+        auto new_node = world_tree->AppendItem(node_to_parent_to, Editor::PropertyRename(std::string(object->GetName())));
         
         obj_to_treeId[object] = new_node.GetID();
         treeId_to_obj[new_node.GetID()] = object;
@@ -56,12 +57,12 @@ namespace Editor::WorldTree {
     
     void Rename (Object* object) {
         if (!obj_to_treeId[object]) return;
-        world_tree->SetItemText(obj_to_treeId[object], std::string(object->GetName()));
+        world_tree->SetItemText(obj_to_treeId[object], Editor::PropertyRename(std::string(object->GetName())));
     }
     
     // this one's not used? yeet it?
     void AddChildren (wxTreeItemId parent_tree_node, Object* object) {
-        auto tree_node = world_tree->AppendItem(parent_tree_node, std::string(object->GetName()));
+        auto tree_node = world_tree->AppendItem(parent_tree_node, Editor::PropertyRename(std::string(object->GetName())));
         
         obj_to_treeId[object] = tree_node.GetID();
         treeId_to_obj[tree_node.GetID()] = object;
@@ -74,7 +75,7 @@ namespace Editor::WorldTree {
     
     void Rebuild() {
         world_tree->DeleteAllItems();
-        root_node = world_tree->AddRoot(std::string(worldcells->GetName()));
+        root_node = world_tree->AddRoot(Editor::PropertyRename(std::string(worldcells->GetName())));
         obj_to_treeId.clear();
         treeId_to_obj.clear();
         

@@ -1,42 +1,40 @@
 # Tramway SDK Level Editor
 
 ## To-do list
-- reimplement loading/saving
-- When conclude moving in viewport -- update PROPERTY panel and OBJECT list
-- Add "action" property to entities.
-- Add and also their managers
-	- Transition
-	- Navmesh
-	- Path
+- ~~Reimplement loading/saving~~
+- ~~When conclude moving in viewport -- update PROPERTY panel and OBJECT list~~
+- ~~Add "action" property to entities.~~
+- ~~Add and also their managers~~
+	- ~~Transition~~
+	- ~~Navmesh~~
+	- ~~Path~~
 - Add entity type registration plug
-- Add some kind of an "unsaved changes" flag
+- ~~Add some kind of an "unsaved changes" flag~~
 - Add "Ctrl" suffix to all widget classes
 
 
 ### Small features
-- Reload levels without restarting editor
+- ~~Reload levels without restarting editor~~
 - Cut/Copy/Paste
-- Different languages
 - Disable undo/redo buttons when these actions can't be performed
 - Add a settings menu
 	- Change the length of the undo/redo chain
 	- Change the key bindings
 - A menu that shows undo/redo history
 	- Need to add some metadata to undo/redo actions
-- Localization
+- ~~Localization~~
 - Viewport transforms better when multiple axis
-- Viewport mouse picking
 - Record the mouse pointer position when capturing it for the viewport and restore it when releasing it
 
 ### Optimizations
-- Undo/redo makes a copy of all of the properties of the object before they are modified
-	- It's possible to save some memory by copying only those properties that will actually be modified
+- ~~Undo/redo makes a copy of all of the properties of the object before they are modified~~
+	- ~~It's possible to save some memory by copying only those properties that will actually be modified~~
 - Rewrite the viewport movement code
 - Add std::move() to where it would be useful
 
 ### Bugs
-- Undo/redo does not change the name of the object in the tree menu
-	- Will be fixed when an optimization is implemented
+- ~~Undo/redo does not change the name of the object in the tree menu~~
+	- ~~Will be fixed when an optimization is implemented~~
 - Switching the type on a visible entity causes an assertion to fail
 	- RenderComponent does not support switching out its models while it is initialized
 	- Either the component needs to be re-initialized, or fixed in the engine code
@@ -51,9 +49,9 @@
 	- Snapping to 15/30/45 degrees for rotations
 	- Will need a special menu to configure the snap ammount
 - Viewport transforms in different coordinate spaces
-	- World space
+	- ~~World space~~
 	- Entity group space
-	- Entity space
+	- ~~Entity space~~
 - Different rotation measurements
 	- Radians
 	- Degrees

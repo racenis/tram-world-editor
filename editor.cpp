@@ -211,7 +211,8 @@ namespace Editor {
         auto defs = std::vector<PropertyDefinition> {
             {"group-entity", "Entity", "", PROPERTY_CATEGORY},
             {"name", "Name", "group-entity", PROPERTY_STRING},
-            {"group-position", "Location", "", PROPERTY_CATEGORY},
+            {"action", "Action", "group-entity", PROPERTY_STRING},
+            {"group-position", "Position", "", PROPERTY_CATEGORY},
             {"position-x", "X", "group-position", PROPERTY_FLOAT},
             {"position-y", "Y", "group-position", PROPERTY_FLOAT},
             {"position-z", "Z", "group-position", PROPERTY_FLOAT},

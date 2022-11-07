@@ -109,7 +109,7 @@ namespace Editor {
     }
     
     enum PropertyType {
-        PROPERTY_STRING,    // char*
+        PROPERTY_STRING,
         PROPERTY_FLOAT,     // float
         PROPERTY_INT,       // int64_t
         PROPERTY_UINT,      // uint64_t
@@ -315,7 +315,7 @@ namespace Editor {
     
     class EntityGroup : public Object {
     public:
-        EntityGroup(Object* parent) : EntityGroup(parent, std::string("Untitled EntityGroup ") + std::to_string(parent->GetChildren().size())) {}
+        EntityGroup(Object* parent) : EntityGroup(parent, std::string("New Entity Group")) {}
         EntityGroup(Object* parent, std::string name) : Object(parent) {
             properties["name"] = name;
         }
@@ -420,7 +420,7 @@ namespace Editor {
         };
 
         Transition(Object* parent) : Object(parent) {
-            properties["name"] = std::string("Transition");
+            properties["name"] = std::string("New Transition");
             properties["cell-into"] = std::string("none");
         }
         
@@ -442,7 +442,8 @@ namespace Editor {
         std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
             return std::vector<PropertyDefinition> {
                 {"group-transition", "Transition", "", PROPERTY_CATEGORY},
-                {"name", "Name", "group-transition", PROPERTY_STRING}
+                {"name", "Name", "group-transition", PROPERTY_STRING},
+                {"cell-into", "Into", "group-transition", PROPERTY_STRING},
             };
         }
         
@@ -544,7 +545,7 @@ namespace Editor {
         };
         
         Path (Object* parent) : Object(parent) {
-            properties["name"] = std::string("Path");
+            properties["name"] = std::string("New Path");
         }
         
         bool IsChildrenTreeable() { return false; }
@@ -645,7 +646,7 @@ namespace Editor {
         };
         
         Navmesh (Object* parent) : Object(parent) {
-            properties["name"] = std::string("Navmesh");
+            properties["name"] = std::string("New Navmesh");
         }
         
         bool IsChildrenTreeable() { return false; }
@@ -665,7 +666,7 @@ namespace Editor {
         
         std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
             return std::vector<PropertyDefinition> {
-                {"group-path", "Path", "", PROPERTY_CATEGORY},
+                {"group-path", "Navmesh", "", PROPERTY_CATEGORY},
                 {"name", "Name", "group-path", PROPERTY_STRING}
             };
         }
@@ -709,7 +710,7 @@ namespace Editor {
 
     class WorldCell : public Object {
     public:
-        WorldCell(Object* parent) : WorldCell(parent, "WorldCell") {}
+        WorldCell(Object* parent) : WorldCell(parent, "New Worldcell") {}
         WorldCell(Object* parent, std::string name) : Object(parent), 
             group_manager(std::make_shared<EntityGroupManager>(this)), 
             transition_manager(std::make_shared<TransitionManager>(this)),
@@ -758,7 +759,7 @@ namespace Editor {
     class WorldCellManager : public Object {
     public:
         WorldCellManager(Object* parent) {
-            properties["name"] = std::string("Pasaule");
+            properties["name"] = std::string("World");
         }
         
         std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
@@ -769,7 +770,7 @@ namespace Editor {
         
         std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
             return std::vector<PropertyDefinition> {
-                {"group-world-cell-manager", "WorldCell Manager", "", PROPERTY_CATEGORY}
+                {"group-world-cell-manager", "Worldcell Manager", "", PROPERTY_CATEGORY}
             };
         }
         
