@@ -3,25 +3,33 @@
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="src">
-    <File Name="language.cpp"/>
-    <File Name="language.h"/>
-    <File Name="viewport.cpp"/>
-    <File Name="viewport.h"/>
-    <File Name="objectmenu.h"/>
-    <File Name="worldtree.h"/>
-    <File Name="propertypanel.h"/>
-    <File Name="objectmenu.cpp"/>
-    <File Name="objectlist.cpp"/>
-    <File Name="propertypanel.cpp"/>
-    <File Name="worldtree.cpp"/>
-    <File Name="widgets.h"/>
-    <File Name="objectlist.h"/>
-    <File Name="actions.h"/>
-    <File Name="benis.cpp"/>
-    <File Name="editor.cpp"/>
-    <File Name="editor.h"/>
-    <File Name="main.cpp"/>
+    <File Name="src/init.cpp"/>
+    <File Name="src/tramsdk.cpp"/>
+    <File Name="src/main.cpp"/>
+    <VirtualDirectory Name="editor">
+      <File Name="src/editor/language.h"/>
+      <File Name="src/editor/language.cpp"/>
+      <File Name="src/editor/editor.h"/>
+      <File Name="src/editor/editor.cpp"/>
+      <File Name="src/editor/actions.h"/>
+    </VirtualDirectory>
+    <VirtualDirectory Name="widgets">
+      <File Name="src/widgets/mainframe.cpp"/>
+      <File Name="src/widgets/mainframe.h"/>
+      <File Name="src/widgets/worldtree.h"/>
+      <File Name="src/widgets/worldtree.cpp"/>
+      <File Name="src/widgets/viewport.h"/>
+      <File Name="src/widgets/viewport.cpp"/>
+      <File Name="src/widgets/propertypanel.h"/>
+      <File Name="src/widgets/propertypanel.cpp"/>
+      <File Name="src/widgets/objectmenu.h"/>
+      <File Name="src/widgets/objectmenu.cpp"/>
+      <File Name="src/widgets/objectlist.h"/>
+      <File Name="src/widgets/objectlist.cpp"/>
+    </VirtualDirectory>
   </VirtualDirectory>
+  <Dependencies Name="Debug"/>
+  <Dependencies Name="Release"/>
   <Settings Type="Executable">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -38,6 +46,7 @@
         <IncludePath Value="C:\Users\Poga\Desktop\painis\tram-sdk\libraries"/>
         <IncludePath Value="C:\Users\Poga\Desktop\painis\tram-sdk\src"/>
         <IncludePath Value="C:\Users\Poga\Desktop\painis\jam-game\src"/>
+        <IncludePath Value="C:\Users\Poga\Desktop\painis\tram-editor\src"/>
       </Compiler>
       <Linker Options="-mwindows;-pipe -lwxmsw31u_gl -lwxmsw31u_propgrid -lwxmsw31u_aui -lwxmsw31u_xrc -lwxmsw31u_webview -lwxmsw31u_html -lwxmsw31u_adv -lwxmsw31u_core -lwxbase31u_xml -lwxbase31u_net -lwxbase31u" Required="yes">
         <LibraryPath Value="C:\Users\Poga\Desktop\miskaste\wxwidgets\lib\gcc_dll"/>
@@ -116,6 +125,4 @@
       </Completion>
     </Configuration>
   </Settings>
-  <Dependencies Name="Debug"/>
-  <Dependencies Name="Release"/>
 </CodeLite_Project>

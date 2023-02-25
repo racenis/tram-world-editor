@@ -1,21 +1,24 @@
-#include <objectmenu.h>
-#include <editor.h>
-#include <language.h>
-#include <actions.h>
+#include <editor/editor.h>
+#include <editor/language.h>
+#include <editor/actions.h>
 
-EditorObjectMenu::EditorObjectMenu () : wxMenu() {
+#include <widgets/objectmenu.h>
+
+ObjectMenuCtrl* world_tree_popup = nullptr;
+
+ObjectMenuCtrl::ObjectMenuCtrl () : wxMenu() {
     is_visible_checkbox = AppendCheckItem(1, Editor::selected_language->dialog_show); 
     add_selection = Append(2, Editor::selected_language->dialog_add_new);
     edit_selection = Append(3, Editor::selected_language->dialog_edit);
     delete_selection = Append(4, Editor::selected_language->dialog_delete);
     
-    this->Bind(wxEVT_MENU, &EditorObjectMenu::OnIsVisibleCheckboxClick, this, 1);
-    this->Bind(wxEVT_MENU, &EditorObjectMenu::OnAddSelection, this, 2);
-    this->Bind(wxEVT_MENU, &EditorObjectMenu::OnEditSelection, this, 3);
-    this->Bind(wxEVT_MENU, &EditorObjectMenu::OnDeleteSelection, this, 4);
+    this->Bind(wxEVT_MENU, &ObjectMenuCtrl::OnIsVisibleCheckboxClick, this, 1);
+    this->Bind(wxEVT_MENU, &ObjectMenuCtrl::OnAddSelection, this, 2);
+    this->Bind(wxEVT_MENU, &ObjectMenuCtrl::OnEditSelection, this, 3);
+    this->Bind(wxEVT_MENU, &ObjectMenuCtrl::OnDeleteSelection, this, 4);
 }
 
-void EditorObjectMenu::SetSelectionStatus(Editor::Selection* selection) {
+void ObjectMenuCtrl::SetSelectionStatus(Editor::Selection* selection) {
     bool is_visible, is_addable, is_editable, is_deletable;
     is_visible = is_addable = is_editable = is_deletable = true;
     
@@ -30,7 +33,7 @@ void EditorObjectMenu::SetSelectionStatus(Editor::Selection* selection) {
     delete_selection->Enable(is_deletable);
 }
 
-void EditorObjectMenu::OnIsVisibleCheckboxClick(wxCommandEvent& event) {
+void ObjectMenuCtrl::OnIsVisibleCheckboxClick(wxCommandEvent& event) {
     std::cout << "Clicked on is visible!" << std::endl;
     // TODO: move this code out into editor.h logic code
     bool is_hidden = false;
@@ -38,14 +41,14 @@ void EditorObjectMenu::OnIsVisibleCheckboxClick(wxCommandEvent& event) {
     for (auto& object : Editor::selection->objects) { object->SetHidden(!is_hidden); }
 }
 
-void EditorObjectMenu::OnAddSelection(wxCommandEvent& event) {
+void ObjectMenuCtrl::OnAddSelection(wxCommandEvent& event) {
     Editor::PerformAction<Editor::ActionNew>();
 }
 
-void EditorObjectMenu::OnEditSelection(wxCommandEvent& event) {
+void ObjectMenuCtrl::OnEditSelection(wxCommandEvent& event) {
     Editor::PropertyPanel::SetCurrentSelection();
 }
 
-void EditorObjectMenu::OnDeleteSelection(wxCommandEvent& event) {
+void ObjectMenuCtrl::OnDeleteSelection(wxCommandEvent& event) {
     Editor::PerformAction<Editor::ActionRemove>();
 }

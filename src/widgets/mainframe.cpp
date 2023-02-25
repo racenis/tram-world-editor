@@ -1,29 +1,16 @@
-#include <widgets.h>
-#include <objectlist.h>
-#include <objectmenu.h>
-#include <propertypanel.h>
-#include <worldtree.h>
-#include <viewport.h>
-#include <language.h>
+#include <wx/aboutdlg.h>
+#include <wx/progdlg.h>
 
-#include <wx/splitter.h>
-#include <wx/sizer.h>
+#include <editor/editor.h>
+#include <editor/language.h>
 
-// TODO: move these out of here
-MainFrame* main_frame = nullptr;
-WorldTree* world_tree = nullptr;
-ObjectListCtrl* object_list = nullptr;
-PropertyPanel* property_panel = nullptr;
-EditorObjectMenu* world_tree_popup = nullptr;
-ViewportCtrl* viewport = nullptr;
+#include <widgets/mainframe.h>
+#include <widgets/objectlist.h>
+#include <widgets/objectmenu.h>
+#include <widgets/propertypanel.h>
+#include <widgets/viewport.h>
+#include <widgets/worldtree.h>
 
-// TODO: check which of these can be yeeted
-#include <editor.h>
-#include <actions.h>
-
-auto& lang = Editor::selected_language;
-
-// TODO: check of which these can be yeeted
 enum {
     ID_Hello = 1,
     ID_New_Member = 2,
@@ -50,29 +37,11 @@ enum {
     ID_Settings_Language = 200
 };
 
+MainFrameCtrl* main_frame = nullptr;
 
+auto& lang = Editor::selected_language;
 
-class TramEditor : public wxApp {
-public:
-    bool OnInit() {
-        Editor::Settings::Load();
-        Editor::selected_language = Editor::Languages[Editor::Settings::INTERFACE_LANGUAGE];
-        Editor::ResetRename();
-        Editor::Init();
-        Editor::Reset();
-        
-        main_frame = new MainFrame();
-        main_frame->Show(true);
-        main_frame->OpenViewport();
-        
-        return true;
-    }
-};
-
-wxIMPLEMENT_APP(TramEditor);
-
-// TODO: move this into a seperate file
-MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, lang->title_bar, wxDefaultPosition, wxSize(800, 600), wxDEFAULT_FRAME_STYLE) {    
+MainFrameCtrl::MainFrameCtrl() : wxFrame(NULL, wxID_ANY, lang->title_bar, wxDefaultPosition, wxSize(800, 600), wxDEFAULT_FRAME_STYLE) {    
     using namespace Editor::Settings;
     
     // --- MENUS ---
@@ -115,62 +84,28 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, lang->title_bar, wxDefaultPosit
     CreateStatusBar();
     SetStatusText(lang->info_ready);
     
-    Bind(wxEVT_MENU, &MainFrame::OnAction, this);
+    Bind(wxEVT_MENU, &MainFrameCtrl::OnAction, this);
     
-    Bind(wxEVT_MENU, &MainFrame::OnHello, this, ID_Hello);
-    Bind(wxEVT_MENU, &MainFrame::OnAbout, this, wxID_ABOUT);
-    Bind(wxEVT_MENU, &MainFrame::OnExit, this, wxID_EXIT);
+    Bind(wxEVT_MENU, &MainFrameCtrl::OnHello, this, ID_Hello);
+    Bind(wxEVT_MENU, &MainFrameCtrl::OnAbout, this, wxID_ABOUT);
+    Bind(wxEVT_MENU, &MainFrameCtrl::OnExit, this, wxID_EXIT);
     
-    Bind(wxEVT_MENU, &MainFrame::OnLoadCells, this, ID_Load_Cells);
-    Bind(wxEVT_MENU, &MainFrame::OnSaveCells, this, ID_Save_Cells);
+    Bind(wxEVT_MENU, &MainFrameCtrl::OnLoadCells, this, ID_Load_Cells);
+    Bind(wxEVT_MENU, &MainFrameCtrl::OnSaveCells, this, ID_Save_Cells);
     
-    Bind(wxEVT_MENU, &MainFrame::OnAction, this, ID_Action_Redo);
-    Bind(wxEVT_MENU, &MainFrame::OnAction, this, ID_Action_Undo);
+    Bind(wxEVT_MENU, &MainFrameCtrl::OnAction, this, ID_Action_Redo);
+    Bind(wxEVT_MENU, &MainFrameCtrl::OnAction, this, ID_Action_Undo);
     
-    Bind(wxEVT_CLOSE_WINDOW, &MainFrame::OnClose, this);
+    Bind(wxEVT_CLOSE_WINDOW, &MainFrameCtrl::OnClose, this);
     
     // --- POP-UP MENUS ---
-    world_tree_popup = new EditorObjectMenu;
-    
-    /*
-    wxSplitterWindow* main_split = new wxSplitterWindow(this, -1, wxDefaultPosition, wxDefaultSize, wxSP_3D);
-    wxSplitterWindow* bottom_panels = new wxSplitterWindow(main_split, -1, wxDefaultPosition, wxDefaultSize, wxSP_3D);
-
-    wxTextCtrl* output_text_ctrl = new wxTextCtrl(bottom_panels, -1, "", wxDefaultPosition, wxSize(200,150), wxNO_BORDER | wxTE_READONLY | wxTE_MULTILINE);
-    std_cout_redirect = new wxStreamToTextRedirector(output_text_ctrl);
-    object_list = new ObjectListCtrl(bottom_panels);
-    
-    bottom_panels->SetMinimumPaneSize(20);
-    bottom_panels->SetSashGravity(0.5f);
-    bottom_panels->SplitVertically(object_list, output_text_ctrl);
-    
-    wxSplitterWindow* top_split = new wxSplitterWindow(main_split, -1, wxDefaultPosition, wxDefaultSize, wxSP_3D);
-    wxSplitterWindow* left_panels = new wxSplitterWindow(top_split, -1, wxDefaultPosition, wxDefaultSize, wxSP_3D);
-    
-    property_panel = new PropertyPanel(left_panels);
-    world_tree = new WorldTree(left_panels);
-    
-    left_panels->SetMinimumPaneSize(20);
-    left_panels->SetSashGravity(0.5f);
-    left_panels->SplitHorizontally(world_tree, property_panel);
-    
-    viewport = new ViewportCtrl(top_split);
-    
-    top_split->SetMinimumPaneSize(20);
-    top_split->SplitVertically(left_panels, viewport, 200);
-    
-    main_split->SetMinimumPaneSize(20);
-    main_split->SetSashGravity(1.0f);
-    main_split->SplitHorizontally(top_split, bottom_panels, -150);*/
-    
-    
-    // commented, because AUI keeps crashing with the viewport
+    world_tree_popup = new ObjectMenuCtrl;
     
     wxTextCtrl* output_text_ctrl = new wxTextCtrl(this, -1, "", wxDefaultPosition, wxSize(200,150), wxNO_BORDER | wxTE_READONLY | wxTE_MULTILINE);
     std_cout_redirect = new wxStreamToTextRedirector(output_text_ctrl);
     object_list = new ObjectListCtrl(this);
-    property_panel = new PropertyPanel(this);
-    world_tree = new WorldTree(this);
+    property_panel = new PropertyPanelCtrl(this);
+    world_tree = new WorldTreeCtrl(this);
     viewport = new ViewportCtrl(this);
     
     m_mgr.SetManagedWindow(this);
@@ -193,21 +128,9 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, lang->title_bar, wxDefaultPosit
     m_mgr.SetFlags(flags);
     m_mgr.Update();
     
-    
-
-
-
-    
     // --- PANEL INITS ---
     //Editor::ProduceTestData();
     Editor::WorldTree::Rebuild();
-}
-
-void MainFrame::OpenViewport() {
-    //viewport = new ViewportCtrl(this);
-    
-    //m_mgr.AddPane(viewport, wxCENTER, L"HUMONGOUS");
-    //m_mgr.Update();
 }
 
 void SaveCells() {
@@ -232,7 +155,7 @@ void SaveCells() {
 
 
 
-void MainFrame::OnClose(wxCloseEvent& event) {
+void MainFrameCtrl::OnClose(wxCloseEvent& event) {
     if (event.CanVeto() && Editor::data_modified) {
         wxMessageDialog confirmation (this, lang->dialog_save_data, lang->dialog_data_loss, wxYES_NO | wxCANCEL | wxCANCEL_DEFAULT | wxICON_EXCLAMATION);
         auto result = confirmation.ShowModal();
@@ -250,13 +173,13 @@ void MainFrame::OnClose(wxCloseEvent& event) {
     Destroy();
 }
 
-void MainFrame::OnExit(wxCommandEvent& event) {
+void MainFrameCtrl::OnExit(wxCommandEvent& event) {
     Close();
 }
  
 
 
-void MainFrame::OnAbout(wxCommandEvent& event)
+void MainFrameCtrl::OnAbout(wxCommandEvent& event)
 {
     wxAboutDialogInfo aboutInfo;
     aboutInfo.SetName(lang->dialog_about_name);
@@ -267,12 +190,12 @@ void MainFrame::OnAbout(wxCommandEvent& event)
     wxAboutBox(aboutInfo);
 }
  
-void MainFrame::OnHello(wxCommandEvent& event)
+void MainFrameCtrl::OnHello(wxCommandEvent& event)
 {
     wxLogMessage("Hello world from wxWidgets!");
 }
 
-void MainFrame::OnAction(wxCommandEvent& event) {
+void MainFrameCtrl::OnAction(wxCommandEvent& event) {
     using namespace Editor::Settings;
     switch (event.GetId()) {
         case ID_Action_Redo:
@@ -311,7 +234,7 @@ void MainFrame::OnAction(wxCommandEvent& event) {
     }
 }
 
-void MainFrame::OnLoadCells(wxCommandEvent& event) {
+void MainFrameCtrl::OnLoadCells(wxCommandEvent& event) {
     if (Editor::data_modified) {
         wxMessageDialog confirmation (this, lang->dialog_load_data, lang->dialog_data_loss, wxYES_NO | wxCANCEL | wxCANCEL_DEFAULT | wxICON_EXCLAMATION);
         if(confirmation.ShowModal() != wxID_YES) {
@@ -340,7 +263,7 @@ void MainFrame::OnLoadCells(wxCommandEvent& event) {
     std::cout << lang->dialog_finished << std::endl;
 }
 
-void MainFrame::OnSaveCells(wxCommandEvent& event) {
+void MainFrameCtrl::OnSaveCells(wxCommandEvent& event) {
     SaveCells();
     Editor::data_modified = false;
 }

@@ -1,5 +1,5 @@
-#ifndef LANGUAGE_H
-#define LANGUAGE_H
+#ifndef EDITOR_LANGUAGE_H
+#define EDITOR_LANGUAGE_H
 
 #include <string>
 
@@ -161,4 +161,4 @@ namespace Editor {
     std::wstring PropertyRename (const std::string& name);
 }
 
-#endif // LANGUAGE_H
+#endif // EDITOR_LANGUAGE_H

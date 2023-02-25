@@ -1,5 +1,5 @@
-#ifndef OBJECTLIST_H
-#define OBJECTLIST_H
+#ifndef WIDGETS_OBJECTLIST_H
+#define WIDGETS_OBJECTLIST_H
 
 #include <wx/listctrl.h>
 
@@ -20,4 +20,6 @@ public:
     void OnItemActivated(wxListEvent& event);
 };
 
-#endif // OBJECTLIST_H
+extern ObjectListCtrl* object_list;
+
+#endif // WIDGETS_OBJECTLIST_H

@@ -1,9 +1,12 @@
-#include <editor.h>
-#include <language.h>
-#include <actions.h>
-#include <widgets.h>
-#include <objectmenu.h>
-#include <worldtree.h>
+#include <editor/editor.h>
+#include <editor/language.h>
+#include <editor/actions.h>
+
+#include <widgets/mainframe.h>
+#include <widgets/objectmenu.h>
+#include <widgets/worldtree.h>
+
+WorldTreeCtrl* world_tree = nullptr;
 
 namespace Editor::WorldTree {
     std::unordered_map<worldTreeID_t, Object*> treeId_to_obj;
@@ -95,18 +98,18 @@ namespace Editor::WorldTree {
     }
 }
 
-WorldTree::WorldTree (wxWindow* parent) : wxTreeCtrl(parent, -1, wxDefaultPosition, wxSize(200, 150), wxTR_DEFAULT_STYLE | wxTR_MULTIPLE) {
-    Bind(wxEVT_TREE_ITEM_MENU, &WorldTree::OnMenuOpen, this);
-    Bind(wxEVT_TREE_SEL_CHANGED, &WorldTree::OnSelectionChanged, this);
-    Bind(wxEVT_TREE_ITEM_ACTIVATED, &WorldTree::OnItemActivated, this);
+WorldTreeCtrl::WorldTreeCtrl (wxWindow* parent) : wxTreeCtrl(parent, -1, wxDefaultPosition, wxSize(200, 150), wxTR_DEFAULT_STYLE | wxTR_MULTIPLE) {
+    Bind(wxEVT_TREE_ITEM_MENU, &WorldTreeCtrl::OnMenuOpen, this);
+    Bind(wxEVT_TREE_SEL_CHANGED, &WorldTreeCtrl::OnSelectionChanged, this);
+    Bind(wxEVT_TREE_ITEM_ACTIVATED, &WorldTreeCtrl::OnItemActivated, this);
 }
 
-void WorldTree::OnMenuOpen (wxTreeEvent& event) {
+void WorldTreeCtrl::OnMenuOpen (wxTreeEvent& event) {
     world_tree_popup->SetSelectionStatus(Editor::selection.get());
     main_frame->PopupMenu(world_tree_popup);
 }
 
-void WorldTree::OnSelectionChanged (wxTreeEvent& event) {
+void WorldTreeCtrl::OnSelectionChanged (wxTreeEvent& event) {
     wxArrayTreeItemIds selected_ids;
     size_t selected_count = GetSelections(selected_ids);
     
@@ -121,7 +124,7 @@ void WorldTree::OnSelectionChanged (wxTreeEvent& event) {
 
 // this method gets called when you double-click an item
 // idk what to do with it..
-void WorldTree::OnItemActivated (wxTreeEvent& event) {
+void WorldTreeCtrl::OnItemActivated (wxTreeEvent& event) {
     //Editor::PropertyPanel::SetCurrentSelection();
     //Editor::ObjectList::SetCurrentSelection();
 }

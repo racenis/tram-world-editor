@@ -1,9 +1,9 @@
 #include <glad.h>
 
-#include <editor.h>
-#include <actions.h>
-#include <widgets.h>
-#include <viewport.h>
+#include <editor/editor.h>
+#include <editor/actions.h>
+
+#include <widgets/viewport.h>
 
 using namespace Editor;
 
@@ -14,6 +14,8 @@ using namespace Editor;
 #include <render/render.h>
 
 #include <components/rendercomponent.h>
+
+ViewportCtrl* viewport = nullptr;
 
 void Editor::Viewport::Refresh() {
     viewport->Refresh();

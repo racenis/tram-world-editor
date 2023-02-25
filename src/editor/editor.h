@@ -1,5 +1,5 @@
-#ifndef EDITOR_H
-#define EDITOR_H
+#ifndef EDITOR_EDITOR_H
+#define EDITOR_EDITOR_H
 
 #include <list>
 #include <string>
@@ -12,6 +12,7 @@
 
 namespace Core {
     class RenderComponent;
+    class SerializedEntityData;
 }
 
 namespace Editor {
@@ -78,7 +79,8 @@ namespace Editor {
     void Init();
     void Reset();
     void Yeet();
-    void ProduceTestData();
+    
+    void RegisterEntityType(Core::SerializedEntityData* instance);
 
     /// Editor action.
     class Action {
@@ -145,7 +147,7 @@ namespace Editor {
     
     /// Enumeration property values.
     /// Map that contains lists of possible values for all enumerations.
-    extern std::unordered_map<std::string, std::vector<std::string>> property_enumerations;
+    extern std::unordered_map<std::string, std::vector<std::string>> PROPERTY_ENUMERATIONS;
     
     // maybe add a move constructor to this class?
     /// Value of a property.
@@ -417,15 +419,6 @@ namespace Editor {
             bool IsRemovable() { return true; }
             bool IsEditable() { return true; }
             bool IsCopyable() { return true; }
-            
-            /*std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
-                return std::vector<PropertyDefinition> {
-                    {"name", "Name", "", PROPERTY_STRING},
-                    {"position-x", "X", "", PROPERTY_FLOAT},
-                    {"position-y", "Y", "", PROPERTY_FLOAT},
-                    {"position-z", "Z", "", PROPERTY_FLOAT}
-                };
-            }*/
             
             std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
                 return std::vector<PropertyDefinition> {
@@ -765,8 +758,6 @@ namespace Editor {
                 {"is-interior-lighting", "Interior Lighting", "group-worldcell", PROPERTY_BOOL}
             };
         }
-        
-        //std::list<std::shared_ptr<Object>> GetChildren() { return std::list<std::shared_ptr<Object>> { group_manager }; }
         
         std::shared_ptr<EntityGroupManager> group_manager;
         std::shared_ptr<TransitionManager> transition_manager;

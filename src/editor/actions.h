@@ -1,7 +1,7 @@
-#ifndef ACTIONS_H
-#define ACTIONS_H
+#ifndef EDITOR_ACTIONS_H
+#define EDITOR_ACTIONS_H
 
-#include <editor.h>
+#include <editor/editor.h>
 
 namespace Editor {    
     class ActionChangeSelection : public Action {
@@ -225,4 +225,4 @@ namespace Editor {
     };*/
 }
 
-#endif // ACTIONS_H
+#endif // EDITOR_ACTIONS_H

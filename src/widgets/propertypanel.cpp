@@ -1,10 +1,12 @@
-#include <editor.h>
-#include <language.h>
-#include <actions.h>
-#include <widgets.h>
-#include <propertypanel.h>
+#include <editor/editor.h>
+#include <editor/language.h>
+#include <editor/actions.h>
+
+#include <widgets/propertypanel.h>
 
 std::unordered_map<std::string, bool> category_is_collapsed;
+
+PropertyPanelCtrl* property_panel = nullptr;
 
 void Editor::PropertyPanel::SetCurrentSelection() {
     property_panel->Clear();
@@ -36,7 +38,7 @@ void Editor::PropertyPanel::SetCurrentSelection() {
                         case PROPERTY_ENUM:
                             {
                                 wxPGChoices choices;
-                                for (auto& enumeration: property_enumerations[field.name]) choices.Add(Editor::PropertyRename(enumeration));
+                                for (auto& enumeration: PROPERTY_ENUMERATIONS[field.name]) choices.Add(Editor::PropertyRename(enumeration));
                                 field_ptr = new wxEnumProperty(Editor::PropertyRename(field.display_name), field.name, choices);
                             }
                             break;
@@ -127,13 +129,13 @@ void Editor::PropertyPanel::Refresh() {
 }
 
 
-PropertyPanel::PropertyPanel (wxWindow* parent) : wxPropertyGrid(parent, -1) {
-    Bind(wxEVT_PG_CHANGED, &PropertyPanel::OnChanged, this);
-    Bind(wxEVT_PG_ITEM_COLLAPSED, &PropertyPanel::OnCollapsed, this);
-    Bind(wxEVT_PG_ITEM_EXPANDED, &PropertyPanel::OnExpanded, this);
+PropertyPanelCtrl::PropertyPanelCtrl (wxWindow* parent) : wxPropertyGrid(parent, -1) {
+    Bind(wxEVT_PG_CHANGED, &PropertyPanelCtrl::OnChanged, this);
+    Bind(wxEVT_PG_ITEM_COLLAPSED, &PropertyPanelCtrl::OnCollapsed, this);
+    Bind(wxEVT_PG_ITEM_EXPANDED, &PropertyPanelCtrl::OnExpanded, this);
 }
 
-void PropertyPanel::OnChanged (wxPropertyGridEvent& event) {
+void PropertyPanelCtrl::OnChanged (wxPropertyGridEvent& event) {
     auto value = event.GetValue();
     auto value_name = event.GetPropertyName().ToStdString();
     
@@ -164,10 +166,10 @@ void PropertyPanel::OnChanged (wxPropertyGridEvent& event) {
     Editor::Viewport::Refresh();
 }
 
-void PropertyPanel::OnCollapsed (wxPropertyGridEvent& event) {
+void PropertyPanelCtrl::OnCollapsed (wxPropertyGridEvent& event) {
     category_is_collapsed[event.GetPropertyName().ToStdString()] = true;
 }
 
-void PropertyPanel::OnExpanded (wxPropertyGridEvent& event) {
+void PropertyPanelCtrl::OnExpanded (wxPropertyGridEvent& event) {
     category_is_collapsed[event.GetPropertyName().ToStdString()] = false;
 }

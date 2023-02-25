@@ -1,5 +1,6 @@
-#include <language.h>
-#include <editor.h>
+#include <editor/language.h>
+#include <editor/editor.h>
+
 #include <unordered_map>
 
 Editor::Language* Editor::Languages[2] = {&Language_LV, &Language_EN};

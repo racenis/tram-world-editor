@@ -1,13 +1,16 @@
-#include <editor.h>
-#include <language.h>
-#include <actions.h>
-#include <widgets.h>
-#include <objectmenu.h>
-#include <objectlist.h>
+#include <editor/editor.h>
+#include <editor/language.h>
+#include <editor/actions.h>
+
+#include <widgets/mainframe.h>
+#include <widgets/objectmenu.h>
+#include <widgets/objectlist.h>
 
 using namespace Editor;
 std::vector<PropertyDefinition> columns;
 std::shared_ptr<Object> selected_object;
+
+ObjectListCtrl* object_list = nullptr;
 
 auto GetSelectedObject() {
     if (selection->objects.size() > 0) {

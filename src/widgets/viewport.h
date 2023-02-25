@@ -1,5 +1,5 @@
-#ifndef VIEWPORT_H
-#define VIEWPORT_H
+#ifndef WIDGETS_VIEWPORT_H
+#define WIDGETS_VIEWPORT_H
 
 #include <wx/glcanvas.h>
 #include <wx/timer.h>
@@ -52,4 +52,6 @@ private:
     wxGLContext* m_context;
 };
 
-#endif // VIEWPORT_H
+extern ViewportCtrl* viewport;
+
+#endif // WIDGETS_VIEWPORT_H
