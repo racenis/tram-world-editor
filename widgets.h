@@ -40,6 +40,7 @@ public:
         // deinitialize the frame manager
         m_mgr.UnInit();
     }
+    void OpenViewport();
 protected:
     wxAuiManager m_mgr;
     void OnHello(wxCommandEvent& event);

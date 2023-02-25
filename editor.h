@@ -7,7 +7,8 @@
 #include <memory>
 #include <typeinfo>
 #include <unordered_map>
-#include <serializeddata.h>
+#include <iostream>
+#include <framework/serializeddata.h>
 
 namespace Core {
     class RenderComponent;
@@ -17,6 +18,7 @@ namespace Editor {
     typedef void* worldTreeID_t;
     class Object;
     
+    /// World tree panel.
     namespace WorldTree {
         void Add (Object* object);
         void Remove (Object* object);
@@ -26,21 +28,25 @@ namespace Editor {
     }
     
     // I think that we should remove SetCurrentSelection() functions from all of these
+    /// Property panel.
     namespace PropertyPanel {
         void SetCurrentSelection();
         void Refresh();
     }
     
+    /// Object list panel.
     namespace ObjectList {
         void SetCurrentSelection();
         void Refresh();
     }
     
+    /// Viewport panel.
     namespace Viewport {
         void SetCurrentSelection();
         void Refresh();
     }
     
+    /// Global program settings.
     namespace Settings {
         enum Space {
             SPACE_WORLD,
@@ -74,6 +80,7 @@ namespace Editor {
     void Yeet();
     void ProduceTestData();
 
+    /// Editor action.
     class Action {
     public:
         virtual void Perform() = 0;
@@ -81,9 +88,11 @@ namespace Editor {
         virtual ~Action() = default;
     };
     
+    // TODO: all caps, maybe?
     extern std::list<std::unique_ptr<Action>> performed_actions;
     extern std::list<std::unique_ptr<Action>> unperformed_actions;
     
+    /// Performs an Action and adds it to the list of performed actions.
     template <typename action, typename ...Args> void PerformAction (Args && ...args) {
         if (performed_actions.size() > 20) {
             performed_actions.pop_front();
@@ -92,6 +101,7 @@ namespace Editor {
         performed_actions.push_back(std::make_unique<action>(std::forward<Args>(args)...));
     }
     
+    /// Unperforms a single action.
     inline void Undo() {
         if (performed_actions.size()) {
             unperformed_actions.push_back(std::move(performed_actions.back()));
@@ -100,6 +110,7 @@ namespace Editor {
         }
     }
     
+    /// Reperforms a single action that was previously unperformed.
     inline void Redo() {
         if (unperformed_actions.size()) {
             performed_actions.push_back(std::move(unperformed_actions.back()));
@@ -108,6 +119,7 @@ namespace Editor {
         }
     }
     
+    /// Property types for objects.
     enum PropertyType {
         PROPERTY_STRING,
         PROPERTY_FLOAT,     // float
@@ -121,16 +133,22 @@ namespace Editor {
     
     // property name being a string is very inefficient, but it's the easier option
     // when working with the wxWidgets property panel widget
+    /// Definition of a property.
+    /// These definitions determine how the Object properties will be displayed
+    /// in the PropertyPanel and the ObjectList.
     struct PropertyDefinition {
-        std::string name;
-        std::string display_name;
-        std::string category_name;
-        PropertyType type;
+        std::string name;           /// Name of the property.
+        std::string display_name; // TODO: yeet this
+        std::string category_name;  /// Category to which this property belongs.
+        PropertyType type;          /// Type of the property.
     };
     
+    /// Enumeration property values.
+    /// Map that contains lists of possible values for all enumerations.
     extern std::unordered_map<std::string, std::vector<std::string>> property_enumerations;
     
     // maybe add a move constructor to this class?
+    /// Value of a property.
     struct PropertyValue {
         PropertyValue() { type = PROPERTY_NULL; }
         PropertyValue(const std::string& value) : str_value(value) { type = PROPERTY_STRING; }
@@ -214,6 +232,7 @@ namespace Editor {
         };
     };
     
+    /// Editor object base class.
     class Object : public std::enable_shared_from_this<Object> {
     public:
         Object() = default;
@@ -261,7 +280,6 @@ namespace Editor {
         
         // takes in the property name and copies the value from the void* pointer into it
         virtual void SetProperty (std::string property_name, PropertyValue property_value) { properties[property_name] = property_value; if (property_name == "name" && parent && parent->IsChildrenTreeable()) WorldTree::Rename(this); }
-        
     };
     
     class WorldCell;
@@ -278,7 +296,6 @@ namespace Editor {
 }
 
 namespace Editor {
-    struct EntityData;
     class Entity : public Object {
     public:
         Entity(Object* parent) : Entity(parent, "New Entity") {}
@@ -310,7 +327,8 @@ namespace Editor {
         
         void SetProperty (std::string property_name, PropertyValue property_value);
         
-        EntityData* entity_data = nullptr;
+        void CheckModel();
+        Core::RenderComponent* model = nullptr;
     };
     
     class EntityGroup : public Object {

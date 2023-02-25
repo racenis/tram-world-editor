@@ -7,8 +7,10 @@
 
 using namespace Editor;
 
-#include <core.h>
-#include <async.h>
+#include <framework/core.h>
+#include <framework/async.h>
+#include <framework/language.h>
+#include <framework/system.h>
 #include <render/render.h>
 
 #include <components/rendercomponent.h>
@@ -22,18 +24,17 @@ void Editor::Viewport::SetCurrentSelection() {
 }
 
 ViewportCtrl::ViewportCtrl(wxWindow* parent) : wxGLCanvas(parent, wxID_ANY, nullptr, wxDefaultPosition, wxDefaultSize, 0L, L"GLCanvas", wxNullPalette), key_timer(this) {
+    //assert(GetParent()->IsShown());
+    
+    
+    // performing regular tram-sdk initialization
+
+    Core::Init();
+    
+    // we're not using framework's UI system, so we'll do it ourselves
+    
     m_context = new wxGLContext(this);
-    Bind(wxEVT_PAINT, &ViewportCtrl::OnPaint, this);
-    Bind(wxEVT_LEFT_UP, &ViewportCtrl::OnLeftClick, this);
-    Bind(wxEVT_RIGHT_UP, &ViewportCtrl::OnRightClick, this);
-    Bind(wxEVT_MOTION, &ViewportCtrl::OnMouseMove, this);
-    Bind(wxEVT_SIZE, &ViewportCtrl::OnSizeChange, this);
-    Bind(wxEVT_KEY_DOWN, &ViewportCtrl::OnKeydown, this);
-    Bind(wxEVT_KEY_UP, &ViewportCtrl::OnKeyup, this);
-    Bind(wxEVT_TIMER, &ViewportCtrl::OnTimer, this);
-
     SetCurrent(*m_context);
-
     gladLoadGL();
 
     std::cout << "OpenGL: " << glGetString(GL_VERSION) << std::endl;
@@ -41,18 +42,20 @@ ViewportCtrl::ViewportCtrl(wxWindow* parent) : wxGLCanvas(parent, wxID_ANY, null
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     
-    using namespace Core;
-    using namespace Core::Render;
-    Core::Init();
+    Core::System::SetInitialized(Core::System::SYSTEM_UI, true);
+    
     Core::Render::Init();
     Core::Async::Init();
     
-    Material::SetErrorMaterial(new Material(UID("defaulttexture"), Material::TEXTURE));
-    Model::SetErrorModel(new Model(UID("errorstatic")));
+    //Material::SetErrorMaterial(new Material(UID("defaulttexture"), Material::TEXTURE));
+    //Model::SetErrorModel(new Model(UID("errorstatic")));
 
-    LoadText("data/lv.lang");
+    //LoadText("data/lv.lang");
     
-    Material::LoadMaterialInfo("data/texture.list");
+    
+    Core::Language::Load("data/lv.lang");
+    
+    Core::Render::Material::LoadMaterialInfo("data/texture.list");
     
     // create the mongus model
     //monguser = PoolProxy<RenderComponent>::New();
@@ -62,8 +65,17 @@ ViewportCtrl::ViewportCtrl(wxWindow* parent) : wxGLCanvas(parent, wxID_ANY, null
     //monguser->UpdateLocation(glm::vec3(0.0f, 0.0f, 0.0f));
     //monguser->UpdateRotation(glm::quat(glm::vec3(0.0f, 0.0f, 0.0f)));
     
-    CAMERA_POSITION = glm::vec3(0.0f, 0.0f, 5.0f);
-    CAMERA_ROTATION = glm::quat(glm::vec3(0.0f, 0.0f, 0.0f));
+    Core::Render::CAMERA_POSITION = glm::vec3(0.0f, 0.0f, 5.0f);
+    Core::Render::CAMERA_ROTATION = glm::quat(glm::vec3(0.0f, 0.0f, 0.0f));
+    
+    Bind(wxEVT_PAINT, &ViewportCtrl::OnPaint, this);
+    Bind(wxEVT_LEFT_UP, &ViewportCtrl::OnLeftClick, this);
+    Bind(wxEVT_RIGHT_UP, &ViewportCtrl::OnRightClick, this);
+    Bind(wxEVT_MOTION, &ViewportCtrl::OnMouseMove, this);
+    Bind(wxEVT_SIZE, &ViewportCtrl::OnSizeChange, this);
+    Bind(wxEVT_KEY_DOWN, &ViewportCtrl::OnKeydown, this);
+    Bind(wxEVT_KEY_UP, &ViewportCtrl::OnKeyup, this);
+    Bind(wxEVT_TIMER, &ViewportCtrl::OnTimer, this);
 }
 
 ViewportCtrl::~ViewportCtrl()
@@ -298,15 +310,22 @@ void ViewportCtrl::OnTimer(wxTimerEvent& event) {
 }
 
 void ViewportCtrl::OnSizeChange(wxSizeEvent& event) {
+    //assert(GetParent()->IsShown());
+    
     int width, height;
     GetSize(&width, &height);
     glViewport(0, 0, width, height);
+    return;
+    
     Core::Render::ScreenSize(width, height);
 }
 
 void ViewportCtrl::OnPaint(wxPaintEvent& event)
 {
-    SetCurrent(*m_context);
+    //assert(GetParent()->IsShown());
+    //if (!GetParent()->IsShown()) return;
+        
+    //SetCurrent(*m_context);
 
     using namespace Core;
     using namespace Core::Render;
@@ -388,7 +407,8 @@ void ViewportCtrl::OnPaint(wxPaintEvent& event)
     
     AddLineMarker(glm::vec3(0.0f, 0.0f, 0.0f), COLOR_CYAN);
     
-    SetSun(time_of_day);
+    //SetSun(time_of_day);
+    SetSun(0.8f);
 
     
     Async::ResourceLoader2ndStage();

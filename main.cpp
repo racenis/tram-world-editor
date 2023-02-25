@@ -6,6 +6,9 @@
 #include <viewport.h>
 #include <language.h>
 
+#include <wx/splitter.h>
+#include <wx/sizer.h>
+
 // TODO: move these out of here
 MainFrame* main_frame = nullptr;
 WorldTree* world_tree = nullptr;
@@ -60,6 +63,8 @@ public:
         
         main_frame = new MainFrame();
         main_frame->Show(true);
+        main_frame->OpenViewport();
+        
         return true;
     }
 };
@@ -127,16 +132,48 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, lang->title_bar, wxDefaultPosit
     // --- POP-UP MENUS ---
     world_tree_popup = new EditorObjectMenu;
     
-    m_mgr.SetManagedWindow(this);
+    /*
+    wxSplitterWindow* main_split = new wxSplitterWindow(this, -1, wxDefaultPosition, wxDefaultSize, wxSP_3D);
+    wxSplitterWindow* bottom_panels = new wxSplitterWindow(main_split, -1, wxDefaultPosition, wxDefaultSize, wxSP_3D);
 
+    wxTextCtrl* output_text_ctrl = new wxTextCtrl(bottom_panels, -1, "", wxDefaultPosition, wxSize(200,150), wxNO_BORDER | wxTE_READONLY | wxTE_MULTILINE);
+    std_cout_redirect = new wxStreamToTextRedirector(output_text_ctrl);
+    object_list = new ObjectListCtrl(bottom_panels);
+    
+    bottom_panels->SetMinimumPaneSize(20);
+    bottom_panels->SetSashGravity(0.5f);
+    bottom_panels->SplitVertically(object_list, output_text_ctrl);
+    
+    wxSplitterWindow* top_split = new wxSplitterWindow(main_split, -1, wxDefaultPosition, wxDefaultSize, wxSP_3D);
+    wxSplitterWindow* left_panels = new wxSplitterWindow(top_split, -1, wxDefaultPosition, wxDefaultSize, wxSP_3D);
+    
+    property_panel = new PropertyPanel(left_panels);
+    world_tree = new WorldTree(left_panels);
+    
+    left_panels->SetMinimumPaneSize(20);
+    left_panels->SetSashGravity(0.5f);
+    left_panels->SplitHorizontally(world_tree, property_panel);
+    
+    viewport = new ViewportCtrl(top_split);
+    
+    top_split->SetMinimumPaneSize(20);
+    top_split->SplitVertically(left_panels, viewport, 200);
+    
+    main_split->SetMinimumPaneSize(20);
+    main_split->SetSashGravity(1.0f);
+    main_split->SplitHorizontally(top_split, bottom_panels, -150);*/
+    
+    
+    // commented, because AUI keeps crashing with the viewport
+    
     wxTextCtrl* output_text_ctrl = new wxTextCtrl(this, -1, "", wxDefaultPosition, wxSize(200,150), wxNO_BORDER | wxTE_READONLY | wxTE_MULTILINE);
     std_cout_redirect = new wxStreamToTextRedirector(output_text_ctrl);
-    world_tree = new WorldTree(this);
-    property_panel = new PropertyPanel(this);
     object_list = new ObjectListCtrl(this);
+    property_panel = new PropertyPanel(this);
+    world_tree = new WorldTree(this);
     viewport = new ViewportCtrl(this);
     
-    
+    m_mgr.SetManagedWindow(this);
 
     m_mgr.AddPane(world_tree, wxLEFT, lang->world_tree);
     m_mgr.AddPane(property_panel, wxLEFT, lang->property_panel);
@@ -156,9 +193,21 @@ MainFrame::MainFrame() : wxFrame(NULL, wxID_ANY, lang->title_bar, wxDefaultPosit
     m_mgr.SetFlags(flags);
     m_mgr.Update();
     
+    
+
+
+
+    
     // --- PANEL INITS ---
-    Editor::ProduceTestData();
+    //Editor::ProduceTestData();
     Editor::WorldTree::Rebuild();
+}
+
+void MainFrame::OpenViewport() {
+    //viewport = new ViewportCtrl(this);
+    
+    //m_mgr.AddPane(viewport, wxCENTER, L"HUMONGOUS");
+    //m_mgr.Update();
 }
 
 void SaveCells() {
