@@ -27,13 +27,13 @@ namespace Editor {
     
     /// Instances of SerializedEntityData for all registered Entity types.
     /// For determining which specialized fields each Entity type has.
-    std::vector<Core::SerializedEntityData*> ENTITY_DATA_INSTANCES = { nullptr };
+    std::vector<tram::SerializedEntityData*> ENTITY_DATA_INSTANCES = { nullptr };
     
     /// Registers an Entity type.
     /// Pass in a blank instance of a SerializedEntityData for each Entity type
     /// that you want to be editable in the editor. It needs to be allocated
     /// with new and needs to live until the termination of the program.
-    void RegisterEntityType(Core::SerializedEntityData* instance) {        
+    void RegisterEntityType(tram::SerializedEntityData* instance) {        
         ENTITY_DATA_INSTANCES.push_back(instance);
         PROPERTY_ENUMERATIONS["entity-type"].push_back(instance->GetType());
     }
@@ -51,13 +51,13 @@ namespace Editor {
             return;
         }
         
-        using namespace Core;
+        using namespace tram;
         
         std::string model_field_name = "";
         
         int32_t entity_type = this->GetProperty("entity-type");
         for (auto& prop : ENTITY_DATA_INSTANCES[entity_type]->GetFieldInfo()) {
-            if (prop.type == Core::SerializedEntityData::FieldInfo::FIELD_MODELNAME) {
+            if (prop.type == tram::SerializedEntityData::FieldInfo::FIELD_MODELNAME) {
                 model_field_name = prop.name;
             }
         }
@@ -79,7 +79,7 @@ namespace Editor {
             this->model = PoolProxy<RenderComponent>::New();
             this->model->SetModel(model_name);
             this->model->SetLightmap("fullbright");
-            this->model->SetPose(Render::poseList.begin().ptr);
+            //this->model->SetPose(Render::poseList.begin().ptr);
             this->model->Init();
         }
         
@@ -91,13 +91,13 @@ namespace Editor {
             return;
         }
         
-        this->model->UpdateRotation(quat(vec3(
+        this->model->SetRotation(quat(vec3(
             this->GetProperty("rotation-x").float_value,
             this->GetProperty("rotation-y").float_value,
             this->GetProperty("rotation-z").float_value
         )));
         
-        this->model->UpdateLocation(vec3(
+        this->model->SetLocation(vec3(
             this->GetProperty("position-x").float_value,
             this->GetProperty("position-y").float_value,
             this->GetProperty("position-z").float_value
@@ -133,17 +133,17 @@ namespace Editor {
             
             for (auto& prop : ENTITY_DATA_INSTANCES[entity_type_index]->GetFieldInfo()) {
                 switch (prop.type) {
-                    case Core::SerializedEntityData::FieldInfo::FIELD_INT:
+                    case tram::SerializedEntityData::FieldInfo::FIELD_INT:
                         defs.push_back({prop.name, prop.name, "group-entity-special", PROPERTY_INT});
                         break;
-                    case Core::SerializedEntityData::FieldInfo::FIELD_UINT:
+                    case tram::SerializedEntityData::FieldInfo::FIELD_UINT:
                         defs.push_back({prop.name, prop.name, "group-entity-special", PROPERTY_UINT});
                         break;
-                    case Core::SerializedEntityData::FieldInfo::FIELD_FLOAT:
+                    case tram::SerializedEntityData::FieldInfo::FIELD_FLOAT:
                         defs.push_back({prop.name, prop.name, "group-entity-special", PROPERTY_FLOAT});
                         break;
-                    case Core::SerializedEntityData::FieldInfo::FIELD_STRING:
-                    case Core::SerializedEntityData::FieldInfo::FIELD_MODELNAME:
+                    case tram::SerializedEntityData::FieldInfo::FIELD_STRING:
+                    case tram::SerializedEntityData::FieldInfo::FIELD_MODELNAME:
                         defs.push_back({prop.name, prop.name, "group-entity-special", PROPERTY_STRING});
                         break;
                 }
@@ -215,78 +215,84 @@ namespace Editor {
         }
     }
     
-    void LoadCell(WorldCell* cell) {
-        using namespace Core;
-        std::ifstream file(std::string("data/") + std::string(cell->GetName()) + ".cell");
+    void LoadCell (WorldCell* cell) {
+        using namespace tram;
+        std::ifstream file(std::string("data/worldcells/") + std::string(cell->GetName()) + ".cell");
         EntityGroup* current_group = (EntityGroup*)cell->group_manager->GetChildren().front().get();
         
         if (file.is_open()) {
             std::string line;
+            
+            std::getline(file, line); std::string_view str (line);
+            
+            std::string header = tram::SerializedEntityData::Field<tram::name_t>().FromString(str);
+            assert(header == "CELLv1");
+            tram::SerializedEntityData::Field<tram::name_t>().FromString(str);
+            cell->SetProperty("is-interior", (bool) tram::SerializedEntityData::Field<uint64_t>().FromString(str));
+            cell->SetProperty("is-interior-lighting", (bool) tram::SerializedEntityData::Field<uint64_t>().FromString(str));
+            
             while (std::getline(file, line)) {
                 if (line.size() < 3) continue;
                 std::string_view str (line);
-                std::string ent_name = Core::SerializedEntityData::Field<Core::name_t>().FromString(str);
+                std::string ent_name = tram::SerializedEntityData::Field<tram::name_t>().FromString(str);
                 if (ent_name == "#") {
-                    std::string annotation_name = Core::SerializedEntityData::Field<Core::name_t>().FromString(str);
-                    if (annotation_name == "cell") {
-                        cell->SetProperty("is-interior", (bool) Core::SerializedEntityData::Field<uint64_t>().FromString(str));
-                        cell->SetProperty("is-interior-lighting", (bool) Core::SerializedEntityData::Field<uint64_t>().FromString(str));
-                    } else if (annotation_name == "group") {
+                    std::string annotation_name = tram::SerializedEntityData::Field<tram::name_t>().FromString(str);
+                    if (annotation_name == "group") {
                         auto new_group = current_group->parent->AddChild();
-                        new_group->SetProperty("name", std::string(Core::SerializedEntityData::Field<Core::name_t>().FromString(str)));
+                        new_group->SetProperty("name", std::string(tram::SerializedEntityData::Field<tram::name_t>().FromString(str)));
                         current_group = (EntityGroup*) new_group.get();
                     }
                 } else if (ent_name == "transition") {
                     auto trans = std::make_shared<Transition>(cell->transition_manager.get());
-                    trans->SetProperty("name", std::string(Core::SerializedEntityData::Field<Core::name_t>().FromString(str)));
-                    trans->SetProperty("cell-into", std::string(Core::SerializedEntityData::Field<Core::name_t>().FromString(str)));
-                    uint64_t point_count = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
+                    trans->SetProperty("name", std::string(tram::SerializedEntityData::Field<tram::name_t>().FromString(str)));
+                    trans->SetProperty("cell-into", std::string(tram::SerializedEntityData::Field<tram::name_t>().FromString(str)));
+                    uint64_t point_count = tram::SerializedEntityData::Field<uint64_t>().FromString(str);
                     for (uint64_t i = 0; i < point_count; i++) {
                         auto p = trans->AddChild();
-                        p->SetProperty("position-x", Core::SerializedEntityData::Field<float>().FromString(str));
-                        p->SetProperty("position-y", Core::SerializedEntityData::Field<float>().FromString(str));
-                        p->SetProperty("position-z", Core::SerializedEntityData::Field<float>().FromString(str));
+                        p->SetProperty("position-x", tram::SerializedEntityData::Field<float>().FromString(str));
+                        p->SetProperty("position-y", tram::SerializedEntityData::Field<float>().FromString(str));
+                        p->SetProperty("position-z", tram::SerializedEntityData::Field<float>().FromString(str));
                     }
                     static_cast<Object*>(cell->transition_manager.get())->AddChild(trans);
                 } else if (ent_name == "path") {
                     auto path = std::make_shared<Path>(cell->path_manager.get());
-                    path->SetProperty("name", std::string(Core::SerializedEntityData::Field<Core::name_t>().FromString(str)));
-                    uint64_t curve_count = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
+                    path->SetProperty("name", std::string(tram::SerializedEntityData::Field<tram::name_t>().FromString(str)));
+                    uint64_t curve_count = tram::SerializedEntityData::Field<uint64_t>().FromString(str);
                     for (uint64_t i = 0; i < curve_count; i++) {
                         auto c = path->AddChild();
-                        c->SetProperty("id", Core::SerializedEntityData::Field<uint64_t>().FromString(str));
-                        c->SetProperty("next-id", Core::SerializedEntityData::Field<uint64_t>().FromString(str));
-                        c->SetProperty("prev-id", Core::SerializedEntityData::Field<uint64_t>().FromString(str));
-                        c->SetProperty("left-id", Core::SerializedEntityData::Field<uint64_t>().FromString(str));
-                        c->SetProperty("right-id", Core::SerializedEntityData::Field<uint64_t>().FromString(str));
-                        c->SetProperty("position-x", Core::SerializedEntityData::Field<float>().FromString(str));
-                        c->SetProperty("position-y", Core::SerializedEntityData::Field<float>().FromString(str));
-                        c->SetProperty("position-z", Core::SerializedEntityData::Field<float>().FromString(str));
-                        c->SetProperty("position-x-2", Core::SerializedEntityData::Field<float>().FromString(str));
-                        c->SetProperty("position-y-2", Core::SerializedEntityData::Field<float>().FromString(str));
-                        c->SetProperty("position-z-2", Core::SerializedEntityData::Field<float>().FromString(str));
-                        c->SetProperty("position-x-3", Core::SerializedEntityData::Field<float>().FromString(str));
-                        c->SetProperty("position-y-3", Core::SerializedEntityData::Field<float>().FromString(str));
-                        c->SetProperty("position-z-3", Core::SerializedEntityData::Field<float>().FromString(str));
-                        c->SetProperty("position-x-4", Core::SerializedEntityData::Field<float>().FromString(str));
-                        c->SetProperty("position-y-4", Core::SerializedEntityData::Field<float>().FromString(str));
-                        c->SetProperty("position-z-4", Core::SerializedEntityData::Field<float>().FromString(str));
+                        c->SetProperty("id", tram::SerializedEntityData::Field<uint64_t>().FromString(str));
+                        c->SetProperty("next-id", tram::SerializedEntityData::Field<uint64_t>().FromString(str));
+                        c->SetProperty("prev-id", tram::SerializedEntityData::Field<uint64_t>().FromString(str));
+                        c->SetProperty("left-id", tram::SerializedEntityData::Field<uint64_t>().FromString(str));
+                        c->SetProperty("right-id", tram::SerializedEntityData::Field<uint64_t>().FromString(str));
+                        c->SetProperty("position-x", tram::SerializedEntityData::Field<float>().FromString(str));
+                        c->SetProperty("position-y", tram::SerializedEntityData::Field<float>().FromString(str));
+                        c->SetProperty("position-z", tram::SerializedEntityData::Field<float>().FromString(str));
+                        c->SetProperty("position-x-2", tram::SerializedEntityData::Field<float>().FromString(str));
+                        c->SetProperty("position-y-2", tram::SerializedEntityData::Field<float>().FromString(str));
+                        c->SetProperty("position-z-2", tram::SerializedEntityData::Field<float>().FromString(str));
+                        c->SetProperty("position-x-3", tram::SerializedEntityData::Field<float>().FromString(str));
+                        c->SetProperty("position-y-3", tram::SerializedEntityData::Field<float>().FromString(str));
+                        c->SetProperty("position-z-3", tram::SerializedEntityData::Field<float>().FromString(str));
+                        c->SetProperty("position-x-4", tram::SerializedEntityData::Field<float>().FromString(str));
+                        c->SetProperty("position-y-4", tram::SerializedEntityData::Field<float>().FromString(str));
+                        c->SetProperty("position-z-4", tram::SerializedEntityData::Field<float>().FromString(str));
                     }
                     static_cast<Object*>(cell->path_manager.get())->AddChild(path);
                 } else if (ent_name == "navmesh") {
                     auto navmesh = std::make_shared<Path>(cell->navmesh_manager.get());
-                    navmesh->SetProperty("name", std::string(Core::SerializedEntityData::Field<Core::name_t>().FromString(str)));
-                    uint64_t node_count = Core::SerializedEntityData::Field<uint64_t>().FromString(str);
+                    navmesh->SetProperty("name", std::string(tram::SerializedEntityData::Field<tram::name_t>().FromString(str)));
+                    uint64_t node_count = tram::SerializedEntityData::Field<uint64_t>().FromString(str);
                     for (uint64_t i = 0; i < node_count; i++) {
                         auto n = navmesh->AddChild();
-                        n->SetProperty("id", Core::SerializedEntityData::Field<uint64_t>().FromString(str));
-                        n->SetProperty("next-id", Core::SerializedEntityData::Field<uint64_t>().FromString(str));
-                        n->SetProperty("prev-id", Core::SerializedEntityData::Field<uint64_t>().FromString(str));
-                        n->SetProperty("left-id", Core::SerializedEntityData::Field<uint64_t>().FromString(str));
-                        n->SetProperty("right-id", Core::SerializedEntityData::Field<uint64_t>().FromString(str));
-                        n->SetProperty("position-x", Core::SerializedEntityData::Field<float>().FromString(str));
-                        n->SetProperty("position-y", Core::SerializedEntityData::Field<float>().FromString(str));
-                        n->SetProperty("position-z", Core::SerializedEntityData::Field<float>().FromString(str));
+                        n->SetProperty("id", tram::SerializedEntityData::Field<uint64_t>().FromString(str));
+                        n->SetProperty("next-id", tram::SerializedEntityData::Field<uint64_t>().FromString(str));
+                        n->SetProperty("prev-id", tram::SerializedEntityData::Field<uint64_t>().FromString(str));
+                        n->SetProperty("left-id", tram::SerializedEntityData::Field<uint64_t>().FromString(str));
+                        n->SetProperty("right-id", tram::SerializedEntityData::Field<uint64_t>().FromString(str));
+                        n->SetProperty("position-x", tram::SerializedEntityData::Field<float>().FromString(str));
+                        n->SetProperty("position-y", tram::SerializedEntityData::Field<float>().FromString(str));
+                        n->SetProperty("position-z", tram::SerializedEntityData::Field<float>().FromString(str));
                     }
                     static_cast<Object*>(cell->navmesh_manager.get())->AddChild(navmesh);
                 } else {
@@ -322,14 +328,14 @@ namespace Editor {
                     
                     for (auto& prop : ENTITY_DATA_INSTANCES[entity_type_index]->GetFieldInfo()) {
                         switch (prop.type) {
-                            case Core::SerializedEntityData::FieldInfo::FIELD_STRING:
-                            case Core::SerializedEntityData::FieldInfo::FIELD_MODELNAME:
+                            case tram::SerializedEntityData::FieldInfo::FIELD_STRING:
+                            case tram::SerializedEntityData::FieldInfo::FIELD_MODELNAME:
                                 entity->SetProperty(prop.name, std::string(SerializedEntityData::Field<name_t>().FromString(str))); break;
-                            case Core::SerializedEntityData::FieldInfo::FIELD_INT:
+                            case tram::SerializedEntityData::FieldInfo::FIELD_INT:
                                 entity->SetProperty(prop.name, SerializedEntityData::Field<int64_t>().FromString(str)); break;
-                            case Core::SerializedEntityData::FieldInfo::FIELD_UINT:
+                            case tram::SerializedEntityData::FieldInfo::FIELD_UINT:
                                 entity->SetProperty(prop.name, SerializedEntityData::Field<uint64_t>().FromString(str)); break;
-                            case Core::SerializedEntityData::FieldInfo::FIELD_FLOAT:
+                            case tram::SerializedEntityData::FieldInfo::FIELD_FLOAT:
                                 entity->SetProperty(prop.name, SerializedEntityData::Field<float>().FromString(str)); break;
                         }
                     }
@@ -343,7 +349,7 @@ namespace Editor {
     }
     
     void SaveCell(WorldCell* cell) { 
-        std::ofstream file (std::string("data/") + std::string(cell->GetName()) + ".cell");
+        std::ofstream file (std::string("data/worldcells/") + std::string(cell->GetName()) + ".cell");
         
         if (file.is_open()) {
             std::string output_line = "# cell";
@@ -359,7 +365,7 @@ namespace Editor {
                 }
 
                 for (auto& ent : group->GetChildren()) {
-                    using namespace Core;
+                    using namespace tram;
                     //auto entity = (Entity*)ent.get();
                     //std::string str = entity->entity_data->data->GetDataName();
                     /*auto entity = dynamic_cast<Entity*>(ent.get());*/
@@ -379,14 +385,14 @@ namespace Editor {
                     
                     for (auto& prop : ENTITY_DATA_INSTANCES[entity_type_index]->GetFieldInfo()) {
                         switch (prop.type) {
-                            case Core::SerializedEntityData::FieldInfo::FIELD_STRING:
-                            case Core::SerializedEntityData::FieldInfo::FIELD_MODELNAME:
+                            case tram::SerializedEntityData::FieldInfo::FIELD_STRING:
+                            case tram::SerializedEntityData::FieldInfo::FIELD_MODELNAME:
                                 SerializedEntityData::Field<name_t>(ent->GetProperty(prop.name).str_value).ToString(str); break;
-                            case Core::SerializedEntityData::FieldInfo::FIELD_INT:
+                            case tram::SerializedEntityData::FieldInfo::FIELD_INT:
                                 SerializedEntityData::Field<int64_t>(ent->GetProperty(prop.name).int_value).ToString(str); break;
-                            case Core::SerializedEntityData::FieldInfo::FIELD_UINT:
+                            case tram::SerializedEntityData::FieldInfo::FIELD_UINT:
                                 SerializedEntityData::Field<uint64_t>(ent->GetProperty(prop.name).uint_value).ToString(str); break;
-                            case Core::SerializedEntityData::FieldInfo::FIELD_FLOAT:
+                            case tram::SerializedEntityData::FieldInfo::FIELD_FLOAT:
                                 SerializedEntityData::Field<float>(ent->GetProperty(prop.name).float_value).ToString(str); break;
                         }
                     }
@@ -469,7 +475,7 @@ namespace Editor {
         Editor::data_modified = false;
         
         if (Settings::CELL_LIST_FROM_FILESYSTEM) {
-            auto dir = std::filesystem::directory_iterator("data/");
+            auto dir = std::filesystem::directory_iterator("data/worldcells/");
             for (auto& cell : dir) {
                 if (cell.is_regular_file() && cell.path().extension() == ".cell") {
                     auto cell_name = cell.path().stem().string();

@@ -10,7 +10,7 @@
 #include <iostream>
 #include <framework/serializeddata.h>
 
-namespace Core {
+namespace tram {
     class RenderComponent;
     class SerializedEntityData;
 }
@@ -80,7 +80,7 @@ namespace Editor {
     void Reset();
     void Yeet();
     
-    void RegisterEntityType(Core::SerializedEntityData* instance);
+    void RegisterEntityType(tram::SerializedEntityData* instance);
 
     /// Editor action.
     class Action {
@@ -330,7 +330,7 @@ namespace Editor {
         void SetProperty (std::string property_name, PropertyValue property_value);
         
         void CheckModel();
-        Core::RenderComponent* model = nullptr;
+        tram::RenderComponent* model = nullptr;
     };
     
     class EntityGroup : public Object {

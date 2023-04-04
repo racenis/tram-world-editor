@@ -12,6 +12,8 @@ using namespace Editor;
 #include <framework/language.h>
 #include <framework/system.h>
 #include <render/render.h>
+#include <render/renderer.h>
+#include <render/api.h>
 
 #include <components/rendercomponent.h>
 
@@ -31,7 +33,7 @@ ViewportCtrl::ViewportCtrl(wxWindow* parent) : wxGLCanvas(parent, wxID_ANY, null
     
     // performing regular tram-sdk initialization
 
-    Core::Init();
+    tram::Core::Init();
     
     // we're not using framework's UI system, so we'll do it ourselves
     
@@ -44,10 +46,10 @@ ViewportCtrl::ViewportCtrl(wxWindow* parent) : wxGLCanvas(parent, wxID_ANY, null
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     
-    Core::System::SetInitialized(Core::System::SYSTEM_UI, true);
+    tram::System::SetInitialized(tram::System::SYSTEM_UI, true);
     
-    Core::Render::Init();
-    Core::Async::Init();
+    tram::Render::Init();
+    tram::Async::Init(0);
     
     //Material::SetErrorMaterial(new Material(UID("defaulttexture"), Material::TEXTURE));
     //Model::SetErrorModel(new Model(UID("errorstatic")));
@@ -55,9 +57,9 @@ ViewportCtrl::ViewportCtrl(wxWindow* parent) : wxGLCanvas(parent, wxID_ANY, null
     //LoadText("data/lv.lang");
     
     
-    Core::Language::Load("data/lv.lang");
+    tram::Language::Load("lv");
     
-    Core::Render::Material::LoadMaterialInfo("data/texture.list");
+    tram::Render::Material::LoadMaterialInfo("material");
     
     // create the mongus model
     //monguser = PoolProxy<RenderComponent>::New();
@@ -67,8 +69,9 @@ ViewportCtrl::ViewportCtrl(wxWindow* parent) : wxGLCanvas(parent, wxID_ANY, null
     //monguser->UpdateLocation(glm::vec3(0.0f, 0.0f, 0.0f));
     //monguser->UpdateRotation(glm::quat(glm::vec3(0.0f, 0.0f, 0.0f)));
     
-    Core::Render::CAMERA_POSITION = glm::vec3(0.0f, 0.0f, 5.0f);
-    Core::Render::CAMERA_ROTATION = glm::quat(glm::vec3(0.0f, 0.0f, 0.0f));
+    //tram::Render::CAMERA_POSITION = glm::vec3(0.0f, 0.0f, 5.0f);
+    //tram::Render::CAMERA_ROTATION = glm::quat(glm::vec3(0.0f, 0.0f, 0.0f));
+    tram::Render::SetCameraPosition({0.0f, 5.0f, 0.0f});
     
     Bind(wxEVT_PAINT, &ViewportCtrl::OnPaint, this);
     Bind(wxEVT_LEFT_UP, &ViewportCtrl::OnLeftClick, this);
@@ -82,7 +85,7 @@ ViewportCtrl::ViewportCtrl(wxWindow* parent) : wxGLCanvas(parent, wxID_ANY, null
 
 ViewportCtrl::~ViewportCtrl()
 {
-    Core::Async::Yeet();
+    tram::Async::Yeet();
     SetCurrent(*m_context);
 }
 
@@ -132,7 +135,7 @@ void ViewportCtrl::OnMouseMove(wxMouseEvent& event) {
             mouse_y += delta_y * 0.1f;
             
             mouse_y = mouse_y > 90.0f ? 90.0f : mouse_y < -90.0f ? -90.0f : mouse_y;
-            Core::Render::CAMERA_ROTATION = glm::quat(glm::vec3(-glm::radians(mouse_y), -glm::radians(mouse_x), 0.0f));
+            tram::Render::SetCameraRotation(glm::quat(glm::vec3(-glm::radians(mouse_y), -glm::radians(mouse_x), 0.0f)));
         } else if (viewport_mode == MODE_TRANSLATE) {
             glm::vec3 translation = glm::vec3 (0.0, 0.0f, 0.0f);
             
@@ -300,13 +303,23 @@ void ViewportCtrl::OnKeyup(wxKeyEvent& event) {
 }
 
 void ViewportCtrl::OnTimer(wxTimerEvent& event) {
-    using namespace Core::Render;
-    using namespace Core;
+    using namespace tram::Render;
+    using namespace tram;
     
-    if (key_forward) CAMERA_POSITION += CAMERA_ROTATION * DIRECTION_FORWARD * 0.1f;
-    if (key_backward) CAMERA_POSITION -= CAMERA_ROTATION * DIRECTION_FORWARD * 0.1f;
-    if (key_left) CAMERA_POSITION -= CAMERA_ROTATION * DIRECTION_SIDE * 0.1f;
-    if (key_right) CAMERA_POSITION += CAMERA_ROTATION * DIRECTION_SIDE * 0.1f;
+    //if (key_forward) CAMERA_POSITION += CAMERA_ROTATION * DIRECTION_FORWARD * 0.1f;
+    //if (key_backward) CAMERA_POSITION -= CAMERA_ROTATION * DIRECTION_FORWARD * 0.1f;
+    //if (key_left) CAMERA_POSITION -= CAMERA_ROTATION * DIRECTION_SIDE * 0.1f;
+    //if (key_right) CAMERA_POSITION += CAMERA_ROTATION * DIRECTION_SIDE * 0.1f;
+    
+    vec3 camera_position = GetCameraPosition();
+    quat camera_rotation = GetCameraRotation();
+    
+    if (key_forward) camera_position += camera_rotation * DIRECTION_FORWARD * 0.1f;
+    if (key_backward) camera_position -= camera_rotation * DIRECTION_FORWARD * 0.1f;
+    if (key_left) camera_position -= camera_rotation * DIRECTION_SIDE * 0.1f;
+    if (key_right) camera_position += camera_rotation * DIRECTION_SIDE * 0.1f;
+    
+    SetCameraPosition(camera_position);
     
     Refresh();
 }
@@ -319,7 +332,7 @@ void ViewportCtrl::OnSizeChange(wxSizeEvent& event) {
     glViewport(0, 0, width, height);
     return;
     
-    Core::Render::ScreenSize(width, height);
+    tram::Render::SetScreenSize(width, height);
 }
 
 void ViewportCtrl::OnPaint(wxPaintEvent& event)
@@ -329,12 +342,11 @@ void ViewportCtrl::OnPaint(wxPaintEvent& event)
         
     //SetCurrent(*m_context);
 
-    using namespace Core;
-    using namespace Core::Render;
+    using namespace tram;
+    using namespace tram::Render;
     
     for (auto& object : Editor::selection->objects) {
         glm::quat space;
-        // TODO: make this code not ugly
         if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_WORLD) space = glm::vec3(0.0f);
         if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITY) space = glm::quat(glm::vec3 {
                     object->GetProperty("rotation-x").float_value,
@@ -358,61 +370,13 @@ void ViewportCtrl::OnPaint(wxPaintEvent& event)
         if (viewport_axis & AXIS_Z) AddLine(gizmo_location - space * glm::vec3(0.0f, 0.0f, 100.0f), gizmo_location + space * glm::vec3(0.0f, 0.0f, 100.0f), COLOR_BLUE);
     }
     
-    
-    /*for (auto cell : Editor::worldCells) {
-        if (cell->is_transitions_visible) {
-            for (auto trans : cell->transitions) {
-                if (trans->is_visible) {
-                    for (auto ps : trans->points) {
-                        for (auto pe : trans->points) {
-                            AddLine(ps->location, pe->location, COLOR_CYAN);
-                        }
-                    }
-                }
-            }
-        }
-        
-        if (cell->is_paths_visible) {
-            for (auto path : cell->paths) {
-                if (path->is_visible) {
-                    for (auto curve : path->curves) {
-                        for (float t = 0.0f; t < 1.0f; t += 0.1f) {
-                            glm::vec3 l1 = glm::mix(curve->location1, curve->location2, t);
-                            glm::vec3 l2 = glm::mix(curve->location3, curve->location4, t);
-                            glm::vec3 l3 = glm::mix(curve->location1, curve->location2, t + 0.1f);
-                            glm::vec3 l4 = glm::mix(curve->location3, curve->location4, t + 0.1f);
-                            glm::vec3 p1 = glm::mix(l1, l2, t);
-                            glm::vec3 p2 = glm::mix(l3, l4, t + 0.1f);
-                            AddLine(p1, p2, COLOR_GREEN);
-                        }
-                    }
-                }
-            }
-        }
-        
-        if (cell->is_navmeshes_visible) {
-            for (auto navmesh : cell->navmeshes) {
-                if (navmesh->is_visible) {
-                    for (auto ns : navmesh->nodes) {
-                        for (auto ne : navmesh->nodes) {
-                            if (ne->id == ns->next_id || ne->id == ns->prev_id || ne->id == ns->left_id || ne->id == ns->right_id)
-                            AddLine(ns->location, ne->location, COLOR_GREEN);
-                        }
-                    }
-                }
-            }
-        }
-    }*/
-    
-    
-    
-    
+
     AddLineMarker(glm::vec3(0.0f, 0.0f, 0.0f), COLOR_CYAN);
     
     //SetSun(time_of_day);
     SetSun(0.8f);
 
-    
+    Async::ResourceLoader1stStage();
     Async::ResourceLoader2ndStage();
     Async::FinishResource();
     

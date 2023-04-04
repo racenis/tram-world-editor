@@ -14,7 +14,7 @@ CurrentFileName        :=
 CurrentFilePath        :=
 CurrentFileFullPath    :=
 User                   :=Poga
-Date                   :=26/02/2023
+Date                   :=04/04/2023
 CodeLitePath           :="C:/Program Files/CodeLite"
 MakeDirCommand         :=mkdir
 LinkerName             :=C:/mingw64/bin/g++.exe
@@ -40,7 +40,7 @@ PCHCompileFlags        :=
 RcCmpOptions           := $(shell wx-config --rcflags)
 RcCompilerName         :=C:/mingw64/bin/windres.exe
 LinkOptions            :=  -mwindows -pipe -lwxmsw31u_gl -lwxmsw31u_propgrid -lwxmsw31u_aui -lwxmsw31u_xrc -lwxmsw31u_webview -lwxmsw31u_html -lwxmsw31u_adv -lwxmsw31u_core -lwxbase31u_xml -lwxbase31u_net -lwxbase31u
-IncludePath            :=  $(IncludeSwitch). $(IncludeSwitch)C:\Users\Poga\Desktop\miskaste\wxwidgets\include $(IncludeSwitch)C:\Users\Poga\Desktop\painis\tram-sdk\libraries $(IncludeSwitch)C:\Users\Poga\Desktop\painis\tram-sdk\src $(IncludeSwitch)C:\Users\Poga\Desktop\painis\jam-game\src $(IncludeSwitch)C:\Users\Poga\Desktop\painis\tram-editor\src 
+IncludePath            :=  $(IncludeSwitch). $(IncludeSwitch)C:\Users\Poga\Desktop\miskaste\wxwidgets\include $(IncludeSwitch)C:\Users\Poga\Desktop\painis\tram-sdk\libraries\bullet $(IncludeSwitch)C:\Users\Poga\Desktop\painis\tram-sdk\libraries\glad $(IncludeSwitch)C:\Users\Poga\Desktop\painis\tram-sdk\libraries $(IncludeSwitch)C:\Users\Poga\Desktop\painis\tram-sdk\src $(IncludeSwitch)C:\Users\Poga\Desktop\painis\tram-editor\src $(IncludeSwitch)C:\Users\Poga\Desktop\painis\jam-game-ii\src $(IncludeSwitch)C:\Users\Poga\Desktop\painis\jam-game-ii\src\entities 
 IncludePCH             := 
 RcIncludePath          := 
 Libs                   := 
@@ -66,8 +66,8 @@ AS       := C:/mingw64/bin/as.exe
 CodeLiteDir:=C:\Program Files\CodeLite
 WXWIN:=C:\Users\Poga\Desktop\miskaste\wxwidgets
 WXCFG:=gcc_dll\mswu
-Objects0=$(IntermediateDirectory)/src_init.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_objectlist.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_objectmenu.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_propertypanel.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_tramsdk.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_mainframe.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_language.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_worldtree.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_editor.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_main.cpp$(ObjectSuffix) \
-	$(IntermediateDirectory)/src_widgets_viewport.cpp$(ObjectSuffix) 
+Objects0=$(IntermediateDirectory)/src_widgets_objectlist.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_objectmenu.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_propertypanel.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_init.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_tramsdk.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_editor.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_viewport.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_main.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_language.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_mainframe.cpp$(ObjectSuffix) \
+	$(IntermediateDirectory)/src_widgets_worldtree.cpp$(ObjectSuffix) 
 
 
 
@@ -98,14 +98,6 @@ PreBuild:
 ##
 ## Objects
 ##
-$(IntermediateDirectory)/src_init.cpp$(ObjectSuffix): src/init.cpp $(IntermediateDirectory)/src_init.cpp$(DependSuffix)
-	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/init.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_init.cpp$(ObjectSuffix) $(IncludePath)
-$(IntermediateDirectory)/src_init.cpp$(DependSuffix): src/init.cpp
-	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/src_init.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/src_init.cpp$(DependSuffix) -MM src/init.cpp
-
-$(IntermediateDirectory)/src_init.cpp$(PreprocessSuffix): src/init.cpp
-	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_init.cpp$(PreprocessSuffix) src/init.cpp
-
 $(IntermediateDirectory)/src_widgets_objectlist.cpp$(ObjectSuffix): src/widgets/objectlist.cpp $(IntermediateDirectory)/src_widgets_objectlist.cpp$(DependSuffix)
 	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/widgets/objectlist.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_widgets_objectlist.cpp$(ObjectSuffix) $(IncludePath)
 $(IntermediateDirectory)/src_widgets_objectlist.cpp$(DependSuffix): src/widgets/objectlist.cpp
@@ -130,6 +122,14 @@ $(IntermediateDirectory)/src_widgets_propertypanel.cpp$(DependSuffix): src/widge
 $(IntermediateDirectory)/src_widgets_propertypanel.cpp$(PreprocessSuffix): src/widgets/propertypanel.cpp
 	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_widgets_propertypanel.cpp$(PreprocessSuffix) src/widgets/propertypanel.cpp
 
+$(IntermediateDirectory)/src_init.cpp$(ObjectSuffix): src/init.cpp $(IntermediateDirectory)/src_init.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/init.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_init.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/src_init.cpp$(DependSuffix): src/init.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/src_init.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/src_init.cpp$(DependSuffix) -MM src/init.cpp
+
+$(IntermediateDirectory)/src_init.cpp$(PreprocessSuffix): src/init.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_init.cpp$(PreprocessSuffix) src/init.cpp
+
 $(IntermediateDirectory)/src_tramsdk.cpp$(ObjectSuffix): src/tramsdk.cpp $(IntermediateDirectory)/src_tramsdk.cpp$(DependSuffix)
 	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/tramsdk.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_tramsdk.cpp$(ObjectSuffix) $(IncludePath)
 $(IntermediateDirectory)/src_tramsdk.cpp$(DependSuffix): src/tramsdk.cpp
@@ -137,30 +137,6 @@ $(IntermediateDirectory)/src_tramsdk.cpp$(DependSuffix): src/tramsdk.cpp
 
 $(IntermediateDirectory)/src_tramsdk.cpp$(PreprocessSuffix): src/tramsdk.cpp
 	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_tramsdk.cpp$(PreprocessSuffix) src/tramsdk.cpp
-
-$(IntermediateDirectory)/src_widgets_mainframe.cpp$(ObjectSuffix): src/widgets/mainframe.cpp $(IntermediateDirectory)/src_widgets_mainframe.cpp$(DependSuffix)
-	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/widgets/mainframe.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_widgets_mainframe.cpp$(ObjectSuffix) $(IncludePath)
-$(IntermediateDirectory)/src_widgets_mainframe.cpp$(DependSuffix): src/widgets/mainframe.cpp
-	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/src_widgets_mainframe.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/src_widgets_mainframe.cpp$(DependSuffix) -MM src/widgets/mainframe.cpp
-
-$(IntermediateDirectory)/src_widgets_mainframe.cpp$(PreprocessSuffix): src/widgets/mainframe.cpp
-	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_widgets_mainframe.cpp$(PreprocessSuffix) src/widgets/mainframe.cpp
-
-$(IntermediateDirectory)/src_editor_language.cpp$(ObjectSuffix): src/editor/language.cpp $(IntermediateDirectory)/src_editor_language.cpp$(DependSuffix)
-	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/editor/language.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_editor_language.cpp$(ObjectSuffix) $(IncludePath)
-$(IntermediateDirectory)/src_editor_language.cpp$(DependSuffix): src/editor/language.cpp
-	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/src_editor_language.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/src_editor_language.cpp$(DependSuffix) -MM src/editor/language.cpp
-
-$(IntermediateDirectory)/src_editor_language.cpp$(PreprocessSuffix): src/editor/language.cpp
-	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_editor_language.cpp$(PreprocessSuffix) src/editor/language.cpp
-
-$(IntermediateDirectory)/src_widgets_worldtree.cpp$(ObjectSuffix): src/widgets/worldtree.cpp $(IntermediateDirectory)/src_widgets_worldtree.cpp$(DependSuffix)
-	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/widgets/worldtree.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_widgets_worldtree.cpp$(ObjectSuffix) $(IncludePath)
-$(IntermediateDirectory)/src_widgets_worldtree.cpp$(DependSuffix): src/widgets/worldtree.cpp
-	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/src_widgets_worldtree.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/src_widgets_worldtree.cpp$(DependSuffix) -MM src/widgets/worldtree.cpp
-
-$(IntermediateDirectory)/src_widgets_worldtree.cpp$(PreprocessSuffix): src/widgets/worldtree.cpp
-	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_widgets_worldtree.cpp$(PreprocessSuffix) src/widgets/worldtree.cpp
 
 $(IntermediateDirectory)/src_editor_editor.cpp$(ObjectSuffix): src/editor/editor.cpp $(IntermediateDirectory)/src_editor_editor.cpp$(DependSuffix)
 	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/editor/editor.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_editor_editor.cpp$(ObjectSuffix) $(IncludePath)
@@ -170,6 +146,14 @@ $(IntermediateDirectory)/src_editor_editor.cpp$(DependSuffix): src/editor/editor
 $(IntermediateDirectory)/src_editor_editor.cpp$(PreprocessSuffix): src/editor/editor.cpp
 	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_editor_editor.cpp$(PreprocessSuffix) src/editor/editor.cpp
 
+$(IntermediateDirectory)/src_widgets_viewport.cpp$(ObjectSuffix): src/widgets/viewport.cpp $(IntermediateDirectory)/src_widgets_viewport.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/widgets/viewport.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_widgets_viewport.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/src_widgets_viewport.cpp$(DependSuffix): src/widgets/viewport.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/src_widgets_viewport.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/src_widgets_viewport.cpp$(DependSuffix) -MM src/widgets/viewport.cpp
+
+$(IntermediateDirectory)/src_widgets_viewport.cpp$(PreprocessSuffix): src/widgets/viewport.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_widgets_viewport.cpp$(PreprocessSuffix) src/widgets/viewport.cpp
+
 $(IntermediateDirectory)/src_main.cpp$(ObjectSuffix): src/main.cpp $(IntermediateDirectory)/src_main.cpp$(DependSuffix)
 	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/main.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_main.cpp$(ObjectSuffix) $(IncludePath)
 $(IntermediateDirectory)/src_main.cpp$(DependSuffix): src/main.cpp
@@ -178,13 +162,29 @@ $(IntermediateDirectory)/src_main.cpp$(DependSuffix): src/main.cpp
 $(IntermediateDirectory)/src_main.cpp$(PreprocessSuffix): src/main.cpp
 	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_main.cpp$(PreprocessSuffix) src/main.cpp
 
-$(IntermediateDirectory)/src_widgets_viewport.cpp$(ObjectSuffix): src/widgets/viewport.cpp $(IntermediateDirectory)/src_widgets_viewport.cpp$(DependSuffix)
-	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/widgets/viewport.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_widgets_viewport.cpp$(ObjectSuffix) $(IncludePath)
-$(IntermediateDirectory)/src_widgets_viewport.cpp$(DependSuffix): src/widgets/viewport.cpp
-	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/src_widgets_viewport.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/src_widgets_viewport.cpp$(DependSuffix) -MM src/widgets/viewport.cpp
+$(IntermediateDirectory)/src_editor_language.cpp$(ObjectSuffix): src/editor/language.cpp $(IntermediateDirectory)/src_editor_language.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/editor/language.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_editor_language.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/src_editor_language.cpp$(DependSuffix): src/editor/language.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/src_editor_language.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/src_editor_language.cpp$(DependSuffix) -MM src/editor/language.cpp
 
-$(IntermediateDirectory)/src_widgets_viewport.cpp$(PreprocessSuffix): src/widgets/viewport.cpp
-	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_widgets_viewport.cpp$(PreprocessSuffix) src/widgets/viewport.cpp
+$(IntermediateDirectory)/src_editor_language.cpp$(PreprocessSuffix): src/editor/language.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_editor_language.cpp$(PreprocessSuffix) src/editor/language.cpp
+
+$(IntermediateDirectory)/src_widgets_mainframe.cpp$(ObjectSuffix): src/widgets/mainframe.cpp $(IntermediateDirectory)/src_widgets_mainframe.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/widgets/mainframe.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_widgets_mainframe.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/src_widgets_mainframe.cpp$(DependSuffix): src/widgets/mainframe.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/src_widgets_mainframe.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/src_widgets_mainframe.cpp$(DependSuffix) -MM src/widgets/mainframe.cpp
+
+$(IntermediateDirectory)/src_widgets_mainframe.cpp$(PreprocessSuffix): src/widgets/mainframe.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_widgets_mainframe.cpp$(PreprocessSuffix) src/widgets/mainframe.cpp
+
+$(IntermediateDirectory)/src_widgets_worldtree.cpp$(ObjectSuffix): src/widgets/worldtree.cpp $(IntermediateDirectory)/src_widgets_worldtree.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/widgets/worldtree.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_widgets_worldtree.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/src_widgets_worldtree.cpp$(DependSuffix): src/widgets/worldtree.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/src_widgets_worldtree.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/src_widgets_worldtree.cpp$(DependSuffix) -MM src/widgets/worldtree.cpp
+
+$(IntermediateDirectory)/src_widgets_worldtree.cpp$(PreprocessSuffix): src/widgets/worldtree.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_widgets_worldtree.cpp$(PreprocessSuffix) src/widgets/worldtree.cpp
 
 
 -include $(IntermediateDirectory)/*$(DependSuffix)
