@@ -2,6 +2,8 @@
 #include <editor/language.h>
 #include <editor/actions.h>
 
+#include <editor/objects/worldcellmanager.h>
+
 #include <widgets/mainframe.h>
 #include <widgets/objectmenu.h>
 #include <widgets/worldtree.h>
@@ -76,18 +78,17 @@ namespace Editor::WorldTree {
         }
     }
     
-    void Rebuild() {
+    void Rebuild () {
         world_tree->DeleteAllItems();
-        root_node = world_tree->AddRoot(Editor::PropertyRename(std::string(worldcells->GetName())));
+        root_node = world_tree->AddRoot(Editor::PropertyRename(std::string(WORLDCELLS->GetName())));
         obj_to_treeId.clear();
         treeId_to_obj.clear();
         
-        obj_to_treeId[worldcells.get()] = root_node.GetID();
-        treeId_to_obj[root_node.GetID()] = worldcells.get();
+        obj_to_treeId[WORLDCELLS.get()] = root_node.GetID();
+        treeId_to_obj[root_node.GetID()] = WORLDCELLS.get();
         
-        for (auto cell : worldcells->children) {
-            //AddChildren(root_node, cell.get());
-            Add(cell.get());
+        for (auto cell : WORLDCELLS->children) {
+            Add (cell.get());
         }
         
         world_tree->Refresh();

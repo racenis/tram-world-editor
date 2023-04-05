@@ -1,5 +1,10 @@
 #include <editor/editor.h>
 #include <editor/language.h>
+#include <editor/settings.h>
+
+#include <editor/objects/worldcellmanager.h>
+
+#include <framework/file.h>
 
 #include <iostream>
 #include <fstream>
@@ -9,17 +14,10 @@
 
 namespace Editor {
     std::shared_ptr<Selection> selection;
-    std::shared_ptr<WorldCellManager> worldcells;
-    std::list<std::unique_ptr<Action>> performed_actions;
-    std::list<std::unique_ptr<Action>> unperformed_actions;
+    std::shared_ptr<WorldCellManager> WORLDCELLS;
+    std::list<std::unique_ptr<Action>> PERFORMED_ACTIONS;
+    std::list<std::unique_ptr<Action>> UNPERFORMED_ACTIONS;
     bool data_modified = false;
-    
-    namespace Settings {
-        Space TRANSFORM_SPACE = SPACE_WORLD;
-        Rotation ROTATION_UNIT = ROTATION_RADIANS;
-        bool CELL_LIST_FROM_FILESYSTEM = true;
-        Language INTERFACE_LANGUAGE = LANGUAGE_EN;
-    }
     
     std::unordered_map<std::string, std::vector<std::string>> PROPERTY_ENUMERATIONS = {
         {"entity-type", {"[none]"}}
@@ -113,8 +111,8 @@ namespace Editor {
     std::vector<PropertyDefinition> Entity::GetFullPropertyDefinitions() { 
         auto defs = std::vector<PropertyDefinition> {
             {"group-entity", "Entity", "", PROPERTY_CATEGORY},
+            {"id", "ID", "group-entity", PROPERTY_UINT},
             {"name", "Name", "group-entity", PROPERTY_STRING},
-            {"action", "Action", "group-entity", PROPERTY_STRING},
             {"group-position", "Position", "", PROPERTY_CATEGORY},
             {"position-x", "X", "group-position", PROPERTY_FLOAT},
             {"position-y", "Y", "group-position", PROPERTY_FLOAT},
@@ -153,108 +151,44 @@ namespace Editor {
         return defs;
     }
     
-    /// Definitions of all Settings.
-    /// They're only used for the Settings::Load() and Settings::Save() functions.
-    std::unordered_map<std::string, std::pair<PropertyType, void*>> setting_map = {
-        {"TRANSFORM_SPACE", {PROPERTY_ENUM, &Settings::TRANSFORM_SPACE}},
-        {"ROTATION_UNIT", {PROPERTY_ENUM, &Settings::ROTATION_UNIT}},
-        {"CELL_LIST_FROM_FILESYSTEM", {PROPERTY_BOOL, &Settings::CELL_LIST_FROM_FILESYSTEM}},
-        {"INTERFACE_LANGUAGE", {PROPERTY_ENUM, &Settings::INTERFACE_LANGUAGE}}
-    };
     
-    /// Reads the Settings from disk.
-    void Settings::Load() {
-        std::ifstream file ("data/editor_settings.ini");
-        
-        if (file.is_open()) {
-            std::string line;
-            while (std::getline(file, line)) {
-                size_t eq_pos = line.find('=');
-                if (eq_pos == std::string::npos) continue;
-                
-                std::string key = line.substr(0, eq_pos);
-                std::string value = line.substr(++eq_pos);
-                
-                auto& bepis = setting_map[std::string(key)];
-                if (!bepis.second) continue;
-                switch (bepis.first) {
-                    case PROPERTY_ENUM:
-                        *(uint32_t*) bepis.second = std::stoull(value);
-                        break;
-                    case PROPERTY_BOOL:
-                        *(bool*) bepis.second = std::stoull(value);;
-                        break;
-                    default:
-                        break;
-                }
-            }
-        } else {
-            std::wcout << selected_language->dialog_settings_not_found << std::endl;
-        }
-    }
-    
-    /// Writes the Settings to disk.
-    void Settings::Save() {
-        std::ofstream file ("data/editor_settings.ini");
-        
-        if (file.is_open()) {
-            for (auto& entry : setting_map) {
-                file << entry.first << "=";
-                switch (entry.second.first) {
-                    case PROPERTY_ENUM:
-                        file << *(uint32_t*) entry.second.second;
-                    break;
-                    case PROPERTY_BOOL:
-                        file << *(bool*) entry.second.second;
-                    break;
-                    default:
-                        file << "0";
-                }
-                file << std::endl;
-            }
-        }
-    }
     
     void LoadCell (WorldCell* cell) {
         using namespace tram;
-        std::ifstream file(std::string("data/worldcells/") + std::string(cell->GetName()) + ".cell");
-        EntityGroup* current_group = (EntityGroup*)cell->group_manager->GetChildren().front().get();
+        File file ((std::string("data/worldcells/") + std::string(cell->GetName()) + ".cell").c_str(), MODE_READ);
+        EntityGroup* current_group = (EntityGroup*) cell->group_manager->GetChildren().front().get();
         
         if (file.is_open()) {
-            std::string line;
+            name_t header = file.read_name();
             
-            std::getline(file, line); std::string_view str (line);
+            assert(header == "CELLv2");
             
-            std::string header = tram::SerializedEntityData::Field<tram::name_t>().FromString(str);
-            assert(header == "CELLv1");
-            tram::SerializedEntityData::Field<tram::name_t>().FromString(str);
-            cell->SetProperty("is-interior", (bool) tram::SerializedEntityData::Field<uint64_t>().FromString(str));
-            cell->SetProperty("is-interior-lighting", (bool) tram::SerializedEntityData::Field<uint64_t>().FromString(str));
+            file.read_name(); // skip cell name 
             
-            while (std::getline(file, line)) {
-                if (line.size() < 3) continue;
-                std::string_view str (line);
-                std::string ent_name = tram::SerializedEntityData::Field<tram::name_t>().FromString(str);
-                if (ent_name == "#") {
-                    std::string annotation_name = tram::SerializedEntityData::Field<tram::name_t>().FromString(str);
-                    if (annotation_name == "group") {
-                        auto new_group = current_group->parent->AddChild();
-                        new_group->SetProperty("name", std::string(tram::SerializedEntityData::Field<tram::name_t>().FromString(str)));
-                        current_group = (EntityGroup*) new_group.get();
-                    }
-                } else if (ent_name == "transition") {
+            cell->SetProperty("is-interior", (bool) file.read_uint32());
+            cell->SetProperty("is-interior-lighting", (bool) file.read_uint32());
+            
+            while (file.is_continue()) {
+                name_t ent_type = file.read_name();
+                
+                if (ent_type == "group") {
+                    auto new_group = current_group->parent->AddChild();
+                    new_group->SetProperty("name", std::string(file.read_name()));
+                    current_group = (EntityGroup*) new_group.get();
+                } else if (ent_type == "transition") {
                     auto trans = std::make_shared<Transition>(cell->transition_manager.get());
-                    trans->SetProperty("name", std::string(tram::SerializedEntityData::Field<tram::name_t>().FromString(str)));
-                    trans->SetProperty("cell-into", std::string(tram::SerializedEntityData::Field<tram::name_t>().FromString(str)));
-                    uint64_t point_count = tram::SerializedEntityData::Field<uint64_t>().FromString(str);
+                    trans->SetProperty("name", std::string(file.read_name()));
+                    trans->SetProperty("cell-into", std::string(file.read_name()));
+                    uint64_t point_count = file.read_uint32();
                     for (uint64_t i = 0; i < point_count; i++) {
                         auto p = trans->AddChild();
-                        p->SetProperty("position-x", tram::SerializedEntityData::Field<float>().FromString(str));
-                        p->SetProperty("position-y", tram::SerializedEntityData::Field<float>().FromString(str));
-                        p->SetProperty("position-z", tram::SerializedEntityData::Field<float>().FromString(str));
+                        p->SetProperty("position-x", file.read_float32());
+                        p->SetProperty("position-y", file.read_float32());
+                        p->SetProperty("position-z", file.read_float32());
                     }
                     static_cast<Object*>(cell->transition_manager.get())->AddChild(trans);
-                } else if (ent_name == "path") {
+                } else if (ent_type == "path") {
+                    /*
                     auto path = std::make_shared<Path>(cell->path_manager.get());
                     path->SetProperty("name", std::string(tram::SerializedEntityData::Field<tram::name_t>().FromString(str)));
                     uint64_t curve_count = tram::SerializedEntityData::Field<uint64_t>().FromString(str);
@@ -278,8 +212,9 @@ namespace Editor {
                         c->SetProperty("position-y-4", tram::SerializedEntityData::Field<float>().FromString(str));
                         c->SetProperty("position-z-4", tram::SerializedEntityData::Field<float>().FromString(str));
                     }
-                    static_cast<Object*>(cell->path_manager.get())->AddChild(path);
-                } else if (ent_name == "navmesh") {
+                    static_cast<Object*>(cell->path_manager.get())->AddChild(path);*/
+                } else if (ent_type == "navmesh") {
+                    /*
                     auto navmesh = std::make_shared<Path>(cell->navmesh_manager.get());
                     navmesh->SetProperty("name", std::string(tram::SerializedEntityData::Field<tram::name_t>().FromString(str)));
                     uint64_t node_count = tram::SerializedEntityData::Field<uint64_t>().FromString(str);
@@ -294,14 +229,14 @@ namespace Editor {
                         n->SetProperty("position-y", tram::SerializedEntityData::Field<float>().FromString(str));
                         n->SetProperty("position-z", tram::SerializedEntityData::Field<float>().FromString(str));
                     }
-                    static_cast<Object*>(cell->navmesh_manager.get())->AddChild(navmesh);
+                    static_cast<Object*>(cell->navmesh_manager.get())->AddChild(navmesh);*/
                 } else {
                     auto entity = std::make_shared<Entity>(current_group);
                     
                     // need to find the index of the entity type
                     size_t entity_type_index = 0;
                     for (size_t i = 1; i < ENTITY_DATA_INSTANCES.size(); i++) {
-                        if (ENTITY_DATA_INSTANCES[i]->GetType() == ent_name) {
+                        if (ENTITY_DATA_INSTANCES[i]->GetType() == ent_type) {
                             entity_type_index = i;
                             break;
                         }
@@ -311,18 +246,18 @@ namespace Editor {
                     assert(entity_type_index);
                     assert(entity_type_index < ENTITY_DATA_INSTANCES.size());
                     
-                    entity->properties["name"] = std::string(SerializedEntityData::Field<name_t>().FromString(str));
+                    entity->properties["id"] = file.read_uint64();
+                    entity->properties["name"] = std::string(file.read_name());
 
-                    entity->properties["position-x"] = SerializedEntityData::Field<float>().FromString(str);
-                    entity->properties["position-y"] = SerializedEntityData::Field<float>().FromString(str);
-                    entity->properties["position-z"] = SerializedEntityData::Field<float>().FromString(str);
+                    entity->properties["position-x"] = file.read_float32();
+                    entity->properties["position-y"] = file.read_float32();
+                    entity->properties["position-z"] = file.read_float32();
 
-                    entity->properties["rotation-x"] = SerializedEntityData::Field<float>().FromString(str);
-                    entity->properties["rotation-y"] = SerializedEntityData::Field<float>().FromString(str);
-                    entity->properties["rotation-z"] = SerializedEntityData::Field<float>().FromString(str);
+                    entity->properties["rotation-x"] = file.read_float32();
+                    entity->properties["rotation-y"] = file.read_float32();
+                    entity->properties["rotation-z"] = file.read_float32();
 
-                    entity->properties["action"] = std::string(SerializedEntityData::Field<name_t>().FromString(str));
-                    
+
                     // need the int32_t cast so that PropertyValue gets initialized to an enum type
                     entity->SetProperty("entity-type", (int32_t) entity_type_index);
                     
@@ -330,13 +265,13 @@ namespace Editor {
                         switch (prop.type) {
                             case tram::SerializedEntityData::FieldInfo::FIELD_STRING:
                             case tram::SerializedEntityData::FieldInfo::FIELD_MODELNAME:
-                                entity->SetProperty(prop.name, std::string(SerializedEntityData::Field<name_t>().FromString(str))); break;
+                                entity->SetProperty(prop.name, std::string(file.read_name())); break;
                             case tram::SerializedEntityData::FieldInfo::FIELD_INT:
-                                entity->SetProperty(prop.name, SerializedEntityData::Field<int64_t>().FromString(str)); break;
+                                entity->SetProperty(prop.name, file.read_int64()); break;
                             case tram::SerializedEntityData::FieldInfo::FIELD_UINT:
-                                entity->SetProperty(prop.name, SerializedEntityData::Field<uint64_t>().FromString(str)); break;
+                                entity->SetProperty(prop.name, file.read_uint64()); break;
                             case tram::SerializedEntityData::FieldInfo::FIELD_FLOAT:
-                                entity->SetProperty(prop.name, SerializedEntityData::Field<float>().FromString(str)); break;
+                                entity->SetProperty(prop.name, file.read_float32()); break;
                         }
                     }
                     
@@ -359,19 +294,17 @@ namespace Editor {
                         
             for (auto& group : cell->group_manager->GetChildren()) {
                 if (group->GetName() != "[default]") {
-                    std::string output_line = "# group ";
+                    std::string output_line = "group ";
                     output_line += group->GetName();
                     file << output_line << std::endl;
                 }
 
                 for (auto& ent : group->GetChildren()) {
                     using namespace tram;
-                    //auto entity = (Entity*)ent.get();
-                    //std::string str = entity->entity_data->data->GetDataName();
-                    /*auto entity = dynamic_cast<Entity*>(ent.get());*/
                     int32_t entity_type_index = ent->GetProperty("entity-type");
                     std::string str = ENTITY_DATA_INSTANCES[entity_type_index]->GetType();
                     
+                    SerializedEntityData::Field<float>(ent->GetProperty("is").int_value).ToString(str);
                     str += " " + std::string(ent->GetName());
                     SerializedEntityData::Field<float>(ent->GetProperty("position-x").float_value).ToString(str);
                     SerializedEntityData::Field<float>(ent->GetProperty("position-y").float_value).ToString(str);
@@ -464,14 +397,14 @@ namespace Editor {
     
     
     void Reset() {
-        if (Settings::CELL_LIST_FROM_FILESYSTEM || worldcells == nullptr) {
-            worldcells = std::make_shared<WorldCellManager>(nullptr);
+        if (Settings::CELL_LIST_FROM_FILESYSTEM || WORLDCELLS == nullptr) {
+            WORLDCELLS = std::make_shared<WorldCellManager>(nullptr);
         }
         
         selection = std::make_shared<Selection>();
         
-        Editor::performed_actions.clear();
-        Editor::unperformed_actions.clear();
+        Editor::UNPERFORMED_ACTIONS.clear();
+        Editor::UNPERFORMED_ACTIONS.clear();
         Editor::data_modified = false;
         
         if (Settings::CELL_LIST_FROM_FILESYSTEM) {
@@ -479,8 +412,8 @@ namespace Editor {
             for (auto& cell : dir) {
                 if (cell.is_regular_file() && cell.path().extension() == ".cell") {
                     auto cell_name = cell.path().stem().string();
-                    auto worldcell = std::make_shared<WorldCell>(worldcells.get(), cell_name);
-                    std::static_pointer_cast<Object>(worldcells)->AddChild(worldcell);
+                    auto worldcell = std::make_shared<WorldCell>(WORLDCELLS.get(), cell_name);
+                    std::static_pointer_cast<Object>(WORLDCELLS)->AddChild(worldcell);
                 }
             }
         }

@@ -3,6 +3,9 @@
 
 #include <editor/editor.h>
 #include <editor/language.h>
+#include <editor/settings.h>
+
+#include <editor/objects/worldcellmanager.h>
 
 #include <widgets/mainframe.h>
 #include <widgets/objectlist.h>
@@ -137,7 +140,7 @@ void SaveCells() {
     wxProgressDialog progress_dialog (lang->dialog_saving_title, lang->dialog_saving_info, 100, main_frame);
     
     auto progress = 0;
-    auto cells = Editor::worldcells->GetChildren();
+    auto cells = Editor::WORLDCELLS->GetChildren();
     auto progress_increment = (100 / cells.size()) - 1;
     for (auto& wcell : cells) {
         progress_dialog.Update(progress, lang->dialog_saving_cell + std::string(wcell->GetName()));
@@ -247,7 +250,7 @@ void MainFrameCtrl::OnLoadCells(wxCommandEvent& event) {
     wxProgressDialog progress_dialog (lang->dialog_loading_title, lang->dialog_loading_info, 100, this);
     
     auto progress = 0;
-    auto cells = Editor::worldcells->GetChildren();
+    auto cells = Editor::WORLDCELLS->GetChildren();
     auto progress_increment = (100 / cells.size()) - 1;
     for (auto& wcell : cells) {
         progress_dialog.Update(progress, lang->dialog_loading_cell + std::string(wcell->GetName()));

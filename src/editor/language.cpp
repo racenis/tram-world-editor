@@ -1,5 +1,5 @@
 #include <editor/language.h>
-#include <editor/editor.h>
+#include <editor/settings.h>
 
 #include <unordered_map>
 

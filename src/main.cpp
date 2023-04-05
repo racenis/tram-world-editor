@@ -2,6 +2,7 @@
 
 #include <editor/editor.h>
 #include <editor/language.h>
+#include <editor/settings.h>
 
 #include <widgets/mainframe.h>
 

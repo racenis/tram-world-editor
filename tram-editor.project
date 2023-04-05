@@ -7,6 +7,21 @@
     <File Name="src/tramsdk.cpp"/>
     <File Name="src/main.cpp"/>
     <VirtualDirectory Name="editor">
+      <VirtualDirectory Name="objects">
+        <File Name="src/editor/objects/worldcellmanager.h"/>
+        <File Name="src/editor/objects/entitygroupmanager.h"/>
+        <File Name="src/editor/objects/entitygroup.h"/>
+        <File Name="src/editor/objects/transitionmanager.h"/>
+        <File Name="src/editor/objects/transition.h"/>
+        <File Name="src/editor/objects/navmeshmanager.h"/>
+        <File Name="src/editor/objects/pathmanager.h"/>
+        <File Name="src/editor/objects/worldcell.h"/>
+        <File Name="src/editor/objects/path.h"/>
+        <File Name="src/editor/objects/navmesh.h"/>
+        <File Name="src/editor/objects/entity.h"/>
+      </VirtualDirectory>
+      <File Name="src/editor/settings.h"/>
+      <File Name="src/editor/settings.cpp"/>
       <File Name="src/editor/language.h"/>
       <File Name="src/editor/language.cpp"/>
       <File Name="src/editor/editor.h"/>
