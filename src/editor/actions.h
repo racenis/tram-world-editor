@@ -3,226 +3,228 @@
 
 #include <editor/editor.h>
 
-namespace Editor {    
-    class ActionChangeSelection : public Action {
-    public:
-        ActionChangeSelection (std::shared_ptr<Selection> new_selection) {
-            prev_selection = selection;
-            next_selection = new_selection;
-            
-            Perform();
-        }
+namespace Editor {
+
+class ActionChangeSelection : public Action {
+public:
+    ActionChangeSelection (std::shared_ptr<Selection> new_selection) {
+        prev_selection = SELECTION;
+        next_selection = new_selection;
         
-        void Perform() {
-            //std::cout << "New selection: ";
-            //for (auto& obj : next_selection->objects) std::cout << obj->GetName() << " ";
-            //std::cout << std::endl;
-            selection = next_selection;
-            
-            Editor::PropertyPanel::Refresh();
-            Editor::ObjectList::Refresh();
-            Editor::Viewport::Refresh();
-        }
-        
-        void Unperform() {
-            selection = prev_selection;
-            
-            Editor::PropertyPanel::Refresh();
-            Editor::ObjectList::Refresh();
-            Editor::Viewport::Refresh();
-        }
-        
-        std::shared_ptr<Selection> prev_selection = nullptr;
-        std::shared_ptr<Selection> next_selection = nullptr;
-    };
+        Perform();
+    }
     
-    class ActionNew : public Action {
-    public:
-        ActionNew () {
-            // we will allow creating a new object if and only if a single object is selected.
-            // otherwise it would be weird. usually you don't do something like that.
-            if (selection->objects.size() == 1) {
-                parent_object = selection->objects.front();
-                child_object = parent_object->AddChild();
-                if (parent_object->IsChildrenTreeable()) Editor::WorldTree::Add(child_object.get());
-            } else {
-                std::cout << "Adding new objects can only if single object is selected!" << std::endl;
-            }
-        }
+    void Perform() {
+        //std::cout << "New selection: ";
+        //for (auto& obj : next_selection->objects) std::cout << obj->GetName() << " ";
+        //std::cout << std::endl;
+        SELECTION = next_selection;
         
-        void Perform() {
-            parent_object->AddChild(child_object);
+        Editor::PropertyPanel::Refresh();
+        Editor::ObjectList::Refresh();
+        Editor::Viewport::Refresh();
+    }
+    
+    void Unperform() {
+        SELECTION = prev_selection;
+        
+        Editor::PropertyPanel::Refresh();
+        Editor::ObjectList::Refresh();
+        Editor::Viewport::Refresh();
+    }
+    
+    std::shared_ptr<Selection> prev_selection = nullptr;
+    std::shared_ptr<Selection> next_selection = nullptr;
+};
+
+class ActionNew : public Action {
+public:
+    ActionNew () {
+        // we will allow creating a new object if and only if a single object is selected.
+        // otherwise it would be weird. usually you don't do something like that.
+        if (SELECTION->objects.size() == 1) {
+            parent_object = SELECTION->objects.front();
+            child_object = parent_object->AddChild();
             if (parent_object->IsChildrenTreeable()) Editor::WorldTree::Add(child_object.get());
+        } else {
+            std::cout << "Adding new objects can only if single object is selected!" << std::endl;
         }
-        
-        void Unperform() {
-            parent_object->RemoveChild(child_object);
-            if (parent_object->IsChildrenTreeable()) Editor::WorldTree::Remove(child_object.get());
-        }
-        
-        std::shared_ptr<Object> parent_object = nullptr;
-        std::shared_ptr<Object> child_object = nullptr;
-    };
+    }
     
-    class ActionRemove : public Action {
-    public:
-        ActionRemove () {
-            for (auto& object : selection->objects) {
-                // TODO: add a check for if the object can even be removed
-                removal_list.push_back({object->parent->GetPointer(), object});
-            }
-            
-            Perform();
-        }
-        
-        void Perform() {
-            for (auto& objects : removal_list) {
-                objects.first->RemoveChild(objects.second);
-                if (objects.first->IsChildrenTreeable()) Editor::WorldTree::Remove(objects.second.get());
-            }
-            
-            Editor::data_modified = true;
-        }
-        
-        void Unperform() {
-            for (auto& objects : removal_list) {
-                objects.first->AddChild(objects.second);
-                if (objects.first->IsChildrenTreeable()) Editor::WorldTree::Add(objects.second.get());
-            }
-        }
-        
-        std::list<std::pair<std::shared_ptr<Object>, std::shared_ptr<Object>>> removal_list;
-    };
+    void Perform() {
+        parent_object->AddChild(child_object);
+        if (parent_object->IsChildrenTreeable()) Editor::WorldTree::Add(child_object.get());
+    }
     
-    /*class ActionChangeProperties : public Action {
-    public:
-        // Makes a backup of the properties of the selected objects.
-        ActionChangeProperties() {
-            for (auto& object : selection->objects) {
-                property_backups.push_back({object, object->GetProperties()});
-            }
-        }
-        
-        // Swaps the backed-up properties with the new properties.
-        void Perform () {
-            for (auto& backup : property_backups) {
-                auto new_property = backup.first->GetProperties();
-                backup.first->SetProperties(backup.second);
-                backup.second = new_property;
-            }
-            
-            Editor::PropertyPanel::Refresh();
-            Editor::ObjectList::Refresh();
-            Editor::Viewport::Refresh();
-        }
-        
-        // Swaps the new properties with the backed-up properties.
-        void Unperform() {
-            Perform();
-        }
-        
-        std::list<std::pair<std::shared_ptr<Object>, std::unordered_map<std::string, PropertyValue>>> property_backups;
-    };*/
+    void Unperform() {
+        parent_object->RemoveChild(child_object);
+        if (parent_object->IsChildrenTreeable()) Editor::WorldTree::Remove(child_object.get());
+    }
     
-    class ActionChangeProperties : public Action {
-    public:
-        // This will back up the values of the properties of the selection.
-        ActionChangeProperties(std::vector<std::string> properties) {
-            for (auto& object : selection->objects) {
-                for (auto& property : properties) {
-                    property_backups.push_back({object, {property, object->GetProperty(property)}});
-                }
-            }
-            Editor::data_modified = true;
-        }
-        
-        // Swaps the backed-up properties with the new properties.
-        void Perform () {
-            for (auto& backup : property_backups) {
-                auto new_property = backup.first->GetProperty(backup.second.property_name);
-                backup.first->SetProperty(backup.second.property_name, backup.second.property_value);
-                backup.second.property_value = new_property;
-            }
-            
-            Editor::data_modified = true;
-            
-            Editor::PropertyPanel::Refresh();
-            Editor::ObjectList::Refresh();
-            Editor::Viewport::Refresh();
-        }
-        
-        // Swaps the new properties with the backed-up properties.
-        void Unperform() {
-            Perform();
-        }
-        
-        struct PropertyBackup {
-            std::string property_name;
-            PropertyValue property_value;
-        };
-        
-        std::list<std::pair<std::shared_ptr<Object>, PropertyBackup>> property_backups;
-    };
-    
-    /*class ActionSwapSelection : public Action {
-    public:
-        ActionSwapSelection (std::shared_ptr<Selection> new_selection) {
-            prev_selection = selection;
-            next_selection = new_selection;
-        }
-        
-        // TODO: you also have to
-        // - update the property panel about the new selection
-        // - update the object list about the new selection
-        // - reparent all children of the selected objects
-        // - reparent the object to its children
-        void Perform() {
-            for (auto& object : prev_selection->objects) {
-                auto parent_object = object->GetParent();
-                parent_object->RemoveChild(object);
-                
-                if (parent_object->IsChildrenTreeable()) {
-                    Editor::WorldTree::Remove(object.get());
-                }
-            }
+    std::shared_ptr<Object> parent_object = nullptr;
+    std::shared_ptr<Object> child_object = nullptr;
+};
 
-            for (auto& object : next_selection->objects) {
-                auto parent_object = object->GetParent();
-                parent_object->AddChild(object);
-                
-                if (parent_object->IsChildrenTreeable()) {
-                    Editor::WorldTree::Add(object.get());
-                }
-            }
-            
-            selection = next_selection;
+class ActionRemove : public Action {
+public:
+    ActionRemove () {
+        for (auto& object : SELECTION->objects) {
+            // TODO: add a check for if the object can even be removed
+            removal_list.push_back({object->parent->GetPointer(), object});
         }
         
-        void Unperform() {
-            for (auto& object : next_selection->objects) {
-                auto parent_object = object->GetParent();
-                parent_object->RemoveChild(object);
-                
-                if (parent_object->IsChildrenTreeable()) {
-                    Editor::WorldTree::Remove(object.get());
-                }
-            }
+        Perform();
+    }
+    
+    void Perform() {
+        for (auto& objects : removal_list) {
+            objects.first->RemoveChild(objects.second);
+            if (objects.first->IsChildrenTreeable()) Editor::WorldTree::Remove(objects.second.get());
+        }
+        
+        Editor::data_modified = true;
+    }
+    
+    void Unperform() {
+        for (auto& objects : removal_list) {
+            objects.first->AddChild(objects.second);
+            if (objects.first->IsChildrenTreeable()) Editor::WorldTree::Add(objects.second.get());
+        }
+    }
+    
+    std::list<std::pair<std::shared_ptr<Object>, std::shared_ptr<Object>>> removal_list;
+};
 
-            for (auto& object : prev_selection->objects) {
-                auto parent_object = object->GetParent();
-                parent_object->AddChild(object);
-                
-                if (parent_object->IsChildrenTreeable()) {
-                    Editor::WorldTree::Add(object.get());
-                }
-            }
-            
-            selection = prev_selection;
+/*class ActionChangeProperties : public Action {
+public:
+    // Makes a backup of the properties of the selected objects.
+    ActionChangeProperties() {
+        for (auto& object : selection->objects) {
+            property_backups.push_back({object, object->GetProperties()});
+        }
+    }
+    
+    // Swaps the backed-up properties with the new properties.
+    void Perform () {
+        for (auto& backup : property_backups) {
+            auto new_property = backup.first->GetProperties();
+            backup.first->SetProperties(backup.second);
+            backup.second = new_property;
         }
         
-        std::shared_ptr<Selection> prev_selection = nullptr;
-        std::shared_ptr<Selection> next_selection = nullptr;
-    };*/
+        Editor::PropertyPanel::Refresh();
+        Editor::ObjectList::Refresh();
+        Editor::Viewport::Refresh();
+    }
+    
+    // Swaps the new properties with the backed-up properties.
+    void Unperform() {
+        Perform();
+    }
+    
+    std::list<std::pair<std::shared_ptr<Object>, std::unordered_map<std::string, PropertyValue>>> property_backups;
+};*/
+
+class ActionChangeProperties : public Action {
+public:
+    // This will back up the values of the properties of the selection.
+    ActionChangeProperties(std::vector<std::string> properties) {
+        for (auto& object : SELECTION->objects) {
+            for (auto& property : properties) {
+                property_backups.push_back({object, {property, object->GetProperty(property)}});
+            }
+        }
+        Editor::data_modified = true;
+    }
+    
+    // Swaps the backed-up properties with the new properties.
+    void Perform () {
+        for (auto& backup : property_backups) {
+            auto new_property = backup.first->GetProperty(backup.second.property_name);
+            backup.first->SetProperty(backup.second.property_name, backup.second.property_value);
+            backup.second.property_value = new_property;
+        }
+        
+        Editor::data_modified = true;
+        
+        Editor::PropertyPanel::Refresh();
+        Editor::ObjectList::Refresh();
+        Editor::Viewport::Refresh();
+    }
+    
+    // Swaps the new properties with the backed-up properties.
+    void Unperform() {
+        Perform();
+    }
+    
+    struct PropertyBackup {
+        std::string property_name;
+        PropertyValue property_value;
+    };
+    
+    std::list<std::pair<std::shared_ptr<Object>, PropertyBackup>> property_backups;
+};
+
+/*class ActionSwapSelection : public Action {
+public:
+    ActionSwapSelection (std::shared_ptr<Selection> new_selection) {
+        prev_selection = selection;
+        next_selection = new_selection;
+    }
+    
+    // TODO: you also have to
+    // - update the property panel about the new selection
+    // - update the object list about the new selection
+    // - reparent all children of the selected objects
+    // - reparent the object to its children
+    void Perform() {
+        for (auto& object : prev_selection->objects) {
+            auto parent_object = object->GetParent();
+            parent_object->RemoveChild(object);
+            
+            if (parent_object->IsChildrenTreeable()) {
+                Editor::WorldTree::Remove(object.get());
+            }
+        }
+
+        for (auto& object : next_selection->objects) {
+            auto parent_object = object->GetParent();
+            parent_object->AddChild(object);
+            
+            if (parent_object->IsChildrenTreeable()) {
+                Editor::WorldTree::Add(object.get());
+            }
+        }
+        
+        selection = next_selection;
+    }
+    
+    void Unperform() {
+        for (auto& object : next_selection->objects) {
+            auto parent_object = object->GetParent();
+            parent_object->RemoveChild(object);
+            
+            if (parent_object->IsChildrenTreeable()) {
+                Editor::WorldTree::Remove(object.get());
+            }
+        }
+
+        for (auto& object : prev_selection->objects) {
+            auto parent_object = object->GetParent();
+            parent_object->AddChild(object);
+            
+            if (parent_object->IsChildrenTreeable()) {
+                Editor::WorldTree::Add(object.get());
+            }
+        }
+        
+        selection = prev_selection;
+    }
+    
+    std::shared_ptr<Selection> prev_selection = nullptr;
+    std::shared_ptr<Selection> next_selection = nullptr;
+};*/
+
 }
 
 #endif // EDITOR_ACTIONS_H

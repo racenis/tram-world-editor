@@ -13,8 +13,8 @@ std::shared_ptr<Object> selected_object;
 ObjectListCtrl* object_list = nullptr;
 
 auto GetSelectedObject() {
-    if (selection->objects.size() > 0) {
-        auto object = selection->objects.front();
+    if (SELECTION->objects.size() > 0) {
+        auto object = SELECTION->objects.front();
         return object->IsChildrenListable() ? object : object->GetParent();
     } else {
         return std::shared_ptr<Object>(nullptr);
@@ -73,7 +73,7 @@ wxString ObjectListCtrl::OnGetItemText (long item, long column) const {
 }
 
 void ObjectListCtrl::OnMenuOpen(wxListEvent& event) {
-    world_tree_popup->SetSelectionStatus(Editor::selection.get());
+    world_tree_popup->SetSelectionStatus(Editor::SELECTION.get());
     main_frame->PopupMenu(world_tree_popup);
 }
 

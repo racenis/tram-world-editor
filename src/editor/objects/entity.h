@@ -31,6 +31,9 @@ public:
     void SetHidden(bool is_hidden);
     
     std::vector<PropertyDefinition> GetFullPropertyDefinitions();
+    std::vector<PropertyDefinition> GetSerializedEntityDataDefinitions();
+    
+    void SetEntityType (std::string type);
     
     PropertyValue GetProperty (std::string property_name);
     

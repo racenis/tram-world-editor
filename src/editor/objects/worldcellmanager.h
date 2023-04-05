@@ -9,8 +9,8 @@ namespace Editor {
 
 class WorldCellManager : public Object {
 public:
-    WorldCellManager(Object* parent) {
-        properties["name"] = std::string("World");
+    WorldCellManager (Object* parent) : Object (parent) {
+        properties["name"] = std::string("WorldCells");
     }
     
     std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
@@ -34,8 +34,6 @@ public:
     
     std::shared_ptr<Object> AddChild() { auto child = std::make_shared<WorldCell>(this); children.push_back(child); return child; }
 };
-
-extern std::shared_ptr<WorldCellManager> WORLDCELLS;
 
 }
 

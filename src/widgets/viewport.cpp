@@ -146,7 +146,7 @@ void ViewportCtrl::OnMouseMove(wxMouseEvent& event) {
             
             translation *= delta_x + delta_x;
             
-            for (auto& object : Editor::selection->objects) {
+            for (auto& object : Editor::SELECTION->objects) {
                 glm::vec3 object_position = glm::vec3 {
                     object->GetProperty("position-x").float_value,
                     object->GetProperty("position-y").float_value,
@@ -184,7 +184,7 @@ void ViewportCtrl::OnMouseMove(wxMouseEvent& event) {
             
             rotation *= delta_x + delta_x;
             
-            for (auto& object : Editor::selection->objects) {
+            for (auto& object : Editor::SELECTION->objects) {
                 glm::quat object_rotation = glm::vec3 {
                     object->GetProperty("rotation-x").float_value,
                     object->GetProperty("rotation-y").float_value,
@@ -346,7 +346,7 @@ void ViewportCtrl::OnPaint(wxPaintEvent& event)
     using namespace tram;
     using namespace tram::Render;
     
-    for (auto& object : Editor::selection->objects) {
+    for (auto& object : Editor::SELECTION->objects) {
         glm::quat space;
         if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_WORLD) space = glm::vec3(0.0f);
         if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITY) space = glm::quat(glm::vec3 {

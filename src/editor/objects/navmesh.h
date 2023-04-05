@@ -10,7 +10,7 @@ public:
     class Node : public Object {
     public:
         Node (Object* parent) : Object(parent) {
-            properties["id"] = 0;
+            properties["id"] = GetNewID();
             properties["next-id"] = 0;
             properties["prev-id"] = 0;
             properties["left-id"] = 0;
@@ -45,8 +45,9 @@ public:
         }
     };
     
-    Navmesh (Object* parent) : Object(parent) {
-        properties["name"] = std::string("New Navmesh");
+    Navmesh (Object* parent) : Navmesh(parent, "New Navmesh") {}
+    Navmesh (Object* parent, std::string name) : Object(parent) {
+        properties["name"] = name;
     }
     
     bool IsChildrenTreeable() { return false; }
@@ -55,6 +56,11 @@ public:
     bool IsRemovable() { return true; }
     bool IsEditable() { return true; }
     bool IsCopyable() { return true; }
+    
+    void LoadFromDisk();
+    void SaveToDisk();
+    
+    static uint64_t GetNewID();
     
     std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {

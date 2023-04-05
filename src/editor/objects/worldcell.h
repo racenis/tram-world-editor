@@ -13,17 +13,13 @@ public:
     WorldCell(Object* parent) : WorldCell(parent, "New Worldcell") {}
     WorldCell(Object* parent, std::string name) : Object(parent), 
         group_manager(std::make_shared<EntityGroupManager>(this)), 
-        transition_manager(std::make_shared<TransitionManager>(this)),
-        path_manager(std::make_shared<PathManager>(this)),
-        navmesh_manager(std::make_shared<NavmeshManager>(this)) {
+        transition_manager(std::make_shared<TransitionManager>(this)) {
         properties["name"] = name;
         properties["is-interior"] = false;
         properties["is-interior-lighting"] = false;
         
         children.push_back(group_manager);
         children.push_back(transition_manager);
-        children.push_back(path_manager);
-        children.push_back(navmesh_manager);
     }
     
     bool IsChildrenTreeable() { return true; }
@@ -32,6 +28,9 @@ public:
     bool IsRemovable() { return true; }
     bool IsEditable() { return true; }
     bool IsCopyable() { return true; }
+    
+    void LoadFromDisk();
+    void SaveToDisk();
     
     std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
@@ -50,8 +49,6 @@ public:
     
     std::shared_ptr<EntityGroupManager> group_manager;
     std::shared_ptr<TransitionManager> transition_manager;
-    std::shared_ptr<PathManager> path_manager;
-    std::shared_ptr<NavmeshManager> navmesh_manager;
 };
 
 }

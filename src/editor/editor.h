@@ -265,7 +265,7 @@ public:
 };
 
 extern bool data_modified;
-extern std::shared_ptr<Selection> selection;
+extern std::shared_ptr<Selection> SELECTION;
 
 }
 

@@ -10,12 +10,12 @@ PropertyPanelCtrl* property_panel = nullptr;
 
 void Editor::PropertyPanel::SetCurrentSelection() {
     property_panel->Clear();
-    if (selection->objects.size()) {
+    if (SELECTION->objects.size()) {
         std::unordered_map<std::string, wxPGProperty*> fields;
         std::vector<wxPGProperty*> fields_list;
         
         // add fields and categories from the selection
-        for (auto& object : selection->objects) {
+        for (auto& object : SELECTION->objects) {
             auto object_fields = object->GetFullPropertyDefinitions();
             
             for (auto& field : object_fields) {
@@ -76,7 +76,7 @@ void Editor::PropertyPanel::SetCurrentSelection() {
             bool first = true;
             
             // will crash if selection.size() < 1
-            for (auto& object : selection->objects) {
+            for (auto& object : SELECTION->objects) {
                 PropertyValue next_value = object->GetProperty(field_name);
                 
                 if (first) {
@@ -143,7 +143,7 @@ void PropertyPanelCtrl::OnChanged (wxPropertyGridEvent& event) {
     Editor::PerformAction<Editor::ActionChangeProperties>(std::vector<std::string> {value_name});
     
     // TODO: cache the result of value.GetType() == "type"
-    for (auto& object : Editor::selection->objects) {
+    for (auto& object : Editor::SELECTION->objects) {
         if (value.GetType() == "longlong") {
             object->SetProperty(value_name, value.GetLongLong().GetValue());
         } else if (value.GetType() == "ulonglong") {

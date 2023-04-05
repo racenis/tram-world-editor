@@ -2,7 +2,7 @@
 #include <editor/language.h>
 #include <editor/actions.h>
 
-#include <editor/objects/worldcellmanager.h>
+#include <editor/objects/world.h>
 
 #include <widgets/mainframe.h>
 #include <widgets/objectmenu.h>
@@ -80,14 +80,14 @@ namespace Editor::WorldTree {
     
     void Rebuild () {
         world_tree->DeleteAllItems();
-        root_node = world_tree->AddRoot(Editor::PropertyRename(std::string(WORLDCELLS->GetName())));
+        root_node = world_tree->AddRoot(Editor::PropertyRename(std::string(WORLD->GetName())));
         obj_to_treeId.clear();
         treeId_to_obj.clear();
         
-        obj_to_treeId[WORLDCELLS.get()] = root_node.GetID();
-        treeId_to_obj[root_node.GetID()] = WORLDCELLS.get();
+        obj_to_treeId[WORLD.get()] = root_node.GetID();
+        treeId_to_obj[root_node.GetID()] = WORLD.get();
         
-        for (auto cell : WORLDCELLS->children) {
+        for (auto cell : WORLD->children) {
             Add (cell.get());
         }
         
@@ -106,7 +106,7 @@ WorldTreeCtrl::WorldTreeCtrl (wxWindow* parent) : wxTreeCtrl(parent, -1, wxDefau
 }
 
 void WorldTreeCtrl::OnMenuOpen (wxTreeEvent& event) {
-    world_tree_popup->SetSelectionStatus(Editor::selection.get());
+    world_tree_popup->SetSelectionStatus(Editor::SELECTION.get());
     main_frame->PopupMenu(world_tree_popup);
 }
 

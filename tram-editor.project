@@ -8,6 +8,13 @@
     <File Name="src/main.cpp"/>
     <VirtualDirectory Name="editor">
       <VirtualDirectory Name="objects">
+        <File Name="src/editor/objects/path.cpp"/>
+        <File Name="src/editor/objects/navmesh.cpp"/>
+        <File Name="src/editor/objects/entity.cpp"/>
+        <File Name="src/editor/objects/world.cpp"/>
+        <File Name="src/editor/objects/world.h"/>
+        <File Name="src/editor/objects/worldcellmanager.cpp"/>
+        <File Name="src/editor/objects/worldcell.cpp"/>
         <File Name="src/editor/objects/worldcellmanager.h"/>
         <File Name="src/editor/objects/entitygroupmanager.h"/>
         <File Name="src/editor/objects/entitygroup.h"/>
