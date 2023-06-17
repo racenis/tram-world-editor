@@ -4,6 +4,8 @@
 #include <editor/actions.h>
 #include <editor/settings.h>
 
+#include <editor/objects/entity.h>
+
 #include <widgets/viewport.h>
 
 using namespace Editor;
@@ -15,8 +17,9 @@ using namespace Editor;
 #include <render/render.h>
 #include <render/renderer.h>
 #include <render/api.h>
+#include <render/aabb.h>
 
-#include <components/rendercomponent.h>
+#include <components/render.h>
 
 ViewportCtrl* viewport = nullptr;
 
@@ -97,26 +100,75 @@ void ViewportCtrl::CenterMouseCursor() {
 }
 
 void ViewportCtrl::OnLeftClick(wxMouseEvent& event) {
-    if (viewport_mode == MODE_NONE) {
-        CaptureMouse();
-        CenterMouseCursor();
-        
-        viewport_mode = MODE_MOVE;
-        std::cout << "captured and centered the mouse!" << std::endl;
-    } else {
+    
+    // if viewport is in move mode or translate mode, cancel them
+    if (viewport_mode != MODE_NONE) {
         ReleaseMouse();
         Refresh();
         
         viewport_axis = AXIS_NONE;
         viewport_mode = MODE_NONE;
-        std::cout << "released the mouse!" << std::endl;
+        std::cout << "returned to none mode!" << std::endl;
+        
+        return;
     }
+    
+    // if control key is pressed down, select object in viewport
+    if (wxGetKeyState(WXK_CONTROL)) {
+        tram::vec3 far_point = tram::Render::ProjectInverse({event.GetX(), event.GetY(), 0.0f});
+        tram::vec3 near_point = tram::Render::ProjectInverse({event.GetX(), event.GetY(), 1000.0f});
+        
+        tram::vec3 look_direction = glm::normalize(far_point - near_point);
+        tram::vec3 look_position = near_point;
+        
+        auto res = tram::Render::AABB::FindNearestFromRay(look_position, look_direction, -1);
+        
+        if (res.data) {
+            std::cout << GetEntityFromViewmodel((tram::RenderComponent*) res.data)->GetName() << std::endl;
+            
+            // create a new selection object
+            auto new_selection = std::make_shared<Editor::Selection>();
+            
+            // if shift is pressed down, then copy in old selection objects
+            if (wxGetKeyState(WXK_SHIFT)) {
+                new_selection->objects = Editor::SELECTION->objects;
+            }
+            
+            // lookup selected object and try to find it in new selection
+            auto selected_object = GetEntityFromViewmodel((tram::RenderComponent*) res.data)->GetPointer();
+            auto already_selected = std::find(new_selection->objects.begin(), new_selection->objects.end(), selected_object);
+            
+            // if already selected, deselect. otherwise append to selection
+            if (already_selected == new_selection->objects.end()) {
+                new_selection->objects.push_back(selected_object);
+            } else {
+                new_selection->objects.erase(already_selected);
+            }
+            
+            // set new selection as editor selection
+            Editor::PerformAction<Editor::ActionChangeSelection>(new_selection);
+        } else {
+            std::cout << "missed" << std::endl;
+        }
+        
+        return;
+    }
+    
+    // otherwise
+    
+    CaptureMouse();
+    CenterMouseCursor();
+    
+    viewport_mode = MODE_MOVE;
+    std::cout << "entered move mode" << std::endl;
 }
 
 void ViewportCtrl::OnRightClick(wxMouseEvent& event) {
     if (viewport_mode == MODE_TRANSLATE || viewport_mode == MODE_ROTATE) {
         // TODO: do an undo in here
         std::cout << "Canceling a transform not implemented!" << std::endl;
+        
+        return;
     }
 }
 
@@ -330,8 +382,8 @@ void ViewportCtrl::OnSizeChange(wxSizeEvent& event) {
     
     int width, height;
     GetSize(&width, &height);
-    glViewport(0, 0, width, height);
-    return;
+    //glViewport(0, 0, width, height);
+    //return;
     
     tram::Render::SetScreenSize(width, height);
 }
@@ -375,7 +427,7 @@ void ViewportCtrl::OnPaint(wxPaintEvent& event)
     AddLineMarker(glm::vec3(0.0f, 0.0f, 0.0f), COLOR_CYAN);
     
     //SetSun(time_of_day);
-    SetSun(0.8f);
+    //SetSun(0.8f);
 
     Async::ResourceLoader1stStage();
     Async::ResourceLoader2ndStage();

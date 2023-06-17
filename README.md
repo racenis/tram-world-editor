@@ -21,6 +21,14 @@ Done.
 	- Transitions
 	- Navmeshes
 	- Paths
+- Make widget selections follow global Editor selections
+- Switch to using framework Files for configuration
+- Add modified flags to objects
+	- Add IsModified() method
+		- Recursively checks children too
+	- Actions save also flag, not only modified property
+- Rewrite language again
+	- Put all of the string names in a map
 
 
 ### Bugs

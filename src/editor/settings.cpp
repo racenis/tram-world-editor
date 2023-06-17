@@ -3,6 +3,8 @@
 #include <editor/editor.h>
 #include <editor/language.h>
 
+#include <framework/logging.h>
+
 #include <unordered_map>
 #include <fstream>
 
@@ -22,8 +24,12 @@ static std::unordered_map<std::string, std::pair<PropertyType, void*>> setting_m
     {"INTERFACE_LANGUAGE", {PROPERTY_ENUM, &Settings::INTERFACE_LANGUAGE}}
 };
 
+using namespace tram;
+
 /// Reads the Settings from disk.
 void Load() {
+    SetSystemLoggingSeverity(System::SYSTEM_PLATFORM, SEVERITY_WARNING);
+    
     std::ifstream file ("data/editor_settings.ini");
     
     if (file.is_open()) {

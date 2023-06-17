@@ -5,6 +5,7 @@
 #include <editor/settings.h>
 
 #include <widgets/mainframe.h>
+#include <widgets/dialogs.h>
 
 class TramEditor : public wxApp {
 public:
@@ -12,11 +13,16 @@ public:
         Editor::Settings::Load();
         Editor::selected_language = Editor::Languages[Editor::Settings::INTERFACE_LANGUAGE];
         Editor::ResetRename();
-        Editor::Init();
+        //Editor::Init();
         Editor::Reset();
         
         main_frame = new MainFrameCtrl();
         main_frame->Show(true);
+        
+        Editor::Init();
+        
+        LoadCells();
+        
         
         return true;
     }

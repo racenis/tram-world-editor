@@ -1,5 +1,4 @@
 #include <wx/aboutdlg.h>
-#include <wx/progdlg.h>
 
 #include <editor/editor.h>
 #include <editor/language.h>
@@ -13,6 +12,7 @@
 #include <widgets/propertypanel.h>
 #include <widgets/viewport.h>
 #include <widgets/worldtree.h>
+#include <widgets/dialogs.h>
 
 enum {
     ID_Hello = 1,
@@ -136,40 +136,7 @@ MainFrameCtrl::MainFrameCtrl() : wxFrame(NULL, wxID_ANY, lang->title_bar, wxDefa
     Editor::WorldTree::Rebuild();
 }
 
-void SaveCells() {
-    wxProgressDialog progress_dialog (lang->dialog_saving_title, lang->dialog_saving_info, 100, main_frame);
-    
-    auto paths = Editor::WORLD->path_manager->GetChildren();
-    auto navmeshes = Editor::WORLD->navmesh_manager->GetChildren();
-    auto cells = Editor::WORLD->worldcell_manager->GetChildren();
-    
-    float progress = 0;
-    float progress_increment = ((float) 100 / (float) (paths.size() + navmeshes.size() + cells.size()));
-    
-    for (auto& wpath : paths) {
-        progress_dialog.Update(progress, lang->dialog_loading_cell + std::string(wpath->GetName()));
-        std::dynamic_pointer_cast<Editor::Path>(wpath)->SaveToDisk();
-        progress += progress_increment;
-    }
-    
-    for (auto& wnavmesh : navmeshes) {
-        progress_dialog.Update(progress, lang->dialog_loading_cell + std::string(wnavmesh->GetName()));
-        std::dynamic_pointer_cast<Editor::Navmesh>(wnavmesh)->SaveToDisk();
-        progress += progress_increment;
-    }
-    
-    for (auto& wcell : cells) {
-        progress_dialog.Update(progress, lang->dialog_loading_cell + std::string(wcell->GetName()));
-        std::dynamic_pointer_cast<Editor::WorldCell>(wcell)->SaveToDisk();
-        progress += progress_increment;
-    }
-    
-    Editor::Settings::Save();
-    
-    progress_dialog.Update(100, lang->dialog_finished);
-    
-    std::cout << lang->dialog_finished << std::endl;
-}
+
 
 void MainFrameCtrl::OnSaveCells(wxCommandEvent& event) {
     SaveCells();
@@ -177,47 +144,7 @@ void MainFrameCtrl::OnSaveCells(wxCommandEvent& event) {
 }
 
 void MainFrameCtrl::OnLoadCells(wxCommandEvent& event) {
-    if (Editor::data_modified) {
-        wxMessageDialog confirmation (this, lang->dialog_load_data, lang->dialog_data_loss, wxYES_NO | wxCANCEL | wxCANCEL_DEFAULT | wxICON_EXCLAMATION);
-        if(confirmation.ShowModal() != wxID_YES) {
-            return;
-        }
-    }
-    
-    Editor::Reset();
-        
-    wxProgressDialog progress_dialog (lang->dialog_loading_title, lang->dialog_loading_info, 100, this);
-    
-    auto paths = Editor::WORLD->path_manager->GetChildren();
-    auto navmeshes = Editor::WORLD->navmesh_manager->GetChildren();
-    auto cells = Editor::WORLD->worldcell_manager->GetChildren();
-    
-    float progress = 0;
-    float progress_increment = ((float) 100 / (float) (paths.size() + navmeshes.size() + cells.size()));
-    
-    for (auto& wpath : paths) {
-        progress_dialog.Update(progress, lang->dialog_loading_cell + std::string(wpath->GetName()));
-        std::dynamic_pointer_cast<Editor::Path>(wpath)->LoadFromDisk();
-        progress += progress_increment;
-    }
-    
-    for (auto& wnavmesh : navmeshes) {
-        progress_dialog.Update(progress, lang->dialog_loading_cell + std::string(wnavmesh->GetName()));
-        std::dynamic_pointer_cast<Editor::Navmesh>(wnavmesh)->LoadFromDisk();
-        progress += progress_increment;
-    }
-    
-    for (auto& wcell : cells) {
-        progress_dialog.Update(progress, lang->dialog_loading_cell + std::string(wcell->GetName()));
-        std::dynamic_pointer_cast<Editor::WorldCell>(wcell)->LoadFromDisk();
-        progress += progress_increment;
-    }
-    
-    Editor::WorldTree::Rebuild();
-    
-    progress_dialog.Update(100, lang->dialog_finished);
-    
-    std::cout << lang->dialog_finished << std::endl;
+    LoadCells();
 }
 
 void MainFrameCtrl::OnClose(wxCloseEvent& event) {

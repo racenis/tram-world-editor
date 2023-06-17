@@ -1,7 +1,9 @@
 #define ENGINE_EDITOR_MODE
 #include <framework/core.cpp>
 #include <framework/async.cpp>
+#include <framework/entitycomponent.cpp>
 #include <framework/file.cpp>
+#include <framework/math.cpp>
 #include <framework/stats.cpp>
 #include <framework/system.cpp>
 #include <framework/event.cpp>
@@ -15,15 +17,15 @@
 #include <render/opengl/renderer.cpp>
 #include <render/opengl/shader.cpp>
 
-#include <render/armature.cpp>
+#include <render/aabb.cpp>
+#include <render/animation.cpp>
 #include <render/material.cpp>
 #include <render/model.cpp>
 #include <render/error.cpp>
 #include <render/render.cpp>
-#include <render/render_misc.cpp>
 #include <render/renderer.cpp>
 
-#include <components/rendercomponent.cpp>
-#include <components/armaturecomponent.cpp>
+#include <components/render.cpp>
+#include <components/animation.cpp>
 
 #include <glad/glad.c>

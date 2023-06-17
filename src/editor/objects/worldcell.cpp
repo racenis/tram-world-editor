@@ -44,49 +44,6 @@ void WorldCell::LoadFromDisk() {
                 p->SetProperty("position-z", file.read_float32());
             }
             static_cast<Object*>(cell->transition_manager.get())->AddChild(trans);
-        } else if (ent_type == "path") {
-            /*
-            auto path = std::make_shared<Path>(cell->path_manager.get());
-            path->SetProperty("name", std::string(tram::SerializedEntityData::Field<tram::name_t>().FromString(str)));
-            uint64_t curve_count = tram::SerializedEntityData::Field<uint64_t>().FromString(str);
-            for (uint64_t i = 0; i < curve_count; i++) {
-                auto c = path->AddChild();
-                c->SetProperty("id", tram::SerializedEntityData::Field<uint64_t>().FromString(str));
-                c->SetProperty("next-id", tram::SerializedEntityData::Field<uint64_t>().FromString(str));
-                c->SetProperty("prev-id", tram::SerializedEntityData::Field<uint64_t>().FromString(str));
-                c->SetProperty("left-id", tram::SerializedEntityData::Field<uint64_t>().FromString(str));
-                c->SetProperty("right-id", tram::SerializedEntityData::Field<uint64_t>().FromString(str));
-                c->SetProperty("position-x", tram::SerializedEntityData::Field<float>().FromString(str));
-                c->SetProperty("position-y", tram::SerializedEntityData::Field<float>().FromString(str));
-                c->SetProperty("position-z", tram::SerializedEntityData::Field<float>().FromString(str));
-                c->SetProperty("position-x-2", tram::SerializedEntityData::Field<float>().FromString(str));
-                c->SetProperty("position-y-2", tram::SerializedEntityData::Field<float>().FromString(str));
-                c->SetProperty("position-z-2", tram::SerializedEntityData::Field<float>().FromString(str));
-                c->SetProperty("position-x-3", tram::SerializedEntityData::Field<float>().FromString(str));
-                c->SetProperty("position-y-3", tram::SerializedEntityData::Field<float>().FromString(str));
-                c->SetProperty("position-z-3", tram::SerializedEntityData::Field<float>().FromString(str));
-                c->SetProperty("position-x-4", tram::SerializedEntityData::Field<float>().FromString(str));
-                c->SetProperty("position-y-4", tram::SerializedEntityData::Field<float>().FromString(str));
-                c->SetProperty("position-z-4", tram::SerializedEntityData::Field<float>().FromString(str));
-            }
-            static_cast<Object*>(cell->path_manager.get())->AddChild(path);*/
-        } else if (ent_type == "navmesh") {
-            /*
-            auto navmesh = std::make_shared<Path>(cell->navmesh_manager.get());
-            navmesh->SetProperty("name", std::string(tram::SerializedEntityData::Field<tram::name_t>().FromString(str)));
-            uint64_t node_count = tram::SerializedEntityData::Field<uint64_t>().FromString(str);
-            for (uint64_t i = 0; i < node_count; i++) {
-                auto n = navmesh->AddChild();
-                n->SetProperty("id", tram::SerializedEntityData::Field<uint64_t>().FromString(str));
-                n->SetProperty("next-id", tram::SerializedEntityData::Field<uint64_t>().FromString(str));
-                n->SetProperty("prev-id", tram::SerializedEntityData::Field<uint64_t>().FromString(str));
-                n->SetProperty("left-id", tram::SerializedEntityData::Field<uint64_t>().FromString(str));
-                n->SetProperty("right-id", tram::SerializedEntityData::Field<uint64_t>().FromString(str));
-                n->SetProperty("position-x", tram::SerializedEntityData::Field<float>().FromString(str));
-                n->SetProperty("position-y", tram::SerializedEntityData::Field<float>().FromString(str));
-                n->SetProperty("position-z", tram::SerializedEntityData::Field<float>().FromString(str));
-            }
-            static_cast<Object*>(cell->navmesh_manager.get())->AddChild(navmesh);*/
         } else {
             auto entity = std::make_shared<Entity>(current_group);
 
@@ -103,28 +60,20 @@ void WorldCell::LoadFromDisk() {
             entity->properties["rotation-y"] = file.read_float32();
             entity->properties["rotation-z"] = file.read_float32();
             
-            auto data = file.read_line();
-            
-            // TODO: figure out how to change SerializedEntityData functions to regular File functions
-            
-            // this is going to be tricky, since we have to keep track of newlines
-            // so that bad SerializedEntityData definitions don't destroy the file reader alignment with lines
-            
-            auto entity_definitions = entity->GetSerializedEntityDataDefinitions();
+            auto entity_definitions = entity->GetSerializationPropertyDefinitions();
             
             for (auto& prop : entity_definitions) {
                 switch (prop.type) {
                     default: // TODO: actually implement writers for other types
+                        std::cout << "idk what this is" << std::endl;
                     case PROPERTY_STRING:
-                        entity->SetProperty(prop.name, std::string(SerializedEntityData::Field<name_t>().FromString(data))); break;
+                        entity->SetProperty(prop.name, std::string(file.read_name())); break;
                     case PROPERTY_INT:
-                        entity->SetProperty(prop.name, SerializedEntityData::Field<int64_t>().FromString(data)); break;
+                        entity->SetProperty(prop.name, file.read_int64()); break;
                     case PROPERTY_UINT:
-                        entity->SetProperty(prop.name, SerializedEntityData::Field<uint64_t>().FromString(data)); break;
+                        entity->SetProperty(prop.name, file.read_uint64()); break;
                     case PROPERTY_FLOAT:
-                        entity->SetProperty(prop.name, SerializedEntityData::Field<float>().FromString(data)); break;
-                    case PROPERTY_CATEGORY:
-                        break;
+                        entity->SetProperty(prop.name, file.read_float32()); break;
                 }
             }
             
@@ -134,114 +83,90 @@ void WorldCell::LoadFromDisk() {
 }
 
 void WorldCell::SaveToDisk() {
-    //std::ofstream file (std::string("data/worldcells/") + std::string(cell->GetName()) + ".cell");
-    /*
-    if (file.is_open()) {
-        std::string output_line = "# cell";
-        output_line += " " + std::to_string(cell->GetProperty("is-interior").bool_value);
-        output_line += " " + std::to_string(cell->GetProperty("is-interior-lighting").bool_value);
-        file << output_line << std::endl;
-                    
-        for (auto& group : cell->group_manager->GetChildren()) {
-            if (group->GetName() != "[default]") {
-                std::string output_line = "group ";
-                output_line += group->GetName();
-                file << output_line << std::endl;
-            }
+    using namespace tram;
+    File file ((std::string("data/worldcells/") + std::string(this->GetName()) + ".cell").c_str(), MODE_WRITE);
+    
+    if (!file.is_open()) {
+        std::wcout << "FILE NOT OPENABLE" << std::wstring(this->GetName().begin(), this->GetName().end()) << ".cell." << std::endl;
+        return;
+    }
+    
+    file.write_name ("CELLv2");
+    file.write_name (GetName().data());
+    
+    file.write_uint32((bool) GetProperty("is-interior"));
+    file.write_uint32((bool) GetProperty("is-interior-lighting"));
 
-            for (auto& ent : group->GetChildren()) {
-                using namespace tram;
-                int32_t entity_type_index = ent->GetProperty("entity-type");
-                std::string str = ENTITY_DATA_INSTANCES[entity_type_index]->GetType();
-                
-                SerializedEntityData::Field<float>(ent->GetProperty("is").int_value).ToString(str);
-                str += " " + std::string(ent->GetName());
-                SerializedEntityData::Field<float>(ent->GetProperty("position-x").float_value).ToString(str);
-                SerializedEntityData::Field<float>(ent->GetProperty("position-y").float_value).ToString(str);
-                SerializedEntityData::Field<float>(ent->GetProperty("position-z").float_value).ToString(str);
-                
-                SerializedEntityData::Field<float>(ent->GetProperty("rotation-x").float_value).ToString(str);
-                SerializedEntityData::Field<float>(ent->GetProperty("rotation-y").float_value).ToString(str);
-                SerializedEntityData::Field<float>(ent->GetProperty("rotation-z").float_value).ToString(str);
-                
-                str += " " + ent->GetProperty("action").str_value;
-                
-                for (auto& prop : ENTITY_DATA_INSTANCES[entity_type_index]->GetFieldInfo()) {
-                    switch (prop.type) {
-                        case tram::SerializedEntityData::FieldInfo::FIELD_STRING:
-                        case tram::SerializedEntityData::FieldInfo::FIELD_MODELNAME:
-                            SerializedEntityData::Field<name_t>(ent->GetProperty(prop.name).str_value).ToString(str); break;
-                        case tram::SerializedEntityData::FieldInfo::FIELD_INT:
-                            SerializedEntityData::Field<int64_t>(ent->GetProperty(prop.name).int_value).ToString(str); break;
-                        case tram::SerializedEntityData::FieldInfo::FIELD_UINT:
-                            SerializedEntityData::Field<uint64_t>(ent->GetProperty(prop.name).uint_value).ToString(str); break;
-                        case tram::SerializedEntityData::FieldInfo::FIELD_FLOAT:
-                            SerializedEntityData::Field<float>(ent->GetProperty(prop.name).float_value).ToString(str); break;
-                    }
+    file.write_newline();
+              
+    for (auto& group : group_manager->GetChildren()) {
+        if (group->GetName() != "[default]") {
+            file.write_name("group");
+            file.write_name(group->GetName().data());
+            file.write_newline();
+        }
+
+        for (auto& ent : group->GetChildren()) {
+            int32_t entity_type_index = ent->GetProperty("entity-type");
+            
+            file.write_name(PROPERTY_ENUMERATIONS["entity-type"][entity_type_index]);
+            
+            file.write_uint64(ent->GetProperty("id"));
+            file.write_name(ent->GetProperty("name").str_value);
+            
+            file.write_float32(ent->GetProperty("position-x"));
+            file.write_float32(ent->GetProperty("position-y"));
+            file.write_float32(ent->GetProperty("position-z"));
+            
+            file.write_float32(ent->GetProperty("rotation-x"));
+            file.write_float32(ent->GetProperty("rotation-y"));
+            file.write_float32(ent->GetProperty("rotation-z"));
+            
+            auto data_defs = std::dynamic_pointer_cast<Entity>(ent)->GetSerializationPropertyDefinitions();
+            
+            bool wrote = false;
+            
+            for (auto& prop : data_defs) {
+                switch (prop.type) {
+                    default: // TODO: actually implement writers for other types
+                    case PROPERTY_STRING:
+                        file.write_name(ent->GetProperty(prop.name).str_value); wrote = true; break;
+                    case PROPERTY_INT:
+                        file.write_int64(ent->GetProperty(prop.name)); wrote = true; break;
+                    case PROPERTY_UINT:
+                        file.write_uint64(ent->GetProperty(prop.name)); wrote = true; break;
+                    case PROPERTY_FLOAT:
+                        file.write_float32(ent->GetProperty(prop.name)); wrote = true; break;
+                    case PROPERTY_CATEGORY:
+                        break;
                 }
-                
-                file << str << std::endl;
             }
-        }
-        
-        for (auto& trans : cell->transition_manager->GetChildren()) {
-            std::string output_line = "transition";
-            output_line += " " + trans->GetProperty("name").str_value;
-            output_line += " " + trans->GetProperty("cell-into").str_value;
-            output_line += " " + std::to_string(trans->GetChildren().size());
-            for (auto& point : trans->GetChildren()) {
-                output_line += " " + std::to_string(point->GetProperty("position-x").float_value);
-                output_line += " " + std::to_string(point->GetProperty("position-y").float_value);
-                output_line += " " + std::to_string(point->GetProperty("position-z").float_value);
-            } 
-            file << output_line << std::endl;
-        }
-        
-        for (auto& path : cell->path_manager->GetChildren()) {
-            std::string output_line = "path";
-            output_line += " " + path->GetProperty("name").str_value;
-            output_line += " " + std::to_string(path->GetChildren().size());
-            for (auto& curve : path->GetChildren()) {
-                output_line += " " + std::to_string(curve->GetProperty("id").uint_value);
-                output_line += " " + std::to_string(curve->GetProperty("next-id").uint_value);
-                output_line += " " + std::to_string(curve->GetProperty("prev-id").uint_value);
-                output_line += " " + std::to_string(curve->GetProperty("left-id").uint_value);
-                output_line += " " + std::to_string(curve->GetProperty("right-id").uint_value);
-                output_line += " " + std::to_string(curve->GetProperty("position-x").float_value);
-                output_line += " " + std::to_string(curve->GetProperty("position-y").float_value);
-                output_line += " " + std::to_string(curve->GetProperty("position-z").float_value);
-                output_line += " " + std::to_string(curve->GetProperty("position-x-2").float_value);
-                output_line += " " + std::to_string(curve->GetProperty("position-y-2").float_value);
-                output_line += " " + std::to_string(curve->GetProperty("position-z-2").float_value);
-                output_line += " " + std::to_string(curve->GetProperty("position-x-3").float_value);
-                output_line += " " + std::to_string(curve->GetProperty("position-y-3").float_value);
-                output_line += " " + std::to_string(curve->GetProperty("position-z-3").float_value);
-                output_line += " " + std::to_string(curve->GetProperty("position-x-4").float_value);
-                output_line += " " + std::to_string(curve->GetProperty("position-y-4").float_value);
-                output_line += " " + std::to_string(curve->GetProperty("position-z-4").float_value);
+            
+            // workaround
+            if (!wrote) {
+                file.write_name("IGNORE_THIS_TEXT");
             }
-            file << output_line << std::endl;
+            
+            file.write_newline();
         }
+    }
+    
+    for (auto& trans : transition_manager->GetChildren()) {
+        file.write_name("transition");
         
-        for (auto& navmesh : cell->navmesh_manager->GetChildren()) {
-            std::string output_line = "navmesh";
-            output_line += " " + navmesh->GetProperty("name").str_value;
-            output_line += " " + std::to_string(navmesh->GetChildren().size());
-            for (auto& node : navmesh->GetChildren()) {
-                output_line += " " + std::to_string(node->GetProperty("id").uint_value);
-                output_line += " " + std::to_string(node->GetProperty("next-id").uint_value);
-                output_line += " " + std::to_string(node->GetProperty("prev-id").uint_value);
-                output_line += " " + std::to_string(node->GetProperty("left-id").uint_value);
-                output_line += " " + std::to_string(node->GetProperty("right-id").uint_value);
-                output_line += " " + std::to_string(node->GetProperty("position-x").float_value);
-                output_line += " " + std::to_string(node->GetProperty("position-y").float_value);
-                output_line += " " + std::to_string(node->GetProperty("position-z").float_value);
-            }
-            file << output_line << std::endl;
-        }
+        file.write_name(trans->GetProperty("name").str_value);
+        file.write_name(trans->GetProperty("cell-into").str_value);
         
-    } else {
-        std::wcout << selected_language->dialog_cell_not_write << std::wstring(cell->GetName().begin(), cell->GetName().end()) << ".cell." << std::endl;
-    }*/
+        file.write_uint64(trans->GetChildren().size());
+        
+        for (auto& point : trans->GetChildren()) {
+            file.write_float32(point->GetProperty("position-x"));
+            file.write_float32(point->GetProperty("position-y"));
+            file.write_float32(point->GetProperty("position-z"));
+        } 
+        
+        file.write_newline();
+    }
 }
+
 }

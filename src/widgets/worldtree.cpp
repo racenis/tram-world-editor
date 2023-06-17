@@ -35,6 +35,11 @@ namespace Editor::WorldTree {
         obj_to_treeId[object] = new_node.GetID();
         treeId_to_obj[new_node.GetID()] = object;
         
+        // check if children can be added to tree
+        if (!object->IsChildrenTreeable()) {
+            return;
+        }
+        
         // recursively add all of the object's children too
         auto childrens = object->GetChildren();
         if (childrens.size()) {
@@ -63,19 +68,6 @@ namespace Editor::WorldTree {
     void Rename (Object* object) {
         if (!obj_to_treeId[object]) return;
         world_tree->SetItemText(obj_to_treeId[object], Editor::PropertyRename(std::string(object->GetName())));
-    }
-    
-    // this one's not used? yeet it?
-    void AddChildren (wxTreeItemId parent_tree_node, Object* object) {
-        auto tree_node = world_tree->AppendItem(parent_tree_node, Editor::PropertyRename(std::string(object->GetName())));
-        
-        obj_to_treeId[object] = tree_node.GetID();
-        treeId_to_obj[tree_node.GetID()] = object;
-        
-        auto childrens = object->GetChildren();
-        if (childrens.size()) {
-            for (auto child : childrens) AddChildren(tree_node, child.get());
-        }
     }
     
     void Rebuild () {

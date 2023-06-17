@@ -3,6 +3,10 @@
 
 #include <editor/editor.h>
 
+namespace tram {
+    class RenderComponent;
+}
+
 namespace Editor {
 
 class Entity : public Object {
@@ -31,7 +35,7 @@ public:
     void SetHidden(bool is_hidden);
     
     std::vector<PropertyDefinition> GetFullPropertyDefinitions();
-    std::vector<PropertyDefinition> GetSerializedEntityDataDefinitions();
+    std::vector<PropertyDefinition> GetSerializationPropertyDefinitions();
     
     void SetEntityType (std::string type);
     
@@ -42,6 +46,8 @@ public:
     void CheckModel();
     tram::RenderComponent* model = nullptr;
 };
+
+Entity* GetEntityFromViewmodel(tram::RenderComponent* model);
 
 }
 

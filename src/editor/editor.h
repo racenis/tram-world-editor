@@ -8,7 +8,7 @@
 #include <typeinfo>
 #include <unordered_map>
 #include <iostream>
-#include <framework/serializeddata.h>
+#include <framework/serialization.h>
 
 namespace tram {
     class RenderComponent;
@@ -51,8 +51,6 @@ namespace Viewport {
 void Init();
 void Reset();
 void Yeet();
-
-void RegisterEntityType(tram::SerializedEntityData* instance);
 
 /// Editor action.
 class Action {
@@ -248,6 +246,9 @@ public:
     // these properties will be shown and will be editable from property panel
     virtual std::vector<PropertyDefinition> GetFullPropertyDefinitions() { std::cout << "GetFullPropertyDefinitions() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
     
+    // these properties will be used for serialization
+    virtual std::vector<PropertyDefinition> GetSerializationPropertyDefinitions() { std::cout << "GetSerializationPropertyDefinitions() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+    
     // takes in the property name and returns the value by copying it to the void* pointer
     virtual PropertyValue GetProperty (std::string property_name) { return properties[property_name]; }
     
@@ -255,12 +256,13 @@ public:
     virtual void SetProperty (std::string property_name, PropertyValue property_value) { properties[property_name] = property_value; if (property_name == "name" && parent && parent->IsChildrenTreeable()) WorldTree::Rename(this); }
 };
 
+void RegisterEntityType(std::string name, std::string model_name, std::vector<PropertyDefinition> definitions);
+
 class WorldCell;
 void LoadCell(WorldCell* cell);
 void SaveCell(WorldCell* cell);
 
-class Selection {
-public:
+struct Selection {
     std::list<std::shared_ptr<Object>> objects;
 };
 

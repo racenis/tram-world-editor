@@ -13,6 +13,8 @@
 
 namespace Editor {
 
+using namespace tram;
+
 std::shared_ptr<Selection> SELECTION;
 std::list<std::unique_ptr<Action>> PERFORMED_ACTIONS;
 std::list<std::unique_ptr<Action>> UNPERFORMED_ACTIONS;
@@ -72,6 +74,75 @@ void Reset() {
                 ((Object*) navmesh_manager)->AddChild(navmesh_object);
             }
         }
+    }
+}
+
+PropertyDefinition ReadEntityField(File& file) {
+    name_t type = file.read_name();
+    name_t name = file.read_name();
+    
+    if (type == "string") {
+        return {name, name, "group-entity-special", PROPERTY_STRING};
+    } else if (type == "int") {
+        return {name, name, "group-entity-special", PROPERTY_INT};
+    } else if (type == "uint") {
+        return {name, name, "group-entity-special", PROPERTY_UINT};
+    } else if (type == "float") {
+        return {name, name, "group-entity-special", PROPERTY_FLOAT};
+    }
+    
+    std::cout << "unrezgonized entry type: " << type << std::endl;
+    
+    return {};
+}
+
+void ReadEntityDefinition(File& file) {
+    name_t entity_name;
+    name_t model_name;
+    std::vector<PropertyDefinition> property_defs;
+    
+    while (file.is_continue()) {
+        name_t entry_type = file.read_name();
+        
+        if (entry_type == "name") {
+            entity_name = file.read_name();
+        } else if (entry_type == "model") {
+            model_name = file.read_name();
+        } else if (entry_type == "field") {
+            property_defs.push_back(ReadEntityField(file));
+        } else if (entry_type == "end") {
+            break;
+        } else {
+            std::cout << "Unrecognized entry: " << entry_type << std::endl;
+        }
+        
+    }
+    
+    if (!entity_name) {
+        std::cout << "Entity type is not set!" << std::endl;
+        return;
+    }
+    
+    RegisterEntityType(entity_name, model_name, property_defs);
+}
+
+void Init() {
+    File file("data/entities.entdef", MODE_READ);
+    
+    if (!file.is_open()) {
+        std::cout << "Entity file defintiion did not open!" << std::endl;
+    }
+    
+    while (file.is_continue()) {
+        name_t record_type = file.read_name();
+        
+        if (record_type == "begin") {
+            ReadEntityDefinition(file);
+        } else {
+            std::cout << "Unrezognized record: " << record_type << std::endl;
+            return;
+        }
+        
     }
 }
 

@@ -1,23 +1,36 @@
 #include <editor/objects/entity.h>
 
-#include <components/rendercomponent.h>
+#include <components/render.h>
 
 namespace Editor {
 
-/// Instances of SerializedEntityData for all registered Entity types.
-/// For determining which specialized fields each Entity type has.
-static std::vector<tram::SerializedEntityData*> entity_data_instances = { nullptr };
+using namespace tram;
 
-/// Registers an Entity type.
-/// Pass in a blank instance of a SerializedEntityData for each Entity type
-/// that you want to be editable in the editor. It needs to be allocated
-/// with new and needs to live until the termination of the program.
-void RegisterEntityType(tram::SerializedEntityData* instance) {        
-    entity_data_instances.push_back(instance);
-    PROPERTY_ENUMERATIONS["entity-type"].push_back(instance->GetType());
+struct EntityTypeInfo {
+    std::string model_name;
+    std::vector<PropertyDefinition> definition;
+};
+
+static std::unordered_map<int32_t, EntityTypeInfo> entity_type_infos;
+static std::unordered_map<std::string, int32_t> entity_name_to_id;
+static std::unordered_map<RenderComponent*, Entity*> viewmodel_ptr_to_entity_ptr;
+
+Entity* GetEntityFromViewmodel(tram::RenderComponent* model) {
+    return viewmodel_ptr_to_entity_ptr[model];
 }
 
-PropertyValue Entity::GetProperty (std::string property_name) { return properties[property_name]; }
+void RegisterEntityType(std::string name, std::string model_name, std::vector<PropertyDefinition> definitions) {
+    int32_t type_index = PROPERTY_ENUMERATIONS["entity-type"].size();
+    PROPERTY_ENUMERATIONS["entity-type"].push_back(name);
+    
+    entity_name_to_id[name] = type_index;
+    
+    entity_type_infos[type_index] = {model_name, definitions};
+}
+
+PropertyValue Entity::GetProperty (std::string property_name) {
+    return properties[property_name];
+}
 
 void Entity::SetProperty (std::string property_name, PropertyValue property_value) {
     properties[property_name] = property_value;
@@ -26,32 +39,38 @@ void Entity::SetProperty (std::string property_name, PropertyValue property_valu
 }
 
 void Entity::CheckModel() {
+    
+    // check if model needs to be hidden
     if (this->is_hidden) {
-        return;
-    }
-    
-    using namespace tram;
-    
-    std::string model_field_name = "";
-    
-    int32_t entity_type = this->GetProperty("entity-type");
-    for (auto& prop : entity_data_instances[entity_type]->GetFieldInfo()) {
-        if (prop.type == tram::SerializedEntityData::FieldInfo::FIELD_MODELNAME) {
-            model_field_name = prop.name;
+        if (this->model) {
+            PoolProxy<RenderComponent>::Delete(this->model);
+            
+            viewmodel_ptr_to_entity_ptr[this->model] = nullptr;
+            
+            this->model = nullptr;
         }
-    }
-    
-    if (model_field_name == "") {
+        
         return;
     }
     
-    PropertyValue model_name_value = this->GetProperty(model_field_name);
     
-    if (model_name_value.type != PROPERTY_STRING) {
-        return;
+    // find the name of the model
+    EntityTypeInfo& type_info = entity_type_infos[this->GetProperty("entity-type")];
+    
+    std::string model_name = type_info.model_name;
+    
+    if (model_name == "none") {
+        PropertyValue model_name_value = this->GetProperty("model");
+    
+        if (model_name_value.type != PROPERTY_STRING) {
+            std::cout << "found model name, but its not string" << std::endl;
+            return;
+        }
+        
+        model_name = (std::string) model_name_value;
     }
     
-    std::string model_name = model_name_value;
+        
     
     if (!this->model) {
         std::cout << "making rendercomp for " << model_name << std::endl;
@@ -60,12 +79,15 @@ void Entity::CheckModel() {
         this->model->SetLightmap("fullbright");
         //this->model->SetPose(Render::poseList.begin().ptr);
         this->model->Init();
+        
+        viewmodel_ptr_to_entity_ptr[this->model] = this;
     }
     
-    if (this->model && model_name != this->model->GetModel()) {
+    if (this->model && model_name != this->model->GetModel()->GetName()) {
         std::cout << "deleting rendercomp for " << model_name << std::endl;
         PoolProxy<RenderComponent>::Delete(this->model);
         this->model = nullptr;
+        viewmodel_ptr_to_entity_ptr[this->model] = nullptr;
         CheckModel();
         return;
     }
@@ -105,66 +127,25 @@ std::vector<PropertyDefinition> Entity::GetFullPropertyDefinitions() {
         {"entity-type", "Entity Type", "group-entity", PROPERTY_ENUM}
     };
     
-    auto special_defs = GetSerializedEntityDataDefinitions();
+    auto special_defs = entity_type_infos[(int32_t) this->GetProperty("entity-type")].definition;
     
     defs.insert(defs.end(), special_defs.begin(), special_defs.end());
     
     return defs;
 }
 
-/// Gets the SerializedEntityData definitions.
-/// Converts the SerializedEntityData definitions from the framework format into
-/// editor format. If there is no definition available for the, this method will
-/// return an empty definition vector.
-std::vector<PropertyDefinition> Entity::GetSerializedEntityDataDefinitions() {
-    std::vector<PropertyDefinition> defs;
-    size_t entity_type_index = (int32_t) this->GetProperty("entity-type");
-    
-    assert(entity_type_index < entity_data_instances.size());
-    
-    if (entity_type_index) {
-        defs.push_back({"group-entity-special", entity_data_instances[entity_type_index]->GetType(), "", PROPERTY_CATEGORY});
-        
-        for (auto& prop : entity_data_instances[entity_type_index]->GetFieldInfo()) {
-            switch (prop.type) {
-                case tram::SerializedEntityData::FieldInfo::FIELD_INT:
-                    defs.push_back({prop.name, prop.name, "group-entity-special", PROPERTY_INT});
-                    break;
-                case tram::SerializedEntityData::FieldInfo::FIELD_UINT:
-                    defs.push_back({prop.name, prop.name, "group-entity-special", PROPERTY_UINT});
-                    break;
-                case tram::SerializedEntityData::FieldInfo::FIELD_FLOAT:
-                    defs.push_back({prop.name, prop.name, "group-entity-special", PROPERTY_FLOAT});
-                    break;
-                case tram::SerializedEntityData::FieldInfo::FIELD_STRING:
-                case tram::SerializedEntityData::FieldInfo::FIELD_MODELNAME:
-                    defs.push_back({prop.name, prop.name, "group-entity-special", PROPERTY_STRING});
-                    break;
-            }
-        }
-    }
-    
-    return defs;
+std::vector<PropertyDefinition> Entity::GetSerializationPropertyDefinitions() {
+    return entity_type_infos[(int32_t) this->GetProperty("entity-type")].definition;
 }
 
 /// Sets the entity type from registred types.
 void Entity::SetEntityType (std::string type) {
-    // need to find the index of the entity type
-    size_t entity_type_index = 0;
-    for (size_t i = 1; i < entity_data_instances.size(); i++) {
-        //std::cout << "comp: " << entity_data_instances[i]->GetType() << " " << type << " " << (entity_data_instances[i]->GetType() == type) << std::endl;
-        if (entity_data_instances[i]->GetType() == type) {
-            entity_type_index = i;
-            break;
-        }
+    if (entity_name_to_id.find(type) == entity_name_to_id.end()) {
+        std::cout << "Entity type \"" << type << "\" not registered!" << std::endl;
+        abort();
     }
-
-    // TODO: find a way to nicely abort the program
-    assert(entity_type_index);
-    assert(entity_type_index < entity_data_instances.size());
     
-    // need the int32_t cast so that PropertyValue gets initialized to an enum type
-    this->SetProperty("entity-type", (int32_t) entity_type_index);
+    this->SetProperty("entity-type", (int32_t) entity_name_to_id[type]);
 }
 
 }
