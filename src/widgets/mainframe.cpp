@@ -37,6 +37,7 @@ enum {
     ID_Settings_Space_World = 107,
     ID_Settings_Space_Entity = 108,
     ID_Settings_Space_Group = 109,
+    ID_Settings_View_Move_To_Selection = 110,
     ID_Settings_Language = 200
 };
 
@@ -58,6 +59,9 @@ MainFrameCtrl::MainFrameCtrl() : wxFrame(NULL, wxID_ANY, lang->title_bar, wxDefa
     edit_menu->Append(ID_Action_Undo, lang->edit_menu_undo, lang->edit_menu_undo_info);
     edit_menu->Append(ID_Action_Redo, lang->edit_menu_redo, lang->edit_menu_undo_info);
  
+    wxMenu* view_menu = new wxMenu;
+    view_menu->Append(ID_Settings_View_Move_To_Selection, "Center On Selection", "Centers view on selection");
+ 
     wxMenu* settings_menu = new wxMenu;
     settings_menu->AppendRadioItem(ID_Settings_Space_World, lang->settings_menu_world_space, lang->settings_menu_world_space_info)->Check(TRANSFORM_SPACE == SPACE_WORLD);
     settings_menu->AppendRadioItem(ID_Settings_Space_Entity, lang->settings_menu_entity_space, lang->settings_menu_entity_space_info)->Check(TRANSFORM_SPACE == SPACE_ENTITY);
@@ -77,6 +81,7 @@ MainFrameCtrl::MainFrameCtrl() : wxFrame(NULL, wxID_ANY, lang->title_bar, wxDefa
     wxMenuBar* menu_bar = new wxMenuBar;
     menu_bar->Append(file_menu, lang->file_menu);
     menu_bar->Append(edit_menu, lang->edit_menu);
+    menu_bar->Append(view_menu, "View");
     menu_bar->Append(settings_menu, lang->settings_menu);
     menu_bar->Append(language_menu, lang->language_menu);
     menu_bar->Append(help_menu, lang->help_menu);
@@ -210,6 +215,9 @@ void MainFrameCtrl::OnAction(wxCommandEvent& event) {
             break;
         case ID_Settings_Space_Group:
             TRANSFORM_SPACE = SPACE_ENTITYGROUP;
+            break;
+        case ID_Settings_View_Move_To_Selection:
+            viewport->ViewCenterOnSelection();
             break;
         default:
             int selected = event.GetId() - ID_Settings_Language;

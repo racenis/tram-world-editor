@@ -15,6 +15,12 @@ static std::unordered_map<int32_t, EntityTypeInfo> entity_type_infos;
 static std::unordered_map<std::string, int32_t> entity_name_to_id;
 static std::unordered_map<RenderComponent*, Entity*> viewmodel_ptr_to_entity_ptr;
 
+std::shared_ptr<Object> Entity::Duplicate() {
+    auto dupe = parent->AddChild();
+    dupe->properties = properties;
+    return dupe;
+}
+
 Entity* GetEntityFromViewmodel(tram::RenderComponent* model) {
     return viewmodel_ptr_to_entity_ptr[model];
 }

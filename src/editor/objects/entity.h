@@ -34,6 +34,8 @@ public:
     
     void SetHidden(bool is_hidden);
     
+    std::shared_ptr<Object> Duplicate();
+    
     std::vector<PropertyDefinition> GetFullPropertyDefinitions();
     std::vector<PropertyDefinition> GetSerializationPropertyDefinitions();
     

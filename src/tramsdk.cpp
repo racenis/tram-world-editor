@@ -1,4 +1,8 @@
 #define ENGINE_EDITOR_MODE
+
+#include <platform/file.cpp>
+#include <platform/time.cpp>
+
 #include <framework/core.cpp>
 #include <framework/async.cpp>
 #include <framework/entitycomponent.cpp>
@@ -10,9 +14,6 @@
 #include <framework/uid.cpp>
 #include <framework/logging.cpp>
 #include <framework/language.cpp>
-
-#include <platform/file.cpp>
-#include <platform/time.cpp>
 
 #include <render/opengl/renderer.cpp>
 #include <render/opengl/shader.cpp>

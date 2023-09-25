@@ -10,26 +10,30 @@ ObjectMenuCtrl::ObjectMenuCtrl () : wxMenu() {
     is_visible_checkbox = AppendCheckItem(1, Editor::selected_language->dialog_show); 
     add_selection = Append(2, Editor::selected_language->dialog_add_new);
     edit_selection = Append(3, Editor::selected_language->dialog_edit);
-    delete_selection = Append(4, Editor::selected_language->dialog_delete);
+    duplicate_selection = Append(4, L"DUPLIKAT");
+    delete_selection = Append(5, Editor::selected_language->dialog_delete);
     
     this->Bind(wxEVT_MENU, &ObjectMenuCtrl::OnIsVisibleCheckboxClick, this, 1);
     this->Bind(wxEVT_MENU, &ObjectMenuCtrl::OnAddSelection, this, 2);
     this->Bind(wxEVT_MENU, &ObjectMenuCtrl::OnEditSelection, this, 3);
-    this->Bind(wxEVT_MENU, &ObjectMenuCtrl::OnDeleteSelection, this, 4);
+    this->Bind(wxEVT_MENU, &ObjectMenuCtrl::OnDuplicateSelection, this, 4);
+    this->Bind(wxEVT_MENU, &ObjectMenuCtrl::OnDeleteSelection, this, 5);
 }
 
 void ObjectMenuCtrl::SetSelectionStatus(Editor::Selection* selection) {
-    bool is_visible, is_addable, is_editable, is_deletable;
-    is_visible = is_addable = is_editable = is_deletable = true;
+    bool is_visible, is_addable, is_editable, is_duplicatable, is_deletable;
+    is_visible = is_addable = is_editable = is_duplicatable = is_deletable = true;
     
     for (auto& object : selection->objects) { if (object->IsHidden()) { is_visible = false; break; } }
     for (auto& object : selection->objects) { if (!object->IsAddable()) { is_addable = false; break; } }
     for (auto& object : selection->objects) { if (!object->IsEditable()) { is_editable = false; break; } }
+    for (auto& object : selection->objects) { if (!object->IsCopyable()) { is_duplicatable = false; break; } }
     for (auto& object : selection->objects) { if (!object->IsRemovable()) { is_deletable = false; break; } }
     
     is_visible_checkbox->Check(is_visible);
     add_selection->Enable(is_addable);
     edit_selection->Enable(is_editable);
+    duplicate_selection->Enable(is_duplicatable);
     delete_selection->Enable(is_deletable);
 }
 
@@ -47,6 +51,10 @@ void ObjectMenuCtrl::OnAddSelection(wxCommandEvent& event) {
 
 void ObjectMenuCtrl::OnEditSelection(wxCommandEvent& event) {
     Editor::PropertyPanel::SetCurrentSelection();
+}
+
+void ObjectMenuCtrl::OnDuplicateSelection(wxCommandEvent& event) {
+    Editor::PerformAction<Editor::ActionDuplicate>();
 }
 
 void ObjectMenuCtrl::OnDeleteSelection(wxCommandEvent& event) {

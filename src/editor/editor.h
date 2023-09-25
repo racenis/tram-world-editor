@@ -240,6 +240,8 @@ public:
     virtual bool IsCopyable() { std::cout << "IsCopyable() not implemented for " << typeid(*this).name() << std::endl; abort(); }
     virtual bool IsHidden() { for (auto& child : children) if (child->IsHidden()) return true; return false; }
     
+    virtual std::shared_ptr<Object> Duplicate() { std::cout << "Duplicate(void) not implemented for " << typeid(*this).name() << std::endl; abort(); }
+    
     // these are the properties that will be shown in the object list
     virtual std::vector<PropertyDefinition> GetListPropertyDefinitions() { std::cout << "GetListPropertyDefinitions() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
     

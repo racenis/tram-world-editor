@@ -13,6 +13,8 @@ public:
     ViewportCtrl& operator=(const ViewportCtrl& tc) = delete; 
     ViewportCtrl& operator=(ViewportCtrl&& tc) = delete; 
     
+    void ViewCenterOnSelection();
+    
     enum ViewportMode : uint8_t {
         MODE_NONE,
         MODE_MOVE,
@@ -39,6 +41,7 @@ private:
     void OnKeyup(wxKeyEvent& event);
     void OnTimer(wxTimerEvent& event);
     
+    void CancelViewportOperation();
     void CenterMouseCursor();
     
     float mouse_x = 0;
@@ -47,6 +50,7 @@ private:
     bool key_backward = false;
     bool key_left = false;
     bool key_right = false;
+    bool key_shift = false;
     wxTimer key_timer;
     
     wxGLContext* m_context;

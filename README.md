@@ -1,7 +1,13 @@
 # Tramway SDK Level Editor
 
 ## To-do list
-Done.
+- Add thing that lets you do stuff in degrees
+- Add menu to select grid size
+- Add snapping to grid
+- Make navmesh editing easier
+- Add thing that adds a default id to entities
+- Also default name should be none
+- New entities should be spawned in front of view
 
 ### Small features
 - Cut/Copy/Paste

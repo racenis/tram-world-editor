@@ -43,8 +43,10 @@ public:
         // we will allow creating a new object if and only if a single object is selected.
         // otherwise it would be weird. usually you don't do something like that.
         if (SELECTION->objects.size() == 1) {
+            bool parent_hidden = parent_object->IsHidden();
             parent_object = SELECTION->objects.front();
             child_object = parent_object->AddChild();
+            child_object->SetHidden(parent_hidden);
             if (parent_object->IsChildrenTreeable()) Editor::WorldTree::Add(child_object.get());
         } else {
             std::cout << "Adding new objects can only if single object is selected!" << std::endl;
@@ -53,14 +55,18 @@ public:
     
     void Perform() {
         parent_object->AddChild(child_object);
+        child_object->SetHidden(child_was_hidden);
         if (parent_object->IsChildrenTreeable()) Editor::WorldTree::Add(child_object.get());
     }
     
     void Unperform() {
+        child_was_hidden = child_object->IsHidden();
         parent_object->RemoveChild(child_object);
+        child_object->SetHidden(true);
         if (parent_object->IsChildrenTreeable()) Editor::WorldTree::Remove(child_object.get());
     }
     
+    bool child_was_hidden = false;
     std::shared_ptr<Object> parent_object = nullptr;
     std::shared_ptr<Object> child_object = nullptr;
 };
@@ -70,7 +76,7 @@ public:
     ActionRemove () {
         for (auto& object : SELECTION->objects) {
             // TODO: add a check for if the object can even be removed
-            removal_list.push_back({object->parent->GetPointer(), object});
+            removal_list.push_back({object->parent->GetPointer(), object, object->IsHidden()});
         }
         
         Perform();
@@ -79,8 +85,11 @@ public:
     void Perform() {
         for (auto& objects : removal_list) {
             objects.first->RemoveChild(objects.second);
+            objects.second->SetHidden(true);
             if (objects.first->IsChildrenTreeable()) Editor::WorldTree::Remove(objects.second.get());
         }
+        
+        Editor::Viewport::Refresh();
         
         Editor::data_modified = true;
     }
@@ -88,11 +97,55 @@ public:
     void Unperform() {
         for (auto& objects : removal_list) {
             objects.first->AddChild(objects.second);
+            objects.second->SetHidden(objects.was_hidden);
             if (objects.first->IsChildrenTreeable()) Editor::WorldTree::Add(objects.second.get());
+        }
+        
+        Editor::Viewport::Refresh();
+    }
+    
+    struct Removal {
+        std::shared_ptr<Object> first;
+        std::shared_ptr<Object> second;
+        bool was_hidden;
+    };
+    
+    std::list<Removal> removal_list;
+};
+
+class ActionDuplicate : public Action {
+public:
+    ActionDuplicate() {
+        if (SELECTION->objects.size() == 1) {
+            duped_object = SELECTION->objects.front()->Duplicate();
+            parent_object = duped_object->GetParent();
+            duped_object->SetHidden(SELECTION->objects.front()->IsHidden());
+            if (parent_object->IsChildrenTreeable()) Editor::WorldTree::Add(duped_object.get());
+        } else {
+            std::cout << "Adding new objects can only if single object is selected!" << std::endl;
         }
     }
     
-    std::list<std::pair<std::shared_ptr<Object>, std::shared_ptr<Object>>> removal_list;
+    void Perform() {
+        parent_object->AddChild(duped_object);
+        duped_object->SetHidden(was_hidden);
+        
+        Editor::Viewport::Refresh();
+        if (parent_object->IsChildrenTreeable()) Editor::WorldTree::Add(duped_object.get());
+    }
+    
+    void Unperform() {
+        was_hidden = duped_object->IsHidden();
+        parent_object->RemoveChild(duped_object);
+        duped_object->SetHidden(true);
+        
+        Editor::Viewport::Refresh();
+        if (parent_object->IsChildrenTreeable()) Editor::WorldTree::Remove(duped_object.get());
+    }
+    
+    bool was_hidden = false;
+    std::shared_ptr<Object> parent_object = nullptr;
+    std::shared_ptr<Object> duped_object = nullptr;
 };
 
 /*class ActionChangeProperties : public Action {

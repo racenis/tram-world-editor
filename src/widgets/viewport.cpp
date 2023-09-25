@@ -7,6 +7,8 @@
 #include <editor/objects/entity.h>
 
 #include <widgets/viewport.h>
+#include <widgets/objectmenu.h>
+#include <widgets/mainframe.h>
 
 using namespace Editor;
 
@@ -99,17 +101,19 @@ void ViewportCtrl::CenterMouseCursor() {
     WarpPointer(width/2, height/2);
 }
 
+void ViewportCtrl::CancelViewportOperation() {
+    ReleaseMouse();
+    Refresh();
+    
+    viewport_axis = AXIS_NONE;
+    viewport_mode = MODE_NONE;
+}
+
 void ViewportCtrl::OnLeftClick(wxMouseEvent& event) {
     
     // if viewport is in move mode or translate mode, cancel them
     if (viewport_mode != MODE_NONE) {
-        ReleaseMouse();
-        Refresh();
-        
-        viewport_axis = AXIS_NONE;
-        viewport_mode = MODE_NONE;
-        std::cout << "returned to none mode!" << std::endl;
-        
+        CancelViewportOperation();
         return;
     }
     
@@ -168,7 +172,14 @@ void ViewportCtrl::OnRightClick(wxMouseEvent& event) {
         // TODO: do an undo in here
         std::cout << "Canceling a transform not implemented!" << std::endl;
         
+        CancelViewportOperation();
+        
         return;
+    }
+    
+    if (viewport_mode == MODE_NONE) {
+        world_tree_popup->SetSelectionStatus(Editor::SELECTION.get());
+        main_frame->PopupMenu(world_tree_popup);
     }
 }
 
@@ -329,6 +340,10 @@ void ViewportCtrl::OnKeydown(wxKeyEvent& event) {
         
         Editor::PerformAction<Editor::ActionChangeProperties>(std::vector<std::string> {"rotation-x", "rotation-y", "rotation-z"});
     }
+    
+    if (event.GetKeyCode() == WXK_SHIFT) {
+        key_shift = true;
+    }
 }
 
 void ViewportCtrl::OnKeyup(wxKeyEvent& event) {
@@ -353,6 +368,10 @@ void ViewportCtrl::OnKeyup(wxKeyEvent& event) {
     if (!(key_forward || key_backward || key_left  || key_right)) {
         key_timer.Stop();
     }
+    
+    if (event.GetKeyCode() == WXK_SHIFT) {
+        key_shift = false;
+    }
 }
 
 void ViewportCtrl::OnTimer(wxTimerEvent& event) {
@@ -367,10 +386,12 @@ void ViewportCtrl::OnTimer(wxTimerEvent& event) {
     vec3 camera_position = GetCameraPosition();
     quat camera_rotation = GetCameraRotation();
     
-    if (key_forward) camera_position += camera_rotation * DIRECTION_FORWARD * 0.1f;
-    if (key_backward) camera_position -= camera_rotation * DIRECTION_FORWARD * 0.1f;
-    if (key_left) camera_position -= camera_rotation * DIRECTION_SIDE * 0.1f;
-    if (key_right) camera_position += camera_rotation * DIRECTION_SIDE * 0.1f;
+    float move_speed = key_shift ? 0.3f : 0.1f; 
+    
+    if (key_forward) camera_position += camera_rotation * DIRECTION_FORWARD * move_speed;
+    if (key_backward) camera_position -= camera_rotation * DIRECTION_FORWARD * move_speed;
+    if (key_left) camera_position -= camera_rotation * DIRECTION_SIDE * move_speed;
+    if (key_right) camera_position += camera_rotation * DIRECTION_SIDE * move_speed;
     
     SetCameraPosition(camera_position);
     
@@ -386,6 +407,30 @@ void ViewportCtrl::OnSizeChange(wxSizeEvent& event) {
     //return;
     
     tram::Render::SetScreenSize(width, height);
+}
+
+void ViewportCtrl::ViewCenterOnSelection() {
+    using namespace tram;
+    using namespace tram::Render;
+    
+    if (!Editor::SELECTION->objects.size()) return;
+    
+    Object* target = Editor::SELECTION->objects.begin()->get();
+    
+    vec3 camera_pos = GetCameraPosition();
+    quat camera_rot = GetCameraRotation();
+    
+    vec3 target_pos = {target->GetProperty("position-x"), target->GetProperty("position-y"), target->GetProperty("position-z")};
+    
+    vec3 to_target = glm::normalize(target_pos - camera_pos);
+    
+    camera_pos = target_pos + (to_target * -10.0f);
+    camera_rot = glm::quatLookAt(to_target, DIRECTION_UP);
+    
+    SetCameraPosition(camera_pos);
+    SetCameraRotation(camera_rot);
+    
+    Refresh();
 }
 
 void ViewportCtrl::OnPaint(wxPaintEvent& event)

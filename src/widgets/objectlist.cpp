@@ -12,6 +12,12 @@ std::shared_ptr<Object> selected_object;
 
 ObjectListCtrl* object_list = nullptr;
 
+ObjectListCtrl::ObjectListCtrl(wxWindow* parent) :  wxListCtrl(parent, -1, wxDefaultPosition, wxSize(200,150), wxLC_REPORT | wxLC_VIRTUAL | wxLC_HRULES | wxLC_VRULES) {
+    Bind(wxEVT_LIST_ITEM_RIGHT_CLICK, &ObjectListCtrl::OnMenuOpen, this);
+    Bind(wxEVT_LIST_ITEM_SELECTED, &ObjectListCtrl::OnSelectionChanged, this);
+    Bind(wxEVT_LIST_ITEM_ACTIVATED, &ObjectListCtrl::OnItemActivated, this);
+}
+
 auto GetSelectedObject() {
     if (SELECTION->objects.size() > 0) {
         auto object = SELECTION->objects.front();
