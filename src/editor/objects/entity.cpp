@@ -25,6 +25,18 @@ Entity* GetEntityFromViewmodel(tram::RenderComponent* model) {
     return viewmodel_ptr_to_entity_ptr[model];
 }
 
+void Entity::Draw() {
+    if (model) {
+        Render::AddLineAABB(
+            model->GetModel()->GetAABBMin(),
+            model->GetModel()->GetAABBMax(),
+            model->GetLocation(),
+            model->GetRotation(),
+            Render::COLOR_GREEN
+        );
+    }
+}
+
 void RegisterEntityType(std::string name, std::string model_name, std::vector<PropertyDefinition> definitions) {
     int32_t type_index = PROPERTY_ENUMERATIONS["entity-type"].size();
     PROPERTY_ENUMERATIONS["entity-type"].push_back(name);

@@ -1,6 +1,9 @@
 # Tramway SDK Level Editor
 
 ## To-do list
+
+- Rewrite parts of code to make it more understandable
+	- Current languaging system not good
 - Add thing that lets you do stuff in degrees
 - Add menu to select grid size
 - Add snapping to grid
@@ -38,7 +41,8 @@
 
 
 ### Bugs
-All known bugs have been fixed.
+- Find some bugs
+- Fix some bugs
 	
 ### Other features
 - 2D viewport
@@ -56,4 +60,4 @@ All known bugs have been fixed.
 - Different rotation measurements
 	- Radians
 	- Degrees
-- Objects selectable through the viewport
+- ~~Objects selectable through the viewport~~

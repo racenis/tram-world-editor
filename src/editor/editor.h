@@ -242,6 +242,8 @@ public:
     
     virtual std::shared_ptr<Object> Duplicate() { std::cout << "Duplicate(void) not implemented for " << typeid(*this).name() << std::endl; abort(); }
     
+    virtual void Draw() {}
+    
     // these are the properties that will be shown in the object list
     virtual std::vector<PropertyDefinition> GetListPropertyDefinitions() { std::cout << "GetListPropertyDefinitions() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
     

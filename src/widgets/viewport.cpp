@@ -453,6 +453,7 @@ void ViewportCtrl::OnPaint(wxPaintEvent& event)
                 });
         if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITYGROUP) space = glm::vec3(glm::radians(180.0f));
         
+        object->Draw();
         
         glm::vec3 gizmo_location = glm::vec3 {
             object->GetProperty("position-x").float_value,

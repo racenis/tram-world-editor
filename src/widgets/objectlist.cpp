@@ -18,7 +18,7 @@ ObjectListCtrl::ObjectListCtrl(wxWindow* parent) :  wxListCtrl(parent, -1, wxDef
     Bind(wxEVT_LIST_ITEM_ACTIVATED, &ObjectListCtrl::OnItemActivated, this);
 }
 
-auto GetSelectedObject() {
+auto GetSingleSelectedObjectFromSelection() {
     if (SELECTION->objects.size() > 0) {
         auto object = SELECTION->objects.front();
         return object->IsChildrenListable() ? object : object->GetParent();
@@ -31,7 +31,7 @@ void Editor::ObjectList::SetCurrentSelection() {
     object_list->DeleteAllColumns();
     columns.clear();
     
-    selected_object = GetSelectedObject();
+    selected_object = GetSingleSelectedObjectFromSelection();
     
     if (selected_object) {
         columns = selected_object->GetListPropertyDefinitions();
@@ -47,8 +47,28 @@ void Editor::ObjectList::SetCurrentSelection() {
 }
 
 void Editor::ObjectList::Refresh() {
-    if (selected_object == GetSelectedObject()) {
-        object_list->SetItemCount(selected_object->GetChildren().size());
+    if (selected_object == GetSingleSelectedObjectFromSelection()) {
+        auto list_selection = selected_object->GetChildren();
+        auto all_selected = SELECTION->objects;
+        object_list->SetItemCount(list_selection.size());
+        
+        // step through every object in ObjectList
+        auto check = list_selection.begin();
+        for (size_t i = 0; i < list_selection.size(); i++) {
+            
+            // check if it is selected
+            if (std::find(all_selected.begin(), all_selected.end(), *check) != all_selected.end()) {
+                // mark as selected in the widget
+                object_list->SetItemState(i, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
+            } else {
+                // mark as unselected in the widget
+                object_list->SetItemState(i, 0, wxLIST_STATE_SELECTED);
+            }
+            
+            check++;
+        }
+        
+        
         object_list->Refresh();
     } else {
         SetCurrentSelection();
