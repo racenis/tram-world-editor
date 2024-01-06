@@ -46,6 +46,7 @@ namespace ObjectList {
 namespace Viewport {
     void SetCurrentSelection();
     void Refresh();
+    void ShowErrorDialog(std::string msg);
 }
 
 void Init();

@@ -33,6 +33,10 @@ void Editor::Viewport::SetCurrentSelection() {
     viewport->Refresh();
 }
 
+void Editor::Viewport::ShowErrorDialog(std::string msg) {
+    wxMessageBox(msg, "An error occured!", wxOK | wxICON_ERROR | wxSTAY_ON_TOP);
+}
+
 ViewportCtrl::ViewportCtrl(wxWindow* parent) : wxGLCanvas(parent, wxID_ANY, nullptr, wxDefaultPosition, wxDefaultSize, 0L, L"GLCanvas", wxNullPalette), key_timer(this) {
     //assert(GetParent()->IsShown());
     

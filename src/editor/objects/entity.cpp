@@ -159,7 +159,7 @@ std::vector<PropertyDefinition> Entity::GetSerializationPropertyDefinitions() {
 /// Sets the entity type from registred types.
 void Entity::SetEntityType (std::string type) {
     if (entity_name_to_id.find(type) == entity_name_to_id.end()) {
-        std::cout << "Entity type \"" << type << "\" not registered!" << std::endl;
+        Editor::Viewport::ShowErrorDialog("Entity type \"" + type + "\" not registered!");
         abort();
     }
     

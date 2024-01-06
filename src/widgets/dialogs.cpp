@@ -11,6 +11,7 @@
 
 static auto& lang = Editor::selected_language;
 
+// Shows "loading cells" progress bar and loads cells.
 void LoadCells() {
     if (Editor::data_modified) {
         wxMessageDialog confirmation (main_frame, lang->dialog_load_data, lang->dialog_data_loss, wxYES_NO | wxCANCEL | wxCANCEL_DEFAULT | wxICON_EXCLAMATION);
@@ -21,7 +22,7 @@ void LoadCells() {
     
     Editor::Reset();
         
-    wxProgressDialog progress_dialog (lang->dialog_loading_title, lang->dialog_loading_info, 100, main_frame);
+    wxProgressDialog progress_dialog(lang->dialog_loading_title, lang->dialog_loading_info, 100, main_frame);
     
     auto paths = Editor::WORLD->path_manager->GetChildren();
     auto navmeshes = Editor::WORLD->navmesh_manager->GetChildren();
@@ -55,6 +56,7 @@ void LoadCells() {
     std::cout << lang->dialog_finished << std::endl;
 }
 
+// Shows "saving cells" progress bar and saves cells.
 void SaveCells() {
     wxProgressDialog progress_dialog (lang->dialog_saving_title, lang->dialog_saving_info, 100, main_frame);
     
