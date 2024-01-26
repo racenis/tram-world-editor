@@ -24,6 +24,7 @@ protected:
     wxStaticText* delay_label;
     wxTextCtrl* repeats_value;
     wxStaticText* repeats_label;
+    wxStaticText* repeats_label2;
     wxChoice* message_type_value;
     wxChoice* signal_type_value;
     wxStaticText* message_type_label;
@@ -33,6 +34,8 @@ protected:
     wxTextCtrl* parameter_value;
     wxStaticText* parameter_label;
     SignalListCtrl* signal_list;
+    wxButton* add_new;
+    wxButton* delete_new;
     int selected = -1;
     std::shared_ptr<Editor::Entity> entity;
 };

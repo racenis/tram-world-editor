@@ -94,59 +94,77 @@ SignalEditor::SignalEditor() : wxDialog(NULL, wxID_ANY, "Signal Editor", wxDefau
     signal_list = new SignalListCtrl(splitter, this->entity);
     auto signal_box = new wxPanel(splitter);
     
-    auto box_sizer = new wxBoxSizer(wxVERTICAL);
     
-    signal_type_value = new wxChoice(signal_box, INPUT_FIELD_SIGNAL_TYPE, wxDefaultPosition, wxDefaultSize, {3, all_signals});
-    signal_type_label = new wxStaticText(signal_box, INPUT_FIELD_SIGNAL_TYPE, "Signal");
+    // all of the controls in the menu
+    signal_type_value = new wxChoice(signal_box, INPUT_FIELD_SIGNAL_TYPE, wxDefaultPosition, wxSize(169, -1), {3, all_signals});
+    signal_type_label = new wxStaticText(signal_box, INPUT_FIELD_SIGNAL_TYPE, "When this entity fires signal  ");
     for (int i = 0; i < 3; i++) {
         signal_type_value->SetString(i, all_signals[i]);
     }
     
-    target_value = new wxTextCtrl(signal_box, INPUT_FIELD_TARGET);
-    target_label = new wxStaticText(signal_box, INPUT_FIELD_TARGET, "Target");
-    delay_value = new wxTextCtrl(signal_box, INPUT_FIELD_DELAY);
-    delay_label = new wxStaticText(signal_box, INPUT_FIELD_DELAY, "Delay");
-    repeats_value = new wxTextCtrl(signal_box, INPUT_FIELD_REPEATS);
-    repeats_label = new wxStaticText(signal_box, INPUT_FIELD_REPEATS, "Repeats");
+    target_value = new wxTextCtrl(signal_box, INPUT_FIELD_TARGET, wxEmptyString, wxDefaultPosition, wxSize(169, -1));
+    target_label = new wxStaticText(signal_box, INPUT_FIELD_TARGET, "Target entity named  ");
+    delay_value = new wxTextCtrl(signal_box, INPUT_FIELD_DELAY, wxEmptyString, wxDefaultPosition, wxSize(69, -1));
+    delay_label = new wxStaticText(signal_box, INPUT_FIELD_DELAY, "After a delay of  ");
+    repeats_value = new wxTextCtrl(signal_box, INPUT_FIELD_REPEATS, wxEmptyString, wxDefaultPosition, wxSize(69, -1));
+    repeats_label = new wxStaticText(signal_box, INPUT_FIELD_REPEATS, "  seconds and limit fires to  ");
+    repeats_label2 = new wxStaticText(signal_box, INPUT_FIELD_REPEATS, "  times");
     
-    message_type_value = new wxChoice(signal_box, INPUT_FIELD_MESSAGE_TYPE, wxDefaultPosition, wxDefaultSize, {3, all_signals});
-    message_type_label = new wxStaticText(signal_box, INPUT_FIELD_MESSAGE_TYPE, "Message");
+    message_type_value = new wxChoice(signal_box, INPUT_FIELD_MESSAGE_TYPE, wxDefaultPosition, wxSize(169, -1), {3, all_signals});
+    message_type_label = new wxStaticText(signal_box, INPUT_FIELD_MESSAGE_TYPE, "By sending a message of type  ");
     for (int i = 0; i < 3; i++) {
         message_type_value->SetString(i, all_messages[i]);
     }
     
-    parameter_type_value = new wxChoice(signal_box, INPUT_FIELD_PARAMETER_TYPE, wxDefaultPosition, wxDefaultSize, {3, all_types});
-    parameter_type_label = new wxStaticText(signal_box, INPUT_FIELD_PARAMETER_TYPE, "Value");
+    parameter_type_value = new wxChoice(signal_box, INPUT_FIELD_PARAMETER_TYPE, wxDefaultPosition, wxSize(169, -1), {3, all_types});
+    parameter_type_label = new wxStaticText(signal_box, INPUT_FIELD_PARAMETER_TYPE, "With a parameter type of  ");
     
-    parameter_value = new wxTextCtrl(signal_box, INPUT_FIELD_PARAMETER);
-    parameter_label = new wxStaticText(signal_box, INPUT_FIELD_PARAMETER, "Value");
+    parameter_value = new wxTextCtrl(signal_box, INPUT_FIELD_PARAMETER, wxEmptyString, wxDefaultPosition, wxSize(169, -1));
+    parameter_label = new wxStaticText(signal_box, INPUT_FIELD_PARAMETER, "And value of  ");
     
-    auto add_new = new wxButton(signal_box, wxID_ANY, "Add New");
-    auto delete_new = new wxButton(signal_box, wxID_ANY, "Delete Selected");
+    add_new = new wxButton(signal_box, wxID_ANY, "Add New");
+    delete_new = new wxButton(signal_box, wxID_ANY, "Delete Selected");
+    
+    // layout
+
+    auto grid_sizer = new wxGridSizer(2);
+    
+    grid_sizer->Add(signal_type_label, 0, wxALIGN_RIGHT | wxALIGN_CENTER_VERTICAL);
+    grid_sizer->Add(signal_type_value);
+    
+    grid_sizer->Add(target_label, 0, wxALIGN_RIGHT | wxALIGN_CENTER_VERTICAL);
+    grid_sizer->Add(target_value);
+    
+    grid_sizer->Add(message_type_label, 0, wxALIGN_RIGHT | wxALIGN_CENTER_VERTICAL);
+    grid_sizer->Add(message_type_value);
+    
+    grid_sizer->Add(parameter_type_label, 0, wxALIGN_RIGHT | wxALIGN_CENTER_VERTICAL);
+    grid_sizer->Add(parameter_type_value);
+    
+    grid_sizer->Add(parameter_label, 0, wxALIGN_RIGHT | wxALIGN_CENTER_VERTICAL);
+    grid_sizer->Add(parameter_value);
+    
+    auto container_sizer = new wxBoxSizer(wxHORIZONTAL);
+    
+    container_sizer->Add(delay_label, 0, wxALIGN_CENTER_VERTICAL);
+    container_sizer->Add(delay_value);
+    container_sizer->Add(repeats_label, 0, wxALIGN_CENTER_VERTICAL);
+    container_sizer->Add(repeats_value);
+    container_sizer->Add(repeats_label2, 0, wxALIGN_CENTER_VERTICAL);
+    
+    auto button_sizer = new wxBoxSizer(wxHORIZONTAL);
+    
+    button_sizer->Add(add_new);
+    button_sizer->Add(delete_new);
+    
+    auto box_sizer = new wxBoxSizer(wxVERTICAL);
+    
+    box_sizer->Add(grid_sizer, 0, wxALIGN_CENTER);
+    box_sizer->Add(container_sizer, 0, wxALIGN_CENTER);
+    box_sizer->Add(button_sizer, 0, wxALIGN_CENTER);
     
     
     
-    box_sizer->Add(signal_type_label);
-    box_sizer->Add(signal_type_value);
-    
-    box_sizer->Add(target_label);
-    box_sizer->Add(target_value);
-    box_sizer->Add(delay_label);
-    box_sizer->Add(delay_value);
-    box_sizer->Add(repeats_label);
-    box_sizer->Add(repeats_value);
-    
-    box_sizer->Add(message_type_label);
-    box_sizer->Add(message_type_value);
-    
-    box_sizer->Add(parameter_type_label);
-    box_sizer->Add(parameter_type_value);
-    
-    box_sizer->Add(parameter_label);
-    box_sizer->Add(parameter_value);
-    
-    box_sizer->Add(add_new);
-    box_sizer->Add(delete_new);
     
     add_new->Bind(wxEVT_BUTTON, &SignalEditor::AddNew, this);
     delete_new->Bind(wxEVT_BUTTON, &SignalEditor::Delete, this);
@@ -160,23 +178,62 @@ SignalEditor::SignalEditor() : wxDialog(NULL, wxID_ANY, "Signal Editor", wxDefau
     parameter_type_value->Bind(wxEVT_CHOICE, &SignalEditor::Change, this);
     parameter_value->Bind(wxEVT_TEXT, &SignalEditor::Change, this);
     
+    target_value->Disable();
+    delay_value->Disable();
+    repeats_value->Disable();
+    message_type_value->Disable();
+    signal_type_value->Disable();
+    parameter_type_value->Disable();
+    parameter_value->Disable();
+    delete_new->Disable();
+    
     signal_box->SetSizer(box_sizer);
     
-    splitter->SplitHorizontally(signal_list, signal_box);
-    
+    splitter->SplitHorizontally(signal_list, signal_box, 193);
+    splitter->SetMinimumPaneSize(165);
 }
 
 void SignalEditor::AddNew(wxCommandEvent& event) {
-    std::cout << "aDDED NEW" << std::endl;
+    entity->signals.push_back(Editor::Signal({
+        .type = "open",
+        .target = "none",
+        .delay = 0.0f,
+        .limit = -1,
+        .message = "open",
+        .param_type = "none",
+        .param = ""
+    }));
+    
+    signal_list->SetItemCount(entity->signals.size());
 }
 
 void SignalEditor::Delete(wxCommandEvent& event) {
-    std::cout << "DOLOT" << std::endl;
+    if (selected == -1) return;
+    entity->signals.erase(entity->signals.begin()+selected);
+    signal_list->SetItemCount(entity->signals.size());
+    
+    target_value->Disable();
+    delay_value->Disable();
+    repeats_value->Disable();
+    message_type_value->Disable();
+    signal_type_value->Disable();
+    parameter_type_value->Disable();
+    parameter_value->Disable();
+    delete_new->Disable();
 }
 
 void SignalEditor::Select(wxListEvent& event) {
     selected = event.GetIndex();
     const auto& signal = entity->signals[selected];
+    
+    target_value->Enable();
+    delay_value->Enable();
+    repeats_value->Enable();
+    message_type_value->Enable();
+    signal_type_value->Enable();
+    parameter_type_value->Enable();
+    parameter_value->Enable();
+    delete_new->Enable();
     
     target_value->SetValue(signal.target);
     delay_value->SetValue(std::to_string(signal.delay));
