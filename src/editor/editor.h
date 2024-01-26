@@ -98,8 +98,12 @@ enum PropertyType {
     PROPERTY_FLOAT,     // float
     PROPERTY_INT,       // int64_t
     PROPERTY_UINT,      // uint64_t
-    PROPERTY_ENUM,      // uint32_t
+    PROPERTY_ENUM,      // int32_t
     PROPERTY_BOOL,      // bool
+    PROPERTY_VECTOR,
+    PROPERTY_ORIGIN,
+    PROPERTY_DIRECTION, // normal vector
+    //PROPERTY_POSITION,  // position vector
     PROPERTY_CATEGORY,
     PROPERTY_NULL
 };
@@ -123,6 +127,12 @@ extern std::unordered_map<std::string, std::vector<std::string>> PROPERTY_ENUMER
 // maybe add a move constructor to this class?
 /// Value of a property.
 struct PropertyValue {
+    struct Vector {
+        float x;
+        float y;
+        float z;
+    };
+    
     PropertyValue() { type = PROPERTY_NULL; }
     PropertyValue(const std::string& value) : str_value(value) { type = PROPERTY_STRING; }
     PropertyValue(const float& value) : float_value(value) { type = PROPERTY_FLOAT; }
@@ -130,6 +140,7 @@ struct PropertyValue {
     PropertyValue(const uint64_t& value) : uint_value(value) { type = PROPERTY_UINT; }
     PropertyValue(const int32_t& value) : enum_value(value) { type = PROPERTY_ENUM; }
     PropertyValue(const bool& value) : bool_value(value) { type = PROPERTY_BOOL; }
+    PropertyValue(const Vector& value) : vector_value(value) { type = PROPERTY_VECTOR; }
     PropertyValue(const PropertyValue& value, PropertyType type) : PropertyValue(value) { this->type = type; }
     ~PropertyValue() { if (type == PROPERTY_STRING) str_value.~basic_string(); }
     PropertyValue (const PropertyValue& value) : PropertyValue() { *this = value; }
@@ -153,6 +164,11 @@ struct PropertyValue {
                 break;
             case PROPERTY_BOOL:
                 bool_value = value.bool_value;
+                break;
+            case PROPERTY_VECTOR:
+            case PROPERTY_ORIGIN:
+            case PROPERTY_DIRECTION:
+                vector_value = value.vector_value;
                 break;
             default:
                 break;
@@ -178,6 +194,10 @@ struct PropertyValue {
                 return enum_value == other.enum_value;
             case PROPERTY_BOOL:
                 return bool_value == other.bool_value;
+            case PROPERTY_VECTOR:
+            case PROPERTY_DIRECTION:
+            case PROPERTY_ORIGIN:
+                return vector_value.x == other.vector_value.x && vector_value.y == other.vector_value.y && vector_value.z == other.vector_value.z;
             case PROPERTY_CATEGORY:
                 return false;
             case PROPERTY_NULL:
@@ -192,6 +212,7 @@ struct PropertyValue {
     operator uint64_t() { assert(type == PROPERTY_UINT); return uint_value; }
     operator int32_t() { assert(type == PROPERTY_ENUM); return enum_value; }
     operator bool() { assert(type == PROPERTY_BOOL); return bool_value; }
+    operator Vector() { assert(type == PROPERTY_VECTOR || type == PROPERTY_DIRECTION || type == PROPERTY_ORIGIN); return vector_value; }
     
     PropertyType type;
     union {
@@ -201,6 +222,7 @@ struct PropertyValue {
         uint64_t uint_value;
         int32_t enum_value;
         bool bool_value;
+        Vector vector_value;
     };
 };
 

@@ -13,6 +13,7 @@
 #include <widgets/viewport.h>
 #include <widgets/worldtree.h>
 #include <widgets/dialogs.h>
+#include <widgets/signaleditor.h>
 
 enum {
     ID_Hello = 1,
@@ -22,6 +23,7 @@ enum {
     ID_Save_Cells = 5,
     ID_Action_Redo = 10,
     ID_Action_Undo = 11,
+    ID_Action_Signals = 12,
     ID_World_Tree_Show = 40,
     ID_World_Tree_Hide = 41,
     ID_World_Tree_Begonis = 42,
@@ -58,6 +60,8 @@ MainFrameCtrl::MainFrameCtrl() : wxFrame(NULL, wxID_ANY, lang->title_bar, wxDefa
     wxMenu* edit_menu = new wxMenu;
     edit_menu->Append(ID_Action_Undo, lang->edit_menu_undo, lang->edit_menu_undo_info);
     edit_menu->Append(ID_Action_Redo, lang->edit_menu_redo, lang->edit_menu_undo_info);
+    edit_menu->AppendSeparator();
+    edit_menu->Append(ID_Action_Signals, "Signals", "Open signal editor.");
  
     wxMenu* view_menu = new wxMenu;
     view_menu->Append(ID_Settings_View_Move_To_Selection, "Center On Selection", "Centers view on selection");
@@ -103,6 +107,7 @@ MainFrameCtrl::MainFrameCtrl() : wxFrame(NULL, wxID_ANY, lang->title_bar, wxDefa
     
     Bind(wxEVT_MENU, &MainFrameCtrl::OnAction, this, ID_Action_Redo);
     Bind(wxEVT_MENU, &MainFrameCtrl::OnAction, this, ID_Action_Undo);
+    Bind(wxEVT_MENU, &MainFrameCtrl::OnAction, this, ID_Action_Signals);
     
     Bind(wxEVT_CLOSE_WINDOW, &MainFrameCtrl::OnClose, this);
     
@@ -200,6 +205,19 @@ void MainFrameCtrl::OnAction(wxCommandEvent& event) {
             break;
         case ID_Action_Undo:
             Editor::Undo();
+            break;
+        case ID_Action_Signals:
+            if (Editor::SELECTION->objects.size() != 1) {
+                wxMessageDialog info_some (this, "Need to select at least 1 entity and no more.", "Can't edit signals!", wxOK | wxOK_DEFAULT | wxICON_INFORMATION);
+                info_some.ShowModal();
+            } else if (std::dynamic_pointer_cast<Editor::Entity>(Editor::SELECTION->objects.front()).get() == nullptr) { // cursed
+                wxMessageDialog info_some (this, "Selected object is not entity.", "Can't edit signals!", wxOK | wxOK_DEFAULT | wxICON_INFORMATION);
+                info_some.ShowModal();
+            } else {
+                SignalEditor editor;
+                editor.ShowModal();
+            }
+            
             break;
         case ID_Settings_Angle_Radians:
             ROTATION_UNIT = ROTATION_RADIANS;

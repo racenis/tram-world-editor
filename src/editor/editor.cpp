@@ -89,8 +89,18 @@ PropertyDefinition ReadEntityField(File& file) {
         return {name, name, "group-entity-special", PROPERTY_UINT};
     } else if (type == "float") {
         return {name, name, "group-entity-special", PROPERTY_FLOAT};
+    } else if (type == "vector") {
+        return {name, name, "group-entity-special", PROPERTY_VECTOR};
+    } else if (type == "origin") {
+        return {name, name, "group-entity-special", PROPERTY_ORIGIN};
+    } else if (type == "direction") {
+        return {name, name, "group-entity-special", PROPERTY_DIRECTION};
     }
-    
+
+    // in the future some possible other values could be:
+    // - angles
+    // - flags
+
     std::cout << "unrezgonized entry type: " << type << std::endl;
     
     return {};

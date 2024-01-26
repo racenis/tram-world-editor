@@ -36,6 +36,8 @@
       <File Name="src/editor/actions.h"/>
     </VirtualDirectory>
     <VirtualDirectory Name="widgets">
+      <File Name="src/widgets/signaleditor.h"/>
+      <File Name="src/widgets/signaleditor.cpp"/>
       <File Name="src/widgets/dialogs.cpp"/>
       <File Name="src/widgets/dialogs.h"/>
       <File Name="src/widgets/mainframe.cpp"/>

@@ -4,6 +4,8 @@
 
 #include <widgets/propertypanel.h>
 
+#include <sstream>
+
 std::unordered_map<std::string, bool> category_is_collapsed;
 
 PropertyPanelCtrl* property_panel = nullptr;
@@ -24,6 +26,9 @@ void Editor::PropertyPanel::SetCurrentSelection() {
                 if (!field_ptr) {
                     switch (field.type) {
                         case PROPERTY_STRING:
+                        case PROPERTY_VECTOR:
+                        case PROPERTY_ORIGIN:
+                        case PROPERTY_DIRECTION:
                             field_ptr = new wxStringProperty(Editor::PropertyRename(field.display_name), field.name);
                             break;
                         case PROPERTY_FLOAT:
@@ -107,6 +112,23 @@ void Editor::PropertyPanel::SetCurrentSelection() {
                 case PROPERTY_BOOL:
                     field->SetValue(value.bool_value);
                     break;
+                case PROPERTY_VECTOR:
+                case PROPERTY_ORIGIN:
+                case PROPERTY_DIRECTION:
+                {
+                    std::string x_str = std::to_string(value.vector_value.x);
+                    std::string y_str = std::to_string(value.vector_value.y);
+                    std::string z_str = std::to_string(value.vector_value.z);
+                
+                    x_str.erase(x_str.find_last_not_of('0') + 1, std::string::npos);
+                    y_str.erase(x_str.find_last_not_of('0') + 1, std::string::npos);
+                    z_str.erase(x_str.find_last_not_of('0') + 1, std::string::npos);
+                
+                std::cout << "READ IN!!!" << value.vector_value.x << "  " << value.vector_value.z << std::endl;
+                
+                    field->SetValue(x_str + " " + y_str + " " + z_str);
+                }
+                    break;
                 default:
                     break;
             }
@@ -142,7 +164,6 @@ void PropertyPanelCtrl::OnChanged (wxPropertyGridEvent& event) {
     // make a back-up of the properties of the selected objects 
     Editor::PerformAction<Editor::ActionChangeProperties>(std::vector<std::string> {value_name});
     
-    // TODO: cache the result of value.GetType() == "type"
     for (auto& object : Editor::SELECTION->objects) {
         if (value.GetType() == "longlong") {
             object->SetProperty(value_name, value.GetLongLong().GetValue());
@@ -151,7 +172,24 @@ void PropertyPanelCtrl::OnChanged (wxPropertyGridEvent& event) {
         } else if (value.GetType() == "double") {
             object->SetProperty(value_name, (float) value.GetDouble());
         } else if (value.GetType() == "string") {
-            object->SetProperty(value_name, value.GetString().ToStdString());
+            switch (object->GetProperty(value_name).type) {
+                case Editor::PROPERTY_VECTOR:
+                case Editor::PROPERTY_ORIGIN:
+                case Editor::PROPERTY_DIRECTION:
+                {
+                    std::string new_value_unparse = value.GetString().ToStdString();
+                    std::stringstream new_value_parse(new_value_unparse); 
+                    Editor::PropertyValue::Vector new_value;
+                    new_value_parse >> new_value.x;
+                    new_value_parse >> new_value.y;
+                    new_value_parse >> new_value.z;
+                    // TODO: add validation
+                    object->SetProperty(value_name, new_value);
+                    break;
+                }
+                default:
+                    object->SetProperty(value_name, value.GetString().ToStdString());
+            }
         } else if (value.GetType() == "long") {
             // long in wxWidgets PropGrid is used for enums
             object->SetProperty(value_name, (int32_t) value.GetLong());

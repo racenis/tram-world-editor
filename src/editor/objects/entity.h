@@ -9,6 +9,17 @@ namespace tram {
 
 namespace Editor {
 
+struct Signal {
+    std::string type;
+    std::string target;
+    float delay;
+    int limit;
+    std::string message;
+    std::string param_type;
+    std::string param;
+};
+    
+    
 class Entity : public Object {
 public:
     Entity(Object* parent) : Entity(parent, "New Entity") {}
@@ -46,8 +57,9 @@ public:
     void SetProperty (std::string property_name, PropertyValue property_value);
     
     void Draw();
-    
     void CheckModel();
+    
+    std::vector<Signal> signals;
     tram::RenderComponent* model = nullptr;
 };
 
