@@ -24,7 +24,8 @@ std::shared_ptr<Object> Entity::Duplicate() {
     auto dupe = std::dynamic_pointer_cast<Editor::Entity>(parent->AddChild());
     dupe->properties = properties;
     dupe->signals = signals;
-    dupe->properties["name"] = (std::string)dupe->properties["name"] + "-duplicate";
+    if ((std::string)dupe->properties["name"] != "none")
+        dupe->properties["name"] = (std::string)dupe->properties["name"] + "-duplicate";
     dupe->GenerateNewRandomId();
     return dupe;
 }

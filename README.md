@@ -1,5 +1,7 @@
 # Tramway SDK Level Editor
 
+![screenshot01.png](docs/screenshot01.png)
+
 ## To-do list
 
 - Make signal list let you search for entities by name

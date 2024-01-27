@@ -57,16 +57,40 @@ public:
     std::shared_ptr<Editor::Entity> entity;
 };
 
-static const char* all_signals[3] = {
-"open",    
-"close",    
-"poop"    
+
+
+static const char* all_signals[14] = {
+    "none",
+    "spawn",
+    "kill",
+    "activate",
+    "use",
+    "locked-use",
+    "open",
+    "close",
+    "end-open",
+    "end-close",
+    "trigger",
+    "enter-trigger",
+    "exit-trigger",
+    "none" 
 };
 
-static const char* all_messages[3] = {
-"open",    
-"close",    
-"poop"    
+static const char* all_messages[14] = {
+    "none",
+    "ping",
+    "move-pick-up",
+    "open",
+    "close",
+    "lock",
+    "unlock",
+    "toggle",
+    "kill",
+    "use",
+    "start",
+    "stop",
+    "activate",
+    "activate-once"  
 };
 
 static const char* all_types[3] = {
@@ -97,7 +121,7 @@ SignalEditor::SignalEditor() : wxDialog(NULL, wxID_ANY, "Signal Editor", wxDefau
     
     
     // all of the controls in the menu
-    signal_type_value = new wxChoice(signal_box, INPUT_FIELD_SIGNAL_TYPE, wxDefaultPosition, wxSize(169, -1), {3, all_signals});
+    signal_type_value = new wxChoice(signal_box, INPUT_FIELD_SIGNAL_TYPE, wxDefaultPosition, wxSize(169, -1), {14, all_signals});
     signal_type_label = new wxStaticText(signal_box, INPUT_FIELD_SIGNAL_TYPE, "When this entity fires signal  ");
     for (int i = 0; i < 3; i++) {
         signal_type_value->SetString(i, all_signals[i]);
@@ -111,7 +135,7 @@ SignalEditor::SignalEditor() : wxDialog(NULL, wxID_ANY, "Signal Editor", wxDefau
     repeats_label = new wxStaticText(signal_box, INPUT_FIELD_REPEATS, "  seconds and limit fires to  ");
     repeats_label2 = new wxStaticText(signal_box, INPUT_FIELD_REPEATS, "  times");
     
-    message_type_value = new wxChoice(signal_box, INPUT_FIELD_MESSAGE_TYPE, wxDefaultPosition, wxSize(169, -1), {3, all_signals});
+    message_type_value = new wxChoice(signal_box, INPUT_FIELD_MESSAGE_TYPE, wxDefaultPosition, wxSize(169, -1), {14, all_signals});
     message_type_label = new wxStaticText(signal_box, INPUT_FIELD_MESSAGE_TYPE, "By sending a message of type  ");
     for (int i = 0; i < 3; i++) {
         message_type_value->SetString(i, all_messages[i]);
@@ -196,11 +220,11 @@ SignalEditor::SignalEditor() : wxDialog(NULL, wxID_ANY, "Signal Editor", wxDefau
 
 void SignalEditor::AddNew(wxCommandEvent& event) {
     entity->signals.push_back(Editor::Signal({
-        .type = "open",
+        .type = "none",
         .target = "none",
         .delay = 0.0f,
         .limit = -1,
-        .message = "open",
+        .message = "none",
         .param_type = "none",
         .param = ""
     }));
