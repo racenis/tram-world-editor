@@ -240,10 +240,11 @@ void ViewportCtrl::OnMouseMove(wxMouseEvent& event) {
                 
                 if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITYGROUP) {
                     // TODO: implement entity group transforms
+                    Editor::Viewport::ShowErrorDialog("EntityGroup transform not implemented yet!");
                 }
                 
                 object_position += translation_adjusted;
-                
+                                
                 object->SetProperty("position-x", object_position.x);
                 object->SetProperty("position-y", object_position.y);
                 object->SetProperty("position-z", object_position.z);
@@ -353,6 +354,53 @@ void ViewportCtrl::OnKeydown(wxKeyEvent& event) {
     
     if (event.GetKeyCode() == WXK_SHIFT) {
         key_shift = true;
+    }
+    
+    if (event.GetKeyCode() == WXK_CONTROL && viewport_mode == MODE_TRANSLATE) {
+        for (auto& object : Editor::SELECTION->objects) {
+            float x = object->GetProperty("position-x");
+            float y = object->GetProperty("position-y");
+            float z = object->GetProperty("position-z");
+            
+            float div = 1.0f;
+            switch (Editor::Settings::TRANSLATION_SNAP) {
+                case Editor::Settings::SNAP_0_01: div = 0.01f; break;
+                case Editor::Settings::SNAP_0_10: div = 0.1f; break;
+                case Editor::Settings::SNAP_0_25: div = 0.25f; break;
+                case Editor::Settings::SNAP_0_50: div = 0.5f; break;
+                default:
+                case Editor::Settings::SNAP_1_00: div = 1.0f; break;
+            }
+            
+            object->SetProperty("position-x", round(x/div)*div);
+            object->SetProperty("position-y", round(y/div)*div);
+            object->SetProperty("position-z", round(z/div)*div);
+        }
+        
+        Editor::Viewport::Refresh();
+    }
+    
+     if (event.GetKeyCode() == WXK_CONTROL && viewport_mode == MODE_ROTATE) {
+        for (auto& object : Editor::SELECTION->objects) {
+            float x = object->GetProperty("rotation-x");
+            float y = object->GetProperty("rotation-y");
+            float z = object->GetProperty("rotation-z");
+            
+            float div = 1.0f;
+            switch (Editor::Settings::ROTATION_SNAP) {
+                case Editor::Settings::SNAP_15: div = 0.261799f; break;
+                case Editor::Settings::SNAP_30: div = 0.523599f; break;
+                case Editor::Settings::SNAP_45: div = 0.785398f; break;
+                default:
+                case Editor::Settings::SNAP_90: div = 1.5708f; break;
+            }
+            
+            object->SetProperty("rotation-x", round(x/div)*div);
+            object->SetProperty("rotation-y", round(y/div)*div);
+            object->SetProperty("rotation-z", round(z/div)*div);
+        }
+        
+        Editor::Viewport::Refresh();
     }
 }
 

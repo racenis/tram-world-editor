@@ -40,6 +40,15 @@ enum {
     ID_Settings_Space_Entity = 108,
     ID_Settings_Space_Group = 109,
     ID_Settings_View_Move_To_Selection = 110,
+    ID_Settings_Snap_0_01 = 111,
+    ID_Settings_Snap_0_10 = 112,
+    ID_Settings_Snap_0_25 = 113,
+    ID_Settings_Snap_0_50 = 114,
+    ID_Settings_Snap_1_00 = 115,
+    ID_Settings_Snap_15 = 116,
+    ID_Settings_Snap_30 = 117,
+    ID_Settings_Snap_45 = 118,
+    ID_Settings_Snap_90 = 119,
     ID_Settings_Language = 200
 };
 
@@ -73,6 +82,17 @@ MainFrameCtrl::MainFrameCtrl() : wxFrame(NULL, wxID_ANY, lang->title_bar, wxDefa
     settings_menu->AppendSeparator();
     settings_menu->AppendRadioItem(ID_Settings_Angle_Radians, lang->settings_menu_radians, lang->settings_menu_radians_info)->Check(ROTATION_UNIT == ROTATION_RADIANS);
     settings_menu->AppendRadioItem(ID_Settings_Angle_Degrees, lang->settings_menu_degrees, lang->settings_menu_degrees_info)->Check(ROTATION_UNIT == ROTATION_DEGREES);
+    settings_menu->AppendSeparator();
+    settings_menu->AppendRadioItem(ID_Settings_Snap_0_01, "Snap to 0.01m", "Snap")->Check(TRANSLATION_SNAP == SNAP_0_01);
+    settings_menu->AppendRadioItem(ID_Settings_Snap_0_10, "Snap to 0.1m", "Snap")->Check(TRANSLATION_SNAP == SNAP_0_10);
+    settings_menu->AppendRadioItem(ID_Settings_Snap_0_25, "Snap to 0.25m", "Snap")->Check(TRANSLATION_SNAP == SNAP_0_25);
+    settings_menu->AppendRadioItem(ID_Settings_Snap_0_50, "Snap to 0.5m", "Snap")->Check(TRANSLATION_SNAP == SNAP_0_50);
+    settings_menu->AppendRadioItem(ID_Settings_Snap_1_00, "Snap to 1m", "Snap")->Check(TRANSLATION_SNAP == SNAP_1_00);
+    settings_menu->AppendSeparator();
+    settings_menu->AppendRadioItem(ID_Settings_Snap_15, "Snap to 15°", "Snap")->Check(ROTATION_SNAP == SNAP_15);
+    settings_menu->AppendRadioItem(ID_Settings_Snap_30, "Snap to 30°", "Snap")->Check(ROTATION_SNAP == SNAP_30);
+    settings_menu->AppendRadioItem(ID_Settings_Snap_45, "Snap to 45°", "Snap")->Check(ROTATION_SNAP == SNAP_45);
+    settings_menu->AppendRadioItem(ID_Settings_Snap_90, "Snap to 90°", "Snap")->Check(ROTATION_SNAP == SNAP_90);
     
     wxMenu* language_menu = new wxMenu;
     language_menu->AppendRadioItem((int) ID_Settings_Language + LANGUAGE_LV, L"Latviešu", L"Latvijas Republikas un Roņu Salas Autonomās Teritorijas valoda.")->Check(INTERFACE_LANGUAGE == LANGUAGE_LV);
@@ -224,6 +244,18 @@ void MainFrameCtrl::OnAction(wxCommandEvent& event) {
         case ID_Settings_Space_Group:
             TRANSFORM_SPACE = SPACE_ENTITYGROUP;
             break;
+          
+        case ID_Settings_Snap_0_01: TRANSLATION_SNAP = SNAP_0_01;   break;
+        case ID_Settings_Snap_0_10: TRANSLATION_SNAP = SNAP_0_10;   break;
+        case ID_Settings_Snap_0_25: TRANSLATION_SNAP = SNAP_0_25;   break;
+        case ID_Settings_Snap_0_50: TRANSLATION_SNAP = SNAP_0_50;   break;
+        case ID_Settings_Snap_1_00: TRANSLATION_SNAP = SNAP_1_00;   break;
+        
+        case ID_Settings_Snap_15:   ROTATION_SNAP = SNAP_15;        break;
+        case ID_Settings_Snap_30:   ROTATION_SNAP = SNAP_30;        break;
+        case ID_Settings_Snap_45:   ROTATION_SNAP = SNAP_45;        break;
+        case ID_Settings_Snap_90:   ROTATION_SNAP = SNAP_90;        break;
+            
         case ID_Settings_View_Move_To_Selection:
             viewport->ViewCenterOnSelection();
             break;
