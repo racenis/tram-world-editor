@@ -14,6 +14,8 @@ public:
     void OnMenuOpen(wxListEvent& event);
     void OnSelectionChanged(wxListEvent& event);
     void OnItemActivated(wxListEvent& event);
+    
+    bool disable_selection = false;
 };
 
 extern ObjectListCtrl* object_list;

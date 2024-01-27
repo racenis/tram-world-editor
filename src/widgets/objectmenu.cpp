@@ -2,7 +2,10 @@
 #include <editor/language.h>
 #include <editor/actions.h>
 
+#include <widgets/signaleditor.h>
+
 #include <widgets/objectmenu.h>
+
 
 ObjectMenuCtrl* world_tree_popup = nullptr;
 
@@ -10,14 +13,16 @@ ObjectMenuCtrl::ObjectMenuCtrl () : wxMenu() {
     is_visible_checkbox = AppendCheckItem(1, Editor::selected_language->dialog_show); 
     add_selection = Append(2, Editor::selected_language->dialog_add_new);
     edit_selection = Append(3, Editor::selected_language->dialog_edit);
-    duplicate_selection = Append(4, L"DUPLIKAT");
-    delete_selection = Append(5, Editor::selected_language->dialog_delete);
+    duplicate_selection = Append(4, L"Duplicate");
+    duplicate_selection = Append(5, L"Signals");
+    delete_selection = Append(6, Editor::selected_language->dialog_delete);
     
     this->Bind(wxEVT_MENU, &ObjectMenuCtrl::OnIsVisibleCheckboxClick, this, 1);
     this->Bind(wxEVT_MENU, &ObjectMenuCtrl::OnAddSelection, this, 2);
     this->Bind(wxEVT_MENU, &ObjectMenuCtrl::OnEditSelection, this, 3);
     this->Bind(wxEVT_MENU, &ObjectMenuCtrl::OnDuplicateSelection, this, 4);
-    this->Bind(wxEVT_MENU, &ObjectMenuCtrl::OnDeleteSelection, this, 5);
+    this->Bind(wxEVT_MENU, &ObjectMenuCtrl::OnSignalSelection, this, 5);
+    this->Bind(wxEVT_MENU, &ObjectMenuCtrl::OnDeleteSelection, this, 6);
 }
 
 void ObjectMenuCtrl::SetSelectionStatus(Editor::Selection* selection) {
@@ -55,6 +60,10 @@ void ObjectMenuCtrl::OnEditSelection(wxCommandEvent& event) {
 
 void ObjectMenuCtrl::OnDuplicateSelection(wxCommandEvent& event) {
     Editor::PerformAction<Editor::ActionDuplicate>();
+}
+
+void ObjectMenuCtrl::OnSignalSelection(wxCommandEvent& event) {
+    OpenSignalEditorModal();
 }
 
 void ObjectMenuCtrl::OnDeleteSelection(wxCommandEvent& event) {

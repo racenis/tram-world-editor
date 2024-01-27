@@ -16,8 +16,10 @@ static std::unordered_map<std::string, int32_t> entity_name_to_id;
 static std::unordered_map<RenderComponent*, Entity*> viewmodel_ptr_to_entity_ptr;
 
 std::shared_ptr<Object> Entity::Duplicate() {
-    auto dupe = parent->AddChild();
+    auto dupe = std::dynamic_pointer_cast<Editor::Entity>(parent->AddChild());
     dupe->properties = properties;
+    dupe->signals = signals;
+    dupe->properties["name"] = (std::string)dupe->properties["name"] + "-duplicate";
     return dupe;
 }
 

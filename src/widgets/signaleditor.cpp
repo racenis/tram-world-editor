@@ -299,6 +299,26 @@ void SignalEditor::Closng(wxCloseEvent& event) {
     Destroy();
 }
 
+class ActionChangeSignals : public Editor::Action {
+public:
+    ActionChangeSignals (std::shared_ptr<Editor::Entity> entity) {
+        this->signals = entity->signals;
+        this->entity = entity;
+    }
+    
+    void Perform() {
+        std::swap(entity->signals, signals);
+    }
+    
+    void Unperform() {
+        std::swap(entity->signals, signals);
+    }
+    
+    std::vector<Editor::Signal> signals;
+    std::shared_ptr<Editor::Entity> entity;
+};
+
+
 void OpenSignalEditorModal() {
     if (Editor::SELECTION->objects.size() != 1) {
         wxMessageDialog info_some (nullptr, "Need to select at least 1 entity and no more.", "Can't edit signals!", wxOK | wxOK_DEFAULT | wxICON_INFORMATION);
@@ -307,6 +327,7 @@ void OpenSignalEditorModal() {
         wxMessageDialog info_some (nullptr, "Selected object is not entity.", "Can't edit signals!", wxOK | wxOK_DEFAULT | wxICON_INFORMATION);
         info_some.ShowModal();
     } else {
+        Editor::PerformAction<ActionChangeSignals>(std::dynamic_pointer_cast<Editor::Entity>(Editor::SELECTION->objects.front()));
         SignalEditor editor;
         editor.ShowModal();
     }

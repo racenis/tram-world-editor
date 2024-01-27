@@ -124,7 +124,7 @@ void Editor::PropertyPanel::SetCurrentSelection() {
                     y_str.erase(x_str.find_last_not_of('0') + 1, std::string::npos);
                     z_str.erase(x_str.find_last_not_of('0') + 1, std::string::npos);
                 
-                std::cout << "READ IN!!!" << value.vector_value.x << "  " << value.vector_value.z << std::endl;
+                //std::cout << "READ IN!!!" << value.vector_value.x << "  " << value.vector_value.z << std::endl;
                 
                     field->SetValue(x_str + " " + y_str + " " + z_str);
                 }

@@ -11,18 +11,28 @@ public:
         prev_selection = SELECTION;
         next_selection = new_selection;
         
+        //std::cout << "Arrived selection: ";
+        //for (auto& obj : new_selection->objects) std::cout << obj->GetName() << " ";
+        //std::cout << std::endl;
+        
         Perform();
     }
     
     void Perform() {
-        //std::cout << "New selection: ";
+        
+        //std::cout << "CHANGED selection: ";
         //for (auto& obj : next_selection->objects) std::cout << obj->GetName() << " ";
         //std::cout << std::endl;
+        
         SELECTION = next_selection;
+        
+        //std::cout << "finished chaning! now updating!" << std::endl;
         
         Editor::PropertyPanel::Refresh();
         Editor::ObjectList::Refresh();
         Editor::Viewport::Refresh();
+        
+        //std::cout << "okay done!" << std::endl;
     }
     
     void Unperform() {
@@ -121,27 +131,48 @@ public:
             parent_object = duped_object->GetParent();
             duped_object->SetHidden(SELECTION->objects.front()->IsHidden());
             if (parent_object->IsChildrenTreeable()) Editor::WorldTree::Add(duped_object.get());
+            
+            SELECTION->objects.clear();
+            SELECTION->objects.push_back(duped_object);
+            
+            Editor::PropertyPanel::Refresh();
+            Editor::Viewport::Refresh();
         } else {
             std::cout << "Adding new objects can only if single object is selected!" << std::endl;
+            failed = true;
         }
     }
     
     void Perform() {
+        if (failed) return;
+        
         parent_object->AddChild(duped_object);
         duped_object->SetHidden(was_hidden);
         
+        SELECTION->objects.clear();
+        SELECTION->objects.push_back(duped_object);
+        
+        Editor::PropertyPanel::Refresh();
         Editor::Viewport::Refresh();
         if (parent_object->IsChildrenTreeable()) Editor::WorldTree::Add(duped_object.get());
     }
     
     void Unperform() {
+        if (failed) return;
+        
         was_hidden = duped_object->IsHidden();
         parent_object->RemoveChild(duped_object);
         duped_object->SetHidden(true);
         
+        SELECTION->objects.clear();
+        SELECTION->objects.push_back(parent_object);
+        
+        Editor::PropertyPanel::Refresh();
         Editor::Viewport::Refresh();
         if (parent_object->IsChildrenTreeable()) Editor::WorldTree::Remove(duped_object.get());
     }
+    
+    bool failed = false;
     
     bool was_hidden = false;
     std::shared_ptr<Object> parent_object = nullptr;

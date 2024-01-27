@@ -18,8 +18,23 @@ ObjectListCtrl::ObjectListCtrl(wxWindow* parent) :  wxListCtrl(parent, -1, wxDef
     Bind(wxEVT_LIST_ITEM_ACTIVATED, &ObjectListCtrl::OnItemActivated, this);
 }
 
+// I think that htis finds which object is going to be shown in the object list
 auto GetSingleSelectedObjectFromSelection() {
-    if (SELECTION->objects.size() > 0) {
+    if (SELECTION->objects.size() == 1) {
+        // if there is only one object selected, then just return that
+        auto object = SELECTION->objects.front();
+        return object->IsChildrenListable() ? object : object->GetParent();
+    } else if (SELECTION->objects.size() > 0) {
+        // otherwise check if all of the selected objects have the same type
+        auto first = SELECTION->objects.front().get();
+        auto first_type = typeid(*first).hash_code();
+        for (const auto& obj : SELECTION->objects) {
+            auto next = obj.get();
+            auto next_type = typeid(*next).hash_code();
+            if (first_type != next_type) {
+                return std::shared_ptr<Object>(nullptr);
+            }
+        }
         auto object = SELECTION->objects.front();
         return object->IsChildrenListable() ? object : object->GetParent();
     } else {
@@ -47,10 +62,14 @@ void Editor::ObjectList::SetCurrentSelection() {
 }
 
 void Editor::ObjectList::Refresh() {
-    if (selected_object == GetSingleSelectedObjectFromSelection()) {
+    // I think that it might be a good idea to change the name of selected_object
+    // to displayed_object or something
+    if (selected_object && selected_object == GetSingleSelectedObjectFromSelection()) {
         auto list_selection = selected_object->GetChildren();
         auto all_selected = SELECTION->objects;
         object_list->SetItemCount(list_selection.size());
+        
+        object_list->disable_selection = true;
         
         // step through every object in ObjectList
         auto check = list_selection.begin();
@@ -68,6 +87,7 @@ void Editor::ObjectList::Refresh() {
             check++;
         }
         
+        object_list->disable_selection = false;
         
         object_list->Refresh();
     } else {
@@ -104,6 +124,14 @@ void ObjectListCtrl::OnMenuOpen(wxListEvent& event) {
 }
 
 void ObjectListCtrl::OnSelectionChanged(wxListEvent& event) {
+    // this here is a hack.
+    // this method is supposed to run only if you click on a thing in the object
+    // list. like click with a mouse, to select.
+    // sometimes we need to select stuff programmatically, but this method will
+    // still be called (wxwidgets acting stupid). so this hack will make this
+    // method go away when we do that
+    if (disable_selection) return;
+    
     auto new_selection = std::make_shared<Editor::Selection>();
     auto childrens = selected_object->GetChildren();
     

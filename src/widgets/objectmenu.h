@@ -15,12 +15,14 @@ public:
     void OnAddSelection(wxCommandEvent& event);
     void OnEditSelection(wxCommandEvent& event);
     void OnDuplicateSelection(wxCommandEvent& event);
+    void OnSignalSelection(wxCommandEvent& event);
     void OnDeleteSelection(wxCommandEvent& event);
     
     wxMenuItem* is_visible_checkbox = nullptr;
     wxMenuItem* add_selection = nullptr;
     wxMenuItem* edit_selection = nullptr;
     wxMenuItem* duplicate_selection = nullptr;
+    wxMenuItem* signal_selection = nullptr;
     wxMenuItem* delete_selection = nullptr;
 };
 

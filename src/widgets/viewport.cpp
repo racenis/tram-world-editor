@@ -137,7 +137,7 @@ void ViewportCtrl::OnLeftClick(wxMouseEvent& event) {
             // create a new selection object
             auto new_selection = std::make_shared<Editor::Selection>();
             
-            // if shift is pressed down, then copy in old selection objects
+            // if shift is pressed down, then multiple selection mode
             if (wxGetKeyState(WXK_SHIFT)) {
                 new_selection->objects = Editor::SELECTION->objects;
             }
@@ -153,10 +153,18 @@ void ViewportCtrl::OnLeftClick(wxMouseEvent& event) {
                 new_selection->objects.erase(already_selected);
             }
             
+            // single selection override
+            if (Editor::SELECTION->objects.size() == 1 && Editor::SELECTION->objects.front() == selected_object) {
+                new_selection->objects.clear();
+            }
+
             // set new selection as editor selection
             Editor::PerformAction<Editor::ActionChangeSelection>(new_selection);
         } else {
-            std::cout << "missed" << std::endl;
+            if (wxGetKeyState(WXK_SHIFT)) return;
+            
+            // clear selection
+            Editor::PerformAction<Editor::ActionChangeSelection>(std::make_shared<Editor::Selection>());
         }
         
         return;
@@ -168,13 +176,11 @@ void ViewportCtrl::OnLeftClick(wxMouseEvent& event) {
     CenterMouseCursor();
     
     viewport_mode = MODE_MOVE;
-    std::cout << "entered move mode" << std::endl;
 }
 
 void ViewportCtrl::OnRightClick(wxMouseEvent& event) {
     if (viewport_mode == MODE_TRANSLATE || viewport_mode == MODE_ROTATE) {
-        // TODO: do an undo in here
-        std::cout << "Canceling a transform not implemented!" << std::endl;
+        Editor::Undo();
         
         CancelViewportOperation();
         
@@ -446,7 +452,7 @@ void ViewportCtrl::OnPaint(wxPaintEvent& event)
 
     using namespace tram;
     using namespace tram::Render;
-    
+
     for (auto& object : Editor::SELECTION->objects) {
         glm::quat space;
         if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_WORLD) space = glm::vec3(0.0f);
