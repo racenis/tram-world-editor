@@ -3,6 +3,7 @@
 #include <editor/editor.h>
 #include <editor/language.h>
 #include <editor/settings.h>
+#include <editor/actions.h>
 
 #include <editor/objects/world.h>
 
@@ -24,6 +25,7 @@ enum {
     ID_Action_Redo = 10,
     ID_Action_Undo = 11,
     ID_Action_Signals = 12,
+    ID_Action_Duplicate = 14,
     ID_World_Tree_Show = 40,
     ID_World_Tree_Hide = 41,
     ID_World_Tree_Begonis = 42,
@@ -70,7 +72,8 @@ MainFrameCtrl::MainFrameCtrl() : wxFrame(NULL, wxID_ANY, lang->title_bar, wxDefa
     edit_menu->Append(ID_Action_Undo, lang->edit_menu_undo, lang->edit_menu_undo_info);
     edit_menu->Append(ID_Action_Redo, lang->edit_menu_redo, lang->edit_menu_undo_info);
     edit_menu->AppendSeparator();
-    edit_menu->Append(ID_Action_Signals, "Signals", "Open signal editor.");
+    edit_menu->Append(ID_Action_Duplicate, "Duplicate\tShift-C", "Duplicate selected object.");
+    edit_menu->Append(ID_Action_Signals, "Signals\tShift-V", "Open signal editor.");
  
     wxMenu* view_menu = new wxMenu;
     view_menu->Append(ID_Settings_View_Move_To_Selection, "Center On Selection", "Centers view on selection");
@@ -127,6 +130,7 @@ MainFrameCtrl::MainFrameCtrl() : wxFrame(NULL, wxID_ANY, lang->title_bar, wxDefa
     
     Bind(wxEVT_MENU, &MainFrameCtrl::OnAction, this, ID_Action_Redo);
     Bind(wxEVT_MENU, &MainFrameCtrl::OnAction, this, ID_Action_Undo);
+    Bind(wxEVT_MENU, &MainFrameCtrl::OnAction, this, ID_Action_Duplicate);
     Bind(wxEVT_MENU, &MainFrameCtrl::OnAction, this, ID_Action_Signals);
     
     Bind(wxEVT_CLOSE_WINDOW, &MainFrameCtrl::OnClose, this);
@@ -228,6 +232,9 @@ void MainFrameCtrl::OnAction(wxCommandEvent& event) {
             break;
         case ID_Action_Signals:
             OpenSignalEditorModal();
+            break;
+        case ID_Action_Duplicate:
+            Editor::PerformAction<Editor::ActionDuplicate>();
             break;
         case ID_Settings_Angle_Radians:
             ROTATION_UNIT = ROTATION_RADIANS;

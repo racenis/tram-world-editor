@@ -47,6 +47,8 @@ namespace Viewport {
     void SetCurrentSelection();
     void Refresh();
     void ShowErrorDialog(std::string msg);
+    
+    extern float CURSOR_X, CURSOR_Y, CURSOR_Z;
 }
 
 void Init();

@@ -2,6 +2,9 @@
 
 #include <components/render.h>
 
+#include <random>
+#include <set>
+
 namespace Editor {
 
 using namespace tram;
@@ -15,12 +18,23 @@ static std::unordered_map<int32_t, EntityTypeInfo> entity_type_infos;
 static std::unordered_map<std::string, int32_t> entity_name_to_id;
 static std::unordered_map<RenderComponent*, Entity*> viewmodel_ptr_to_entity_ptr;
 
+static std::set<uint64_t> used_ids; 
+
 std::shared_ptr<Object> Entity::Duplicate() {
     auto dupe = std::dynamic_pointer_cast<Editor::Entity>(parent->AddChild());
     dupe->properties = properties;
     dupe->signals = signals;
     dupe->properties["name"] = (std::string)dupe->properties["name"] + "-duplicate";
+    dupe->GenerateNewRandomId();
     return dupe;
+}
+
+void Entity::GenerateNewRandomId() {
+    std::random_device device;
+    std::mt19937 randomizer(device());
+    std::uniform_int_distribution<std::mt19937::result_type> distribution(100000000, 999999999);
+
+    this->SetProperty("id", (uint64_t)distribution(randomizer));
 }
 
 Entity* GetEntityFromViewmodel(tram::RenderComponent* model) {
@@ -54,6 +68,15 @@ PropertyValue Entity::GetProperty (std::string property_name) {
 
 void Entity::SetProperty (std::string property_name, PropertyValue property_value) {
     properties[property_name] = property_value;
+    
+    // stupid hack, but better than generating id collisions
+    if (property_name=="id" && (uint64_t)property_value) {
+        if (used_ids.contains(property_value)) {
+             GenerateNewRandomId();
+        } else {
+            used_ids.insert(property_value);
+        }
+    }
     
     Entity::CheckModel();
 }
@@ -90,7 +113,9 @@ void Entity::CheckModel() {
         model_name = (std::string) model_name_value;
     }
     
-        
+    if (model_name == "" || model_name == "none") {
+        return;
+    }    
     
     if (!this->model) {
         std::cout << "making rendercomp for " << model_name << std::endl;

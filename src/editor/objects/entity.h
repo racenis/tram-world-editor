@@ -26,13 +26,14 @@ public:
     Entity(Object* parent, std::string name) : Object(parent) {
         properties["name"] = name;
         properties["action"] = std::string("none");
-        properties["position-x"] = 0.0f;
-        properties["position-y"] = 0.0f;
-        properties["position-z"] = 0.0f;
+        properties["position-x"] = Viewport::CURSOR_X;
+        properties["position-y"] = Viewport::CURSOR_Y;
+        properties["position-z"] = Viewport::CURSOR_Z;
         properties["rotation-x"] = 0.0f;
         properties["rotation-y"] = 0.0f;
         properties["rotation-z"] = 0.0f;
         properties["entity-type"] = (int32_t) 0;
+        GenerateNewRandomId();
     }
 
     bool IsChildrenTreeable() { return false; }
@@ -44,6 +45,8 @@ public:
     bool IsHidden() { return is_hidden; }
     
     void SetHidden(bool is_hidden);
+    
+    void GenerateNewRandomId();
     
     std::shared_ptr<Object> Duplicate();
     

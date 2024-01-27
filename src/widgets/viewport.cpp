@@ -25,6 +25,10 @@ using namespace Editor;
 
 ViewportCtrl* viewport = nullptr;
 
+float Editor::Viewport::CURSOR_X = 0.0f;
+float Editor::Viewport::CURSOR_Y = 0.0f;
+float Editor::Viewport::CURSOR_Z = 0.0f;
+
 void Editor::Viewport::Refresh() {
     viewport->Refresh();
 }
@@ -210,6 +214,18 @@ void ViewportCtrl::OnMouseMove(wxMouseEvent& event) {
             
             mouse_y = mouse_y > 90.0f ? 90.0f : mouse_y < -90.0f ? -90.0f : mouse_y;
             tram::Render::SetCameraRotation(glm::quat(glm::vec3(-glm::radians(mouse_y), -glm::radians(mouse_x), 0.0f)));
+            
+            using namespace tram;
+            using namespace tram::Render;
+
+            vec3 camera_pos = GetCameraPosition();
+            quat camera_rot = GetCameraRotation();
+            
+            vec3 cursor_pos = camera_pos + camera_rot * DIRECTION_FORWARD * 2.0f;
+            
+            Viewport::CURSOR_X = cursor_pos.x;
+            Viewport::CURSOR_Y = cursor_pos.y;
+            Viewport::CURSOR_Z = cursor_pos.z;
         } else if (viewport_mode == MODE_TRANSLATE) {
             glm::vec3 translation = glm::vec3 (0.0, 0.0f, 0.0f);
             

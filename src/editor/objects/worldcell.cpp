@@ -79,7 +79,7 @@ void WorldCell::LoadFromDisk() {
 
             entity->SetEntityType(ent_type);
             
-            entity->properties["id"] = file.read_uint64();
+            entity->SetProperty("id", file.read_uint64());
             entity->properties["name"] = std::string(file.read_name());
 
             entity->properties["position-x"] = file.read_float32();

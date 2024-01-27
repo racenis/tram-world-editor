@@ -49,23 +49,33 @@ public:
 
 class ActionNew : public Action {
 public:
-    ActionNew () {
+    ActionNew() {
         // we will allow creating a new object if and only if a single object is selected.
         // otherwise it would be weird. usually you don't do something like that.
         if (SELECTION->objects.size() == 1) {
-            bool parent_hidden = parent_object->IsHidden();
             parent_object = SELECTION->objects.front();
+            bool parent_hidden = parent_object->IsHidden();
             child_object = parent_object->AddChild();
             child_object->SetHidden(parent_hidden);
             if (parent_object->IsChildrenTreeable()) Editor::WorldTree::Add(child_object.get());
+            selection = std::make_shared<Editor::Selection>();
+            selection->objects.push_back(child_object);
+            std::swap(selection, Editor::SELECTION);
+            Editor::PropertyPanel::Refresh();
+            Editor::ObjectList::Refresh();
+            Editor::Viewport::Refresh();
         } else {
-            std::cout << "Adding new objects can only if single object is selected!" << std::endl;
+            Editor::Viewport::ShowErrorDialog("Adding new objects can only if single object is selected!\n\nDo not DO NOT press undo, or you will crash the program!!!SAVE AND RESTART!!!!\n\n//TODO: fix");
         }
     }
     
     void Perform() {
         parent_object->AddChild(child_object);
         child_object->SetHidden(child_was_hidden);
+        std::swap(selection, Editor::SELECTION);
+        Editor::PropertyPanel::Refresh();
+        Editor::ObjectList::Refresh();
+        Editor::Viewport::Refresh();
         if (parent_object->IsChildrenTreeable()) Editor::WorldTree::Add(child_object.get());
     }
     
@@ -73,12 +83,17 @@ public:
         child_was_hidden = child_object->IsHidden();
         parent_object->RemoveChild(child_object);
         child_object->SetHidden(true);
+        std::swap(selection, Editor::SELECTION);
+        Editor::PropertyPanel::Refresh();
+        Editor::ObjectList::Refresh();
+        Editor::Viewport::Refresh();
         if (parent_object->IsChildrenTreeable()) Editor::WorldTree::Remove(child_object.get());
     }
     
     bool child_was_hidden = false;
     std::shared_ptr<Object> parent_object = nullptr;
     std::shared_ptr<Object> child_object = nullptr;
+    std::shared_ptr<Editor::Selection> selection;
 };
 
 class ActionRemove : public Action {
@@ -88,6 +103,8 @@ public:
             // TODO: add a check for if the object can even be removed
             removal_list.push_back({object->parent->GetPointer(), object, object->IsHidden()});
         }
+        
+        selection = std::make_shared<Editor::Selection>();
         
         Perform();
     }
@@ -99,6 +116,10 @@ public:
             if (objects.first->IsChildrenTreeable()) Editor::WorldTree::Remove(objects.second.get());
         }
         
+        std::swap(Editor::SELECTION, selection);
+        
+        Editor::PropertyPanel::Refresh();
+        Editor::ObjectList::Refresh();
         Editor::Viewport::Refresh();
         
         Editor::data_modified = true;
@@ -111,6 +132,10 @@ public:
             if (objects.first->IsChildrenTreeable()) Editor::WorldTree::Add(objects.second.get());
         }
         
+        std::swap(Editor::SELECTION, selection);
+        
+        Editor::PropertyPanel::Refresh();
+        Editor::ObjectList::Refresh();
         Editor::Viewport::Refresh();
     }
     
@@ -121,6 +146,7 @@ public:
     };
     
     std::list<Removal> removal_list;
+    std::shared_ptr<Editor::Selection> selection;
 };
 
 class ActionDuplicate : public Action {
