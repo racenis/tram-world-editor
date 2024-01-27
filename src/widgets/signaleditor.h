@@ -17,6 +17,7 @@ public:
     void Delete(wxCommandEvent& event);
     void Select(wxListEvent& event);
     void Change(wxCommandEvent& event);
+    void Closng(wxCloseEvent& event);
 protected:
     wxTextCtrl* target_value;
     wxStaticText* target_label;
@@ -39,5 +40,7 @@ protected:
     int selected = -1;
     std::shared_ptr<Editor::Entity> entity;
 };
+
+void OpenSignalEditorModal();
 
 #endif // WIDGETS_SIGNALEDITOR_H

@@ -207,17 +207,7 @@ void MainFrameCtrl::OnAction(wxCommandEvent& event) {
             Editor::Undo();
             break;
         case ID_Action_Signals:
-            if (Editor::SELECTION->objects.size() != 1) {
-                wxMessageDialog info_some (this, "Need to select at least 1 entity and no more.", "Can't edit signals!", wxOK | wxOK_DEFAULT | wxICON_INFORMATION);
-                info_some.ShowModal();
-            } else if (std::dynamic_pointer_cast<Editor::Entity>(Editor::SELECTION->objects.front()).get() == nullptr) { // cursed
-                wxMessageDialog info_some (this, "Selected object is not entity.", "Can't edit signals!", wxOK | wxOK_DEFAULT | wxICON_INFORMATION);
-                info_some.ShowModal();
-            } else {
-                SignalEditor editor;
-                editor.ShowModal();
-            }
-            
+            OpenSignalEditorModal();
             break;
         case ID_Settings_Angle_Radians:
             ROTATION_UNIT = ROTATION_RADIANS;

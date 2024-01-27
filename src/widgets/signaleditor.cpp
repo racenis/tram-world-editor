@@ -88,6 +88,7 @@ enum {
 SignalEditor::SignalEditor() : wxDialog(NULL, wxID_ANY, "Signal Editor", wxDefaultPosition, wxSize(600, 400), wxDEFAULT_FRAME_STYLE) {
     this->entity = std::dynamic_pointer_cast<Editor::Entity>(Editor::SELECTION->objects.front());
     
+    this->Bind(wxEVT_CLOSE_WINDOW, &SignalEditor::Closng, this);
     
     wxSplitterWindow* splitter = new wxSplitterWindow(this, -1, wxPoint(0, 0), wxSize(400, 400), wxSP_3D);
     
@@ -275,4 +276,38 @@ void SignalEditor::Change(wxCommandEvent& event) {
     }
     
     signal_list->RefreshItem(event.GetSelection());
+}
+
+void SignalEditor::Closng(wxCloseEvent& event) {
+    for (auto& signal : entity->signals) {
+        if (signal.target == "") {
+            wxMessageDialog info_some (nullptr, "There is a signal that is missing its target. Delete it or set the target.", "Signal configuration error!", wxOK | wxOK_DEFAULT | wxICON_INFORMATION);
+            info_some.ShowModal(); event.Veto(); return;
+        }
+        
+        if (signal.param_type != "none" && signal.param == "") {
+            wxMessageDialog info_some (nullptr, "There is a signal that is missing its parameter. Delete it or set the parameter.", "Signal configuration error!", wxOK | wxOK_DEFAULT | wxICON_INFORMATION);
+            info_some.ShowModal(); event.Veto(); return;
+        }
+        
+        if (/*signal.param_type != "none" &&*/ signal.param.find_first_of(" \t\r\n") != std::string::npos) {
+            wxMessageDialog info_some (nullptr, "There is a signal that has a borked parameter. Delete it or fix the parameter.", "Signal configuration error!", wxOK | wxOK_DEFAULT | wxICON_INFORMATION);
+            info_some.ShowModal(); event.Veto(); return;
+        }
+    }
+    
+    Destroy();
+}
+
+void OpenSignalEditorModal() {
+    if (Editor::SELECTION->objects.size() != 1) {
+        wxMessageDialog info_some (nullptr, "Need to select at least 1 entity and no more.", "Can't edit signals!", wxOK | wxOK_DEFAULT | wxICON_INFORMATION);
+        info_some.ShowModal();
+    } else if (std::dynamic_pointer_cast<Editor::Entity>(Editor::SELECTION->objects.front()).get() == nullptr) { // cursed
+        wxMessageDialog info_some (nullptr, "Selected object is not entity.", "Can't edit signals!", wxOK | wxOK_DEFAULT | wxICON_INFORMATION);
+        info_some.ShowModal();
+    } else {
+        SignalEditor editor;
+        editor.ShowModal();
+    }
 }
