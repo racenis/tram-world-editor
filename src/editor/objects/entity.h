@@ -55,6 +55,8 @@ public:
     
     void SetEntityType (std::string type);
     
+    std::vector<WidgetDefinition> GetWidgetDefinitions();
+    
     PropertyValue GetProperty (std::string property_name);
     
     void SetProperty (std::string property_name, PropertyValue property_value);

@@ -106,10 +106,36 @@ PropertyDefinition ReadEntityField(File& file) {
     return {};
 }
 
+WidgetDefinition ReadEntityWidget(File& file) {
+    auto color = file.read_name();
+    auto type = file.read_name();
+    auto field = file.read_name();
+    
+    WidgetDefinition::Color widget_color;
+    WidgetDefinition::Type widget_type;
+    
+    if (type == "cyan") {
+        widget_color = WidgetDefinition::WIDGET_CYAN;
+    } else {
+        widget_color = WidgetDefinition::WIDGET_CYAN;
+    }
+    
+    if (type == "point") {
+        widget_type = WidgetDefinition::WIDGET_POINT;
+    } else if (type == "normal") {
+        widget_type = WidgetDefinition::WIDGET_NORMAL;
+    } else {
+        widget_type = WidgetDefinition::WIDGET_NORMAL;
+    }
+    
+    return {widget_color, widget_type, field};
+}
+
 void ReadEntityDefinition(File& file) {
     name_t entity_name;
     name_t model_name;
     std::vector<PropertyDefinition> property_defs;
+    std::vector<WidgetDefinition> widget_defs;
     
     while (file.is_continue()) {
         name_t entry_type = file.read_name();
@@ -120,6 +146,8 @@ void ReadEntityDefinition(File& file) {
             model_name = file.read_name();
         } else if (entry_type == "field") {
             property_defs.push_back(ReadEntityField(file));
+        } else if (entry_type == "gizmo") {
+            widget_defs.push_back(ReadEntityWidget(file));
         } else if (entry_type == "end") {
             break;
         } else {
@@ -133,7 +161,7 @@ void ReadEntityDefinition(File& file) {
         return;
     }
     
-    RegisterEntityType(entity_name, model_name, property_defs);
+    RegisterEntityType(entity_name, model_name, property_defs, widget_defs);
 }
 
 void Init() {

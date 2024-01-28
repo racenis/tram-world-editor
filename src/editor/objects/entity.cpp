@@ -12,6 +12,7 @@ using namespace tram;
 struct EntityTypeInfo {
     std::string model_name;
     std::vector<PropertyDefinition> definition;
+    std::vector<WidgetDefinition> widgets;
 };
 
 static std::unordered_map<int32_t, EntityTypeInfo> entity_type_infos;
@@ -54,13 +55,13 @@ void Entity::Draw() {
     }
 }
 
-void RegisterEntityType(std::string name, std::string model_name, std::vector<PropertyDefinition> definitions) {
+void RegisterEntityType(std::string name, std::string model_name, std::vector<PropertyDefinition> definitions, std::vector<WidgetDefinition> widgets) {
     int32_t type_index = PROPERTY_ENUMERATIONS["entity-type"].size();
     PROPERTY_ENUMERATIONS["entity-type"].push_back(name);
     
     entity_name_to_id[name] = type_index;
     
-    entity_type_infos[type_index] = {model_name, definitions};
+    entity_type_infos[type_index] = {model_name, definitions, widgets};
 }
 
 PropertyValue Entity::GetProperty (std::string property_name) {
@@ -155,6 +156,10 @@ void Entity::SetHidden(bool is_hidden) {
     this->is_hidden = is_hidden;
     
     Entity::CheckModel();
+}
+
+std::vector<WidgetDefinition> Entity::GetWidgetDefinitions() {
+    return entity_type_infos[(int32_t) this->GetProperty("entity-type")].widgets;
 }
 
 std::vector<PropertyDefinition> Entity::GetFullPropertyDefinitions() { 

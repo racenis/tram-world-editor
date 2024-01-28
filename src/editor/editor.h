@@ -228,6 +228,21 @@ struct PropertyValue {
     };
 };
 
+struct WidgetDefinition {
+    enum Color {
+        WIDGET_CYAN
+    };
+    
+    enum Type {
+        WIDGET_POINT,
+        WIDGET_NORMAL,
+    };
+    
+    Color color;
+    Type type;
+    std::string property;
+};
+
 /// Editor object base class.
 class Object : public std::enable_shared_from_this<Object> {
 public:
@@ -267,7 +282,10 @@ public:
     
     virtual std::shared_ptr<Object> Duplicate() { std::cout << "Duplicate(void) not implemented for " << typeid(*this).name() << std::endl; abort(); }
     
+    // this is stupid and it should be yeeted, but alas, it is not possible for the time being
     virtual void Draw() {}
+    // now THIS is a good replacement
+    virtual std::vector<WidgetDefinition> GetWidgetDefinitions() { return {}; }
     
     // these are the properties that will be shown in the object list
     virtual std::vector<PropertyDefinition> GetListPropertyDefinitions() { std::cout << "GetListPropertyDefinitions() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
@@ -285,7 +303,7 @@ public:
     virtual void SetProperty (std::string property_name, PropertyValue property_value) { properties[property_name] = property_value; if (property_name == "name" && parent && parent->IsChildrenTreeable()) WorldTree::Rename(this); }
 };
 
-void RegisterEntityType(std::string name, std::string model_name, std::vector<PropertyDefinition> definitions);
+void RegisterEntityType(std::string name, std::string model_name, std::vector<PropertyDefinition> definitions, std::vector<WidgetDefinition> widgets);
 
 class WorldCell;
 void LoadCell(WorldCell* cell);

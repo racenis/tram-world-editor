@@ -529,18 +529,51 @@ void ViewportCtrl::OnPaint(wxPaintEvent& event)
         
         object->Draw();
         
-        glm::vec3 gizmo_location = glm::vec3 {
-            object->GetProperty("position-x").float_value,
-            object->GetProperty("position-y").float_value,
-            object->GetProperty("position-z").float_value
-        };
-        AddLine(gizmo_location, gizmo_location + space * glm::vec3(1.0f, 0.0f, 0.0f), COLOR_RED);
-        AddLine(gizmo_location, gizmo_location + space * glm::vec3(0.0f, 1.0f, 0.0f), COLOR_GREEN);
-        AddLine(gizmo_location, gizmo_location + space * glm::vec3(0.0f, 0.0f, 1.0f), COLOR_BLUE);
+        if (viewport_mode == MODE_TRANSLATE || viewport_mode == MODE_ROTATE) {
+            glm::vec3 gizmo_location = glm::vec3 {
+                object->GetProperty("position-x").float_value,
+                object->GetProperty("position-y").float_value,
+                object->GetProperty("position-z").float_value
+            };
+            AddLine(gizmo_location, gizmo_location + space * glm::vec3(1.0f, 0.0f, 0.0f), COLOR_RED);
+            AddLine(gizmo_location, gizmo_location + space * glm::vec3(0.0f, 1.0f, 0.0f), COLOR_GREEN);
+            AddLine(gizmo_location, gizmo_location + space * glm::vec3(0.0f, 0.0f, 1.0f), COLOR_BLUE);
+            
+            if (viewport_axis & AXIS_X) AddLine(gizmo_location - space * glm::vec3(100.0f, 0.0f, 0.0f), gizmo_location + space * glm::vec3(100.0f, 0.0f, 0.0f), COLOR_RED);
+            if (viewport_axis & AXIS_Y) AddLine(gizmo_location - space * glm::vec3(0.0f, 100.0f, 0.0f), gizmo_location + space * glm::vec3(0.0f, 100.0f, 0.0f), COLOR_GREEN);
+            if (viewport_axis & AXIS_Z) AddLine(gizmo_location - space * glm::vec3(0.0f, 0.0f, 100.0f), gizmo_location + space * glm::vec3(0.0f, 0.0f, 100.0f), COLOR_BLUE);
+        }
         
-        if (viewport_axis & AXIS_X) AddLine(gizmo_location - space * glm::vec3(100.0f, 0.0f, 0.0f), gizmo_location + space * glm::vec3(100.0f, 0.0f, 0.0f), COLOR_RED);
-        if (viewport_axis & AXIS_Y) AddLine(gizmo_location - space * glm::vec3(0.0f, 100.0f, 0.0f), gizmo_location + space * glm::vec3(0.0f, 100.0f, 0.0f), COLOR_GREEN);
-        if (viewport_axis & AXIS_Z) AddLine(gizmo_location - space * glm::vec3(0.0f, 0.0f, 100.0f), gizmo_location + space * glm::vec3(0.0f, 0.0f, 100.0f), COLOR_BLUE);
+        auto gizmos = object->GetWidgetDefinitions();
+        
+        for (const auto& gizmo : gizmos) {
+            glm::vec3 color;
+            switch (gizmo.color) {
+                case Editor::WidgetDefinition::WIDGET_CYAN:
+                default:
+                    color = {0.0f, 1.0f, 1.0f};
+            }
+            switch (gizmo.type) {
+                case Editor::WidgetDefinition::WIDGET_NORMAL: {
+                    PropertyValue::Vector dir_vec = object->GetProperty(gizmo.property);
+                    glm::vec3 dir = {dir_vec.x, dir_vec.y, dir_vec.z};
+                    glm::vec3 pos = glm::vec3 {
+                        object->GetProperty("position-x").float_value,
+                        object->GetProperty("position-y").float_value,
+                        object->GetProperty("position-z").float_value
+                    };
+                    AddLine(pos, pos+dir, color);
+                    } break;
+                case Editor::WidgetDefinition::WIDGET_POINT:{
+                    PropertyValue::Vector pos_vec = object->GetProperty(gizmo.property);
+                    glm::vec3 pos = {pos_vec.x, pos_vec.y, pos_vec.z};
+                    AddLineMarker(pos, color);
+                    } break;
+                    
+                default:
+                    color = {0.0f, 1.0f, 1.0f};
+            }
+        }
     }
     
 
