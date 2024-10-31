@@ -3,6 +3,9 @@
 
 #include <editor/editor.h>
 
+// TODO: yeet
+#include <editor/objects/entity.h>
+
 namespace Editor {
 
 class ActionChangeSelection : public Action {
@@ -152,8 +155,30 @@ public:
 class ActionDuplicate : public Action {
 public:
     ActionDuplicate() {
-        if (SELECTION->objects.size() == 1) {
-            duped_object = SELECTION->objects.front()->Duplicate();
+        if (SELECTION->objects.size() == 0 ) {
+            std::cout << "Need a lest a single objec tto dupe!" << std::endl;
+            failed = true;
+            return;
+        }
+        
+        auto dupables = SELECTION->objects;
+        SELECTION->objects.clear();
+        
+        for (auto& object : dupables) {
+            auto dupe = object->Duplicate();
+            
+            dupe->SetHidden(object->IsHidden());
+            auto parent = dupe->GetParent();
+            
+            if (parent->IsChildrenTreeable()) {
+                 Editor::WorldTree::Add(dupe.get());
+            }
+            
+            SELECTION->objects.push_back(dupe);
+            
+            duped_objects.push_back({parent, dupe});
+            
+            /*duped_object = SELECTION->objects.front()->Duplicate();
             parent_object = duped_object->GetParent();
             duped_object->SetHidden(SELECTION->objects.front()->IsHidden());
             if (parent_object->IsChildrenTreeable()) Editor::WorldTree::Add(duped_object.get());
@@ -162,16 +187,36 @@ public:
             SELECTION->objects.push_back(duped_object);
             
             Editor::PropertyPanel::Refresh();
-            Editor::Viewport::Refresh();
-        } else {
-            std::cout << "Adding new objects can only if single object is selected!" << std::endl;
-            failed = true;
-        }
+            Editor::Viewport::Refresh();*/
+        }// else {
+         //   std::cout << "Adding new objects can only if single object is selected!" << std::endl;
+        //    failed = true;
+        //}
+        
+        Editor::PropertyPanel::Refresh();
+        Editor::Viewport::Refresh();
     }
     
     void Perform() {
         if (failed) return;
         
+        SELECTION->objects.clear();
+        
+        for (auto& [parent, dupe, was_hidden] : duped_objects) {
+            parent->AddChild(dupe);
+            dupe->SetHidden(was_hidden);
+            
+            if (parent->IsChildrenTreeable()) {
+                Editor::WorldTree::Add(dupe.get()); 
+            }
+            
+            SELECTION->objects.push_back(dupe);
+        }
+        
+        Editor::PropertyPanel::Refresh();
+        Editor::Viewport::Refresh();
+        
+        /*
         parent_object->AddChild(duped_object);
         duped_object->SetHidden(was_hidden);
         
@@ -180,13 +225,30 @@ public:
         
         Editor::PropertyPanel::Refresh();
         Editor::Viewport::Refresh();
-        if (parent_object->IsChildrenTreeable()) Editor::WorldTree::Add(duped_object.get());
+        if (parent_object->IsChildrenTreeable()) Editor::WorldTree::Add(duped_object.get());*/
     }
     
     void Unperform() {
         if (failed) return;
         
-        was_hidden = duped_object->IsHidden();
+        SELECTION->objects.clear();
+        
+        for (auto& [parent, dupe, was_hidden] : duped_objects) {
+            was_hidden = dupe->IsHidden();
+            parent->RemoveChild(dupe);
+            dupe->SetHidden(true);
+            
+            if (parent->IsChildrenTreeable()) {
+                Editor::WorldTree::Remove(dupe.get());
+            }
+            
+            SELECTION->objects.push_back(parent);
+        }
+        
+        Editor::PropertyPanel::Refresh();
+        Editor::Viewport::Refresh();
+        
+        /*was_hidden = duped_object->IsHidden();
         parent_object->RemoveChild(duped_object);
         duped_object->SetHidden(true);
         
@@ -195,14 +257,22 @@ public:
         
         Editor::PropertyPanel::Refresh();
         Editor::Viewport::Refresh();
-        if (parent_object->IsChildrenTreeable()) Editor::WorldTree::Remove(duped_object.get());
+        if (parent_object->IsChildrenTreeable()) Editor::WorldTree::Remove(duped_object.get());*/
     }
     
     bool failed = false;
     
-    bool was_hidden = false;
-    std::shared_ptr<Object> parent_object = nullptr;
-    std::shared_ptr<Object> duped_object = nullptr;
+    //bool was_hidden = false;
+    //std::shared_ptr<Object> parent_object = nullptr;
+    //std::shared_ptr<Object> duped_object = nullptr;
+    
+    struct ParentDupePair {
+        std::shared_ptr<Object> parent;
+        std::shared_ptr<Object> dupe;
+        bool was_hidden;
+    };
+    
+    std::list<ParentDupePair> duped_objects;
 };
 
 /*class ActionChangeProperties : public Action {
@@ -273,6 +343,44 @@ public:
     };
     
     std::list<std::pair<std::shared_ptr<Object>, PropertyBackup>> property_backups;
+};
+
+class ActionCenterOrigin : public Action {
+public:
+    // This will back up the values of the properties of the selection.
+    ActionCenterOrigin() {
+        for (auto& object : SELECTION->objects) {
+            origin_backups.push_back({object, object->GetProperty("origin")});
+            
+            auto entity = std::dynamic_pointer_cast<Entity>(object);
+            if (entity) {
+                entity->CenterOrigin();
+            }
+        }
+        Editor::data_modified = true;
+    }
+    
+    // Swaps the backed-up properties with the new properties.
+    void Perform () {
+        for (auto& backup : origin_backups) {
+            auto new_property = backup.first->GetProperty("origin");
+            backup.first->SetProperty("origin", backup.second);
+            backup.second = new_property;
+        }
+        
+        Editor::data_modified = true;
+        
+        Editor::PropertyPanel::Refresh();
+        Editor::ObjectList::Refresh();
+        Editor::Viewport::Refresh();
+    }
+    
+    // Swaps the new properties with the backed-up properties.
+    void Unperform() {
+        Perform();
+    }
+    
+    std::list<std::pair<std::shared_ptr<Object>, PropertyValue>> origin_backups;
 };
 
 /*class ActionSwapSelection : public Action {

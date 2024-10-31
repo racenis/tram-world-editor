@@ -4,6 +4,8 @@
 #include <wx/glcanvas.h>
 #include <wx/timer.h>
 
+class ViewportTool;
+
 class ViewportCtrl : public wxGLCanvas {
 public:
     ViewportCtrl(wxWindow* parent);
@@ -14,6 +16,9 @@ public:
     ViewportCtrl& operator=(ViewportCtrl&& tc) = delete; 
     
     void ViewCenterOnSelection();
+    void CenterMouseCursor();
+    void StartTimer();
+    void StopTimer();
     
     enum ViewportMode : uint8_t {
         MODE_NONE,
@@ -29,6 +34,8 @@ public:
         AXIS_Z = 4
     };
     
+    ViewportTool* viewport_tool = nullptr;
+    
     ViewportMode viewport_mode = MODE_NONE;
     uint8_t viewport_axis = AXIS_NONE;
 private:
@@ -42,7 +49,6 @@ private:
     void OnTimer(wxTimerEvent& event);
     
     void CancelViewportOperation();
-    void CenterMouseCursor();
     
     float mouse_x = 0;
     float mouse_y = 0;
@@ -52,6 +58,8 @@ private:
     bool key_right = false;
     bool key_shift = false;
     wxTimer key_timer;
+    
+    bool mouse_captured = false;
     
     wxGLContext* m_context;
 };

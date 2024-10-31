@@ -296,11 +296,9 @@ public:
     // these properties will be used for serialization
     virtual std::vector<PropertyDefinition> GetSerializationPropertyDefinitions() { std::cout << "GetSerializationPropertyDefinitions() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
     
-    // takes in the property name and returns the value by copying it to the void* pointer
     virtual PropertyValue GetProperty (std::string property_name) { return properties[property_name]; }
-    
-    // takes in the property name and copies the value from the void* pointer into it
     virtual void SetProperty (std::string property_name, PropertyValue property_value) { properties[property_name] = property_value; if (property_name == "name" && parent && parent->IsChildrenTreeable()) WorldTree::Rename(this); }
+    virtual bool HasProperty (std::string property_name) { return properties.contains(property_name); }
 };
 
 void RegisterEntityType(std::string name, std::string model_name, std::vector<PropertyDefinition> definitions, std::vector<WidgetDefinition> widgets);

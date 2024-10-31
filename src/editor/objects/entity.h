@@ -64,6 +64,8 @@ public:
     void Draw();
     void CheckModel();
     
+    void CenterOrigin();
+    
     std::vector<Signal> signals;
     tram::RenderComponent* model = nullptr;
 };

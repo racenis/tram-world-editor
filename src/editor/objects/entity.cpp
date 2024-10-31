@@ -55,6 +55,27 @@ void Entity::Draw() {
     }
 }
 
+void Entity::CenterOrigin() {
+    PropertyValue::Vector vec;
+    
+    if (!model) {
+        vec.x = GetProperty("position-x");
+        vec.y = GetProperty("position-y");
+        vec.z = GetProperty("position-z");
+    } else {
+        vec3 origin_a = model->GetModel()->GetAABBMin();
+        vec3 origin_b = model->GetModel()->GetAABBMax();
+        
+        vec3 origin = glm::mix(origin_a, origin_b, 0.5f);
+        
+        vec.x = origin.x;
+        vec.y = origin.y;
+        vec.z = origin.z;
+    }
+    
+    SetProperty("origin", vec);
+}
+
 void RegisterEntityType(std::string name, std::string model_name, std::vector<PropertyDefinition> definitions, std::vector<WidgetDefinition> widgets) {
     int32_t type_index = PROPERTY_ENUMERATIONS["entity-type"].size();
     PROPERTY_ENUMERATIONS["entity-type"].push_back(name);
@@ -120,7 +141,7 @@ void Entity::CheckModel() {
     }    
     
     if (!this->model) {
-        std::cout << "making rendercomp for " << model_name << std::endl;
+        //std::cout << "making rendercomp for " << model_name << std::endl;
         this->model = PoolProxy<RenderComponent>::New();
         this->model->SetModel(model_name);
         this->model->SetLightmap("fullbright");

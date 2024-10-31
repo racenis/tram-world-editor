@@ -14,7 +14,7 @@ CurrentFileName        :=
 CurrentFilePath        :=
 CurrentFileFullPath    :=
 User                   :=Poga
-Date                   :=28/01/2024
+Date                   :=31/10/2024
 CodeLitePath           :="C:/Program Files/CodeLite"
 MakeDirCommand         :=mkdir
 LinkerName             :=C:/mingw64/bin/g++.exe
@@ -39,7 +39,7 @@ ObjectsFileList        :=$(IntermediateDirectory)/ObjectsList.txt
 PCHCompileFlags        :=
 RcCmpOptions           := $(shell wx-config --rcflags)
 RcCompilerName         :=C:/mingw64/bin/windres.exe
-LinkOptions            :=  -mwindows -pipe -lwxmsw31u_gl -lwxmsw31u_propgrid -lwxmsw31u_aui -lwxmsw31u_xrc -lwxmsw31u_webview -lwxmsw31u_html -lwxmsw31u_adv -lwxmsw31u_core -lwxbase31u_xml -lwxbase31u_net -lwxbase31u
+LinkOptions            :=  -mwindows -pipe -lwxmsw31u_gl -lwxmsw31u_propgrid -lwxmsw31u_aui -lwxmsw31u_xrc -lwxmsw31u_webview -lwxmsw31u_html -lwxmsw31u_adv -lwxmsw31u_core -lwxbase31u_xml -lwxbase31u_net -lwxbase31u -lcomctl32
 IncludePath            :=  $(IncludeSwitch). $(IncludeSwitch)C:\Users\Poga\Desktop\miskaste\wxwidgets\include $(IncludeSwitch)C:\Users\Poga\Desktop\painis\tram-sdk\libraries\bullet $(IncludeSwitch)C:\Users\Poga\Desktop\painis\tram-sdk\libraries\glad $(IncludeSwitch)C:\Users\Poga\Desktop\painis\tram-sdk\libraries $(IncludeSwitch)C:\Users\Poga\Desktop\painis\tram-sdk\src $(IncludeSwitch)C:\Users\Poga\Desktop\painis\tram-editor\src $(IncludeSwitch)C:\Users\Poga\Desktop\painis\jam-game-ii\src $(IncludeSwitch)C:\Users\Poga\Desktop\painis\jam-game-ii\src\entities 
 IncludePCH             := 
 RcIncludePath          := 
@@ -66,9 +66,9 @@ AS       := C:/mingw64/bin/as.exe
 CodeLiteDir:=C:\Program Files\CodeLite
 WXWIN:=C:\Users\Poga\Desktop\miskaste\wxwidgets
 WXCFG:=gcc_dll\mswu
-Objects0=$(IntermediateDirectory)/src_editor_objects_worldcell.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_dialogs.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_signaleditor.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_objects_world.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_main.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_worldtree.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_viewport.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_editor.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_tramsdk.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_language.cpp$(ObjectSuffix) \
-	$(IntermediateDirectory)/src_editor_objects_worldcellmanager.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_settings.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_propertypanel.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_init.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_mainframe.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_objectmenu.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_objectlist.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_objects_path.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_objects_navmesh.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_objects_entity.cpp$(ObjectSuffix) \
-	
+Objects0=$(IntermediateDirectory)/src_editor_objects_worldcell.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_objects_entity.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_dialogs.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_signaleditor.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_objects_world.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_main.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_worldtree.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_viewport.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_editor.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_tramsdk.cpp$(ObjectSuffix) \
+	$(IntermediateDirectory)/src_editor_language.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_objects_worldcellmanager.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_settings.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_propertypanel.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_init.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_mainframe.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_objectmenu.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_objectlist.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_objects_transition.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_objects_path.cpp$(ObjectSuffix) \
+	$(IntermediateDirectory)/src_editor_objects_navmesh.cpp$(ObjectSuffix) 
 
 
 
@@ -106,6 +106,14 @@ $(IntermediateDirectory)/src_editor_objects_worldcell.cpp$(DependSuffix): src/ed
 
 $(IntermediateDirectory)/src_editor_objects_worldcell.cpp$(PreprocessSuffix): src/editor/objects/worldcell.cpp
 	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_editor_objects_worldcell.cpp$(PreprocessSuffix) src/editor/objects/worldcell.cpp
+
+$(IntermediateDirectory)/src_editor_objects_entity.cpp$(ObjectSuffix): src/editor/objects/entity.cpp $(IntermediateDirectory)/src_editor_objects_entity.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/editor/objects/entity.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_editor_objects_entity.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/src_editor_objects_entity.cpp$(DependSuffix): src/editor/objects/entity.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/src_editor_objects_entity.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/src_editor_objects_entity.cpp$(DependSuffix) -MM src/editor/objects/entity.cpp
+
+$(IntermediateDirectory)/src_editor_objects_entity.cpp$(PreprocessSuffix): src/editor/objects/entity.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_editor_objects_entity.cpp$(PreprocessSuffix) src/editor/objects/entity.cpp
 
 $(IntermediateDirectory)/src_widgets_dialogs.cpp$(ObjectSuffix): src/widgets/dialogs.cpp $(IntermediateDirectory)/src_widgets_dialogs.cpp$(DependSuffix)
 	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/widgets/dialogs.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_widgets_dialogs.cpp$(ObjectSuffix) $(IncludePath)
@@ -235,6 +243,14 @@ $(IntermediateDirectory)/src_widgets_objectlist.cpp$(DependSuffix): src/widgets/
 $(IntermediateDirectory)/src_widgets_objectlist.cpp$(PreprocessSuffix): src/widgets/objectlist.cpp
 	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_widgets_objectlist.cpp$(PreprocessSuffix) src/widgets/objectlist.cpp
 
+$(IntermediateDirectory)/src_editor_objects_transition.cpp$(ObjectSuffix): src/editor/objects/transition.cpp $(IntermediateDirectory)/src_editor_objects_transition.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/editor/objects/transition.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_editor_objects_transition.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/src_editor_objects_transition.cpp$(DependSuffix): src/editor/objects/transition.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/src_editor_objects_transition.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/src_editor_objects_transition.cpp$(DependSuffix) -MM src/editor/objects/transition.cpp
+
+$(IntermediateDirectory)/src_editor_objects_transition.cpp$(PreprocessSuffix): src/editor/objects/transition.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_editor_objects_transition.cpp$(PreprocessSuffix) src/editor/objects/transition.cpp
+
 $(IntermediateDirectory)/src_editor_objects_path.cpp$(ObjectSuffix): src/editor/objects/path.cpp $(IntermediateDirectory)/src_editor_objects_path.cpp$(DependSuffix)
 	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/editor/objects/path.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_editor_objects_path.cpp$(ObjectSuffix) $(IncludePath)
 $(IntermediateDirectory)/src_editor_objects_path.cpp$(DependSuffix): src/editor/objects/path.cpp
@@ -250,14 +266,6 @@ $(IntermediateDirectory)/src_editor_objects_navmesh.cpp$(DependSuffix): src/edit
 
 $(IntermediateDirectory)/src_editor_objects_navmesh.cpp$(PreprocessSuffix): src/editor/objects/navmesh.cpp
 	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_editor_objects_navmesh.cpp$(PreprocessSuffix) src/editor/objects/navmesh.cpp
-
-$(IntermediateDirectory)/src_editor_objects_entity.cpp$(ObjectSuffix): src/editor/objects/entity.cpp $(IntermediateDirectory)/src_editor_objects_entity.cpp$(DependSuffix)
-	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/editor/objects/entity.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_editor_objects_entity.cpp$(ObjectSuffix) $(IncludePath)
-$(IntermediateDirectory)/src_editor_objects_entity.cpp$(DependSuffix): src/editor/objects/entity.cpp
-	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/src_editor_objects_entity.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/src_editor_objects_entity.cpp$(DependSuffix) -MM src/editor/objects/entity.cpp
-
-$(IntermediateDirectory)/src_editor_objects_entity.cpp$(PreprocessSuffix): src/editor/objects/entity.cpp
-	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_editor_objects_entity.cpp$(PreprocessSuffix) src/editor/objects/entity.cpp
 
 
 -include $(IntermediateDirectory)/*$(DependSuffix)

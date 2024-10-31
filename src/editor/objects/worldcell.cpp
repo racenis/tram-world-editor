@@ -18,7 +18,7 @@ void WorldCell::LoadFromDisk() {
     
     name_t header = file.read_name();
     
-    assert(header == "CELLv2");
+    assert(header == "CELLv3");
     
     file.read_name(); // skip cell name 
     
@@ -30,6 +30,8 @@ void WorldCell::LoadFromDisk() {
     
     while (file.is_continue()) {
         name_t ent_type = file.read_name();
+        
+        //std::cout << "entity type: " << ent_type << std::endl; 
         
         if (ent_type == "group") {
             auto new_group = current_group->parent->AddChild();
@@ -70,6 +72,9 @@ void WorldCell::LoadFromDisk() {
             } else if (param_type == "float") {
                 signal.param_type = "float";
                 signal.param = (const char*)file.read_name(); // dumb
+            } else if (param_type == "name") {
+                signal.param_type = "name";
+                signal.param = (const char*)file.read_name(); // yes, good
             }
             
             loaded_entities[source]->signals.push_back(signal);
@@ -81,7 +86,8 @@ void WorldCell::LoadFromDisk() {
             
             entity->SetProperty("id", file.read_uint64());
             entity->properties["name"] = std::string(file.read_name());
-
+            entity->properties["entity-flags"] = file.read_uint64();
+            
             entity->properties["position-x"] = file.read_float32();
             entity->properties["position-y"] = file.read_float32();
             entity->properties["position-z"] = file.read_float32();
@@ -134,7 +140,7 @@ void WorldCell::SaveToDisk() {
         return;
     }
     
-    file.write_name ("CELLv2");
+    file.write_name ("CELLv3");
     file.write_name (GetName().data());
     
     file.write_uint32((bool) GetProperty("is-interior"));
@@ -156,6 +162,7 @@ void WorldCell::SaveToDisk() {
             
             file.write_uint64(ent->GetProperty("id"));
             file.write_name(ent->GetProperty("name").str_value);
+            file.write_uint64(ent->GetProperty("entity-flags"));
             
             file.write_float32(ent->GetProperty("position-x"));
             file.write_float32(ent->GetProperty("position-y"));
@@ -167,11 +174,7 @@ void WorldCell::SaveToDisk() {
             
             auto data_defs = std::dynamic_pointer_cast<Entity>(ent)->GetSerializationPropertyDefinitions();
             
-            bool wrote = false;
-            
             for (auto& prop : data_defs) {
-                wrote = true;
-                
                 switch (prop.type) {
                     default: // TODO: actually implement writers for other types
                     case PROPERTY_STRING:
@@ -196,12 +199,6 @@ void WorldCell::SaveToDisk() {
                 }
             }
             
-            // workaround
-            // TODO: check if we still need this workaround
-            if (!wrote) {
-                file.write_name("IGNORE_THIS_TEXT");
-            }
-            
             file.write_newline();
             
             if (auto ptr = std::dynamic_pointer_cast<Entity>(ent); ptr->signals.size()) {
@@ -222,6 +219,9 @@ void WorldCell::SaveToDisk() {
                         file.write_name(s.param);
                     } else if (s.param_type == "float") {
                         file.write_name("float");
+                        file.write_name(s.param);
+                    } else if (s.param_type == "name") {
+                        file.write_name("name");
                         file.write_name(s.param);
                     }
                     

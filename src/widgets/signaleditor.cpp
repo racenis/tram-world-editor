@@ -59,7 +59,7 @@ public:
 
 
 
-static const char* all_signals[14] = {
+static const char* all_signals[15] = {
     "none",
     "spawn",
     "kill",
@@ -73,10 +73,14 @@ static const char* all_signals[14] = {
     "trigger",
     "enter-trigger",
     "exit-trigger",
-    "none" 
+    "progress",
+    "none"
 };
 
-static const char* all_messages[14] = {
+
+
+
+static const char* all_messages[17] = {
     "none",
     "ping",
     "move-pick-up",
@@ -90,13 +94,17 @@ static const char* all_messages[14] = {
     "start",
     "stop",
     "activate",
-    "activate-once"  
+    "activate-once",
+    "select",
+    "set-progress",
+    "set-animation"
 };
 
-static const char* all_types[3] = {
+static const char* all_types[4] = {
 "none",    
 "int",    
-"float"    
+"float",
+"name"
 };
 
 enum {
@@ -121,7 +129,7 @@ SignalEditor::SignalEditor() : wxDialog(NULL, wxID_ANY, "Signal Editor", wxDefau
     
     
     // all of the controls in the menu
-    signal_type_value = new wxChoice(signal_box, INPUT_FIELD_SIGNAL_TYPE, wxDefaultPosition, wxSize(169, -1), {14, all_signals});
+    signal_type_value = new wxChoice(signal_box, INPUT_FIELD_SIGNAL_TYPE, wxDefaultPosition, wxSize(169, -1), {15, all_signals});
     signal_type_label = new wxStaticText(signal_box, INPUT_FIELD_SIGNAL_TYPE, "When this entity fires signal  ");
     for (int i = 0; i < 3; i++) {
         signal_type_value->SetString(i, all_signals[i]);
@@ -135,13 +143,13 @@ SignalEditor::SignalEditor() : wxDialog(NULL, wxID_ANY, "Signal Editor", wxDefau
     repeats_label = new wxStaticText(signal_box, INPUT_FIELD_REPEATS, "  seconds and limit fires to  ");
     repeats_label2 = new wxStaticText(signal_box, INPUT_FIELD_REPEATS, "  times");
     
-    message_type_value = new wxChoice(signal_box, INPUT_FIELD_MESSAGE_TYPE, wxDefaultPosition, wxSize(169, -1), {14, all_signals});
+    message_type_value = new wxChoice(signal_box, INPUT_FIELD_MESSAGE_TYPE, wxDefaultPosition, wxSize(169, -1), {17, all_messages});
     message_type_label = new wxStaticText(signal_box, INPUT_FIELD_MESSAGE_TYPE, "By sending a message of type  ");
     for (int i = 0; i < 3; i++) {
         message_type_value->SetString(i, all_messages[i]);
     }
     
-    parameter_type_value = new wxChoice(signal_box, INPUT_FIELD_PARAMETER_TYPE, wxDefaultPosition, wxSize(169, -1), {3, all_types});
+    parameter_type_value = new wxChoice(signal_box, INPUT_FIELD_PARAMETER_TYPE, wxDefaultPosition, wxSize(169, -1), {4, all_types});
     parameter_type_label = new wxStaticText(signal_box, INPUT_FIELD_PARAMETER_TYPE, "With a parameter type of  ");
     
     parameter_value = new wxTextCtrl(signal_box, INPUT_FIELD_PARAMETER, wxEmptyString, wxDefaultPosition, wxSize(169, -1));
@@ -153,6 +161,8 @@ SignalEditor::SignalEditor() : wxDialog(NULL, wxID_ANY, "Signal Editor", wxDefau
     // layout
 
     auto grid_sizer = new wxGridSizer(2);
+    
+    grid_sizer->SetVGap(2);
     
     grid_sizer->Add(signal_type_label, 0, wxALIGN_RIGHT | wxALIGN_CENTER_VERTICAL);
     grid_sizer->Add(signal_type_value);
@@ -185,7 +195,9 @@ SignalEditor::SignalEditor() : wxDialog(NULL, wxID_ANY, "Signal Editor", wxDefau
     auto box_sizer = new wxBoxSizer(wxVERTICAL);
     
     box_sizer->Add(grid_sizer, 0, wxALIGN_CENTER);
+    box_sizer->AddSpacer(2);
     box_sizer->Add(container_sizer, 0, wxALIGN_CENTER);
+    box_sizer->AddSpacer(2);
     box_sizer->Add(button_sizer, 0, wxALIGN_CENTER);
     
     
@@ -214,7 +226,7 @@ SignalEditor::SignalEditor() : wxDialog(NULL, wxID_ANY, "Signal Editor", wxDefau
     
     signal_box->SetSizer(box_sizer);
     
-    splitter->SplitHorizontally(signal_list, signal_box, 193);
+    splitter->SplitHorizontally(signal_list, signal_box, 182);
     splitter->SetMinimumPaneSize(165);
 }
 

@@ -7,6 +7,8 @@
 #include <widgets/mainframe.h>
 #include <widgets/dialogs.h>
 
+#include <platform/api.h>
+
 class TramEditor : public wxApp {
 public:
     bool OnInit() {
@@ -27,6 +29,10 @@ public:
         return true;
     }
 };
+
+double tram::Platform::Window::GetTime() {
+    return 0;
+}
 
 wxIMPLEMENT_APP(TramEditor);
 

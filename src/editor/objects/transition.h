@@ -24,6 +24,8 @@ public:
         bool IsEditable() { return true; }
         bool IsCopyable() { return true; }
         
+        void Draw();
+        
         std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
             return std::vector<PropertyDefinition> {
                 {"group-transition-node", "Transition Node", "", PROPERTY_CATEGORY},
@@ -45,6 +47,11 @@ public:
     bool IsRemovable() { return true; }
     bool IsEditable() { return true; }
     bool IsCopyable() { return true; }
+    
+    //bool IsHidden() { return is_hidden; }
+    //void SetHidden(bool is_hidden) { this->is_hidden = is_hidden; }
+    
+    void Draw();
     
     std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
