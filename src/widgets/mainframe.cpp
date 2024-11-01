@@ -215,7 +215,7 @@ void MainFrameCtrl::OnAbout(wxCommandEvent& event)
     aboutInfo.SetName(lang->dialog_about_name);
     aboutInfo.SetVersion(L"v0.0.3");
     aboutInfo.SetDescription(lang->dialog_description);
-    aboutInfo.SetCopyright(lang->dialog_copyright + L" (C) Lielais Jānis Dambergs 2022");
+    aboutInfo.SetCopyright(lang->dialog_copyright + L" (C) Lielais Čunguss 2022-2024");
     aboutInfo.SetWebSite(L"https://github.com/racenis/tram-sdk");
     wxAboutBox(aboutInfo);
 }

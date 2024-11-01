@@ -82,19 +82,19 @@ PropertyDefinition ReadEntityField(File& file) {
     name_t name = file.read_name();
     
     if (type == "string") {
-        return {name, name, "group-entity-special", PROPERTY_STRING};
+        return {name, name, "group-entity-specific", PROPERTY_STRING};
     } else if (type == "int") {
-        return {name, name, "group-entity-special", PROPERTY_INT};
+        return {name, name, "group-entity-specific", PROPERTY_INT};
     } else if (type == "uint") {
-        return {name, name, "group-entity-special", PROPERTY_UINT};
+        return {name, name, "group-entity-specific", PROPERTY_UINT};
     } else if (type == "float") {
-        return {name, name, "group-entity-special", PROPERTY_FLOAT};
+        return {name, name, "group-entity-specific", PROPERTY_FLOAT};
     } else if (type == "vector") {
-        return {name, name, "group-entity-special", PROPERTY_VECTOR};
+        return {name, name, "group-entity-specific", PROPERTY_VECTOR};
     } else if (type == "origin") {
-        return {name, name, "group-entity-special", PROPERTY_ORIGIN};
+        return {name, name, "group-entity-specific", PROPERTY_ORIGIN};
     } else if (type == "direction") {
-        return {name, name, "group-entity-special", PROPERTY_DIRECTION};
+        return {name, name, "group-entity-specific", PROPERTY_DIRECTION};
     }
 
     // in the future some possible other values could be:

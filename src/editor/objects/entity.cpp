@@ -19,7 +19,7 @@ static std::unordered_map<int32_t, EntityTypeInfo> entity_type_infos;
 static std::unordered_map<std::string, int32_t> entity_name_to_id;
 static std::unordered_map<RenderComponent*, Entity*> viewmodel_ptr_to_entity_ptr;
 
-static std::set<uint64_t> used_ids; 
+static std::set<uint32_t> used_ids; 
 
 std::shared_ptr<Object> Entity::Duplicate() {
     auto dupe = std::dynamic_pointer_cast<Editor::Entity>(parent->AddChild());
@@ -56,7 +56,8 @@ void Entity::Draw() {
 }
 
 void Entity::CenterOrigin() {
-    PropertyValue::Vector vec;
+    //PropertyValue::Vector vec;
+    vec3 vec;
     
     if (!model) {
         vec.x = GetProperty("position-x");
@@ -93,7 +94,7 @@ void Entity::SetProperty (std::string property_name, PropertyValue property_valu
     properties[property_name] = property_value;
     
     // stupid hack, but better than generating id collisions
-    if (property_name=="id" && (uint64_t)property_value) {
+    if (property_name=="id" && (uint32_t)property_value) {
         if (used_ids.contains(property_value)) {
              GenerateNewRandomId();
         } else {
@@ -188,6 +189,7 @@ std::vector<PropertyDefinition> Entity::GetFullPropertyDefinitions() {
         {"group-entity", "Entity", "", PROPERTY_CATEGORY},
         {"id", "ID", "group-entity", PROPERTY_UINT},
         {"name", "Name", "group-entity", PROPERTY_STRING},
+        {"entity-flags", "Flags", "group-entity", PROPERTY_FLAG},
         {"group-position", "Position", "", PROPERTY_CATEGORY},
         {"position-x", "X", "group-position", PROPERTY_FLOAT},
         {"position-y", "Y", "group-position", PROPERTY_FLOAT},
@@ -196,7 +198,8 @@ std::vector<PropertyDefinition> Entity::GetFullPropertyDefinitions() {
         {"rotation-x", "X", "group-rotation", PROPERTY_FLOAT},
         {"rotation-y", "Y", "group-rotation", PROPERTY_FLOAT},
         {"rotation-z", "Z", "group-rotation", PROPERTY_FLOAT},
-        {"entity-type", "Entity Type", "group-entity", PROPERTY_ENUM}
+        {"entity-type", "Entity Type", "group-entity", PROPERTY_ENUM},
+        {"group-entity-specific", "Type", "", PROPERTY_CATEGORY},
     };
     
     auto special_defs = entity_type_infos[(int32_t) this->GetProperty("entity-type")].definition;

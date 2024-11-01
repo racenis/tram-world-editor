@@ -38,6 +38,7 @@ void Editor::PropertyPanel::SetCurrentSelection() {
                             field_ptr = new wxIntProperty(Editor::PropertyRename(field.display_name), field.name);
                             break;
                         case PROPERTY_UINT:
+                        case PROPERTY_FLAG:
                             field_ptr = new wxUIntProperty(Editor::PropertyRename(field.display_name), field.name);
                             break;
                         case PROPERTY_ENUM:
@@ -179,7 +180,8 @@ void PropertyPanelCtrl::OnChanged (wxPropertyGridEvent& event) {
                 {
                     std::string new_value_unparse = value.GetString().ToStdString();
                     std::stringstream new_value_parse(new_value_unparse); 
-                    Editor::PropertyValue::Vector new_value;
+                    //Editor::PropertyValue::Vector new_value;
+                    tram::vec3 new_value;
                     new_value_parse >> new_value.x;
                     new_value_parse >> new_value.y;
                     new_value_parse >> new_value.z;

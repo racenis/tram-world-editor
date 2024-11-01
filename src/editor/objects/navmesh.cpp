@@ -71,12 +71,12 @@ void Navmesh::SaveToDisk() {
     /// TODO: add newline writes
     
     for (auto& child : children) {
-        file.write_uint64(child->GetProperty("id"));
+        file.write_uint32(child->GetProperty("id"));
         
-        file.write_uint64(child->GetProperty("next-id"));
-        file.write_uint64(child->GetProperty("prev-id"));
-        file.write_uint64(child->GetProperty("left-id"));
-        file.write_uint64(child->GetProperty("right-id"));
+        file.write_uint32(child->GetProperty("next-id"));
+        file.write_uint32(child->GetProperty("prev-id"));
+        file.write_uint32(child->GetProperty("left-id"));
+        file.write_uint32(child->GetProperty("right-id"));
         
         file.write_float32(child->GetProperty("position-x"));
         file.write_float32(child->GetProperty("position-y"));

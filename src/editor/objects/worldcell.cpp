@@ -26,7 +26,7 @@ void WorldCell::LoadFromDisk() {
     cell->SetProperty("is-interior-lighting", (bool) file.read_uint32());
     
     // this will be used, so that we can attach signals to entities
-    std::unordered_map<uint64_t, Entity*> loaded_entities;
+    std::unordered_map<uint32_t, Entity*> loaded_entities;
     
     while (file.is_continue()) {
         name_t ent_type = file.read_name();
@@ -86,7 +86,7 @@ void WorldCell::LoadFromDisk() {
             
             entity->SetProperty("id", file.read_uint64());
             entity->properties["name"] = std::string(file.read_name());
-            entity->properties["entity-flags"] = file.read_uint64();
+            entity->properties["entity-flags"] = PropertyValue::Flag(file.read_uint32());
             
             entity->properties["position-x"] = file.read_float32();
             entity->properties["position-y"] = file.read_float32();
@@ -115,7 +115,8 @@ void WorldCell::LoadFromDisk() {
                     case PROPERTY_VECTOR:
                     case PROPERTY_ORIGIN:
                     case PROPERTY_DIRECTION:
-                        Editor::PropertyValue new_prop = Editor::PropertyValue::Vector {file.read_float32(), file.read_float32(), file.read_float32()};
+                        //Editor::PropertyValue new_prop = Editor::PropertyValue::Vector {file.read_float32(), file.read_float32(), file.read_float32()};
+                        Editor::PropertyValue new_prop = vec3{file.read_float32(), file.read_float32(), file.read_float32()};
                         new_prop.type = prop.type;
                         entity->SetProperty(prop.name, new_prop);
                         break;
@@ -160,9 +161,9 @@ void WorldCell::SaveToDisk() {
             
             file.write_name(PROPERTY_ENUMERATIONS["entity-type"][entity_type_index]);
             
-            file.write_uint64(ent->GetProperty("id"));
+            file.write_uint32(ent->GetProperty("id"));
             file.write_name(ent->GetProperty("name").str_value);
-            file.write_uint64(ent->GetProperty("entity-flags"));
+            file.write_uint32(ent->GetProperty("entity-flags"));
             
             file.write_float32(ent->GetProperty("position-x"));
             file.write_float32(ent->GetProperty("position-y"));
@@ -180,9 +181,9 @@ void WorldCell::SaveToDisk() {
                     case PROPERTY_STRING:
                         file.write_name(ent->GetProperty(prop.name).str_value); break;
                     case PROPERTY_INT:
-                        file.write_int64(ent->GetProperty(prop.name)); break;
+                        file.write_int32(ent->GetProperty(prop.name)); break;
                     case PROPERTY_UINT:
-                        file.write_uint64(ent->GetProperty(prop.name)); break;
+                        file.write_uint32(ent->GetProperty(prop.name)); break;
                     case PROPERTY_FLOAT:
                         file.write_float32(ent->GetProperty(prop.name)); break;
                      case PROPERTY_ENUM:
@@ -204,7 +205,7 @@ void WorldCell::SaveToDisk() {
             if (auto ptr = std::dynamic_pointer_cast<Entity>(ent); ptr->signals.size()) {
                 for (const auto& s : ptr->signals) {
                     file.write_name("signal");
-                    file.write_uint64(ent->GetProperty("id"));
+                    file.write_uint32(ent->GetProperty("id"));
                     
                     file.write_name(s.type);
                     file.write_name(s.target);

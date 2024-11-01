@@ -5,6 +5,7 @@
 #include <editor/settings.h>
 
 #include <editor/objects/entity.h>
+#include <editor/objects/world.h>
 
 #include <widgets/viewport.h>
 #include <widgets/objectmenu.h>
@@ -812,7 +813,7 @@ ViewportCtrl::~ViewportCtrl()
 }
 
 void ViewportCtrl::StartTimer() {
-    key_timer.Start(50);
+    key_timer.Start(15);
 }
 
 void ViewportCtrl::StopTimer() {
@@ -858,8 +859,51 @@ void ViewportCtrl::OnLeftClick(wxMouseEvent& event) {
         
         auto res = tram::Render::AABB::FindNearestFromRay(look_position, look_direction, -1);
         
-        if (res.data) {
-            std::cout << GetEntityFromViewmodel((tram::RenderComponent*) res.data)->GetName() << std::endl;
+        float distance = INFINITY;
+        Object* nearest = nullptr;
+        
+        auto find_flat = [&](Object* object, auto find_flat) {
+            if (object->IsHidden()) return;
+            for (auto& obj : object->GetChildren()) find_flat(obj.get(), find_flat);
+            if (object->SelectSize() == 0.0f) return;
+            
+            vec3 position = {
+                object->GetProperty("position-x").float_value,
+                object->GetProperty("position-y").float_value,
+                object->GetProperty("position-z").float_value
+            };
+            
+            vec3 projected_position = position; Project(projected_position, projected_position);
+            
+            vec2 screen_pos = {projected_position.x, projected_position.y};
+            vec2 pointer_pos = {event.GetX(), event.GetY()};
+        
+            if (object->SelectSize() < glm::distance(screen_pos, pointer_pos)) return;
+            
+            float object_distance = glm::distance(GetViewPosition(), position);
+            
+            if (object_distance > distance) return;
+            
+            distance = object_distance;
+            nearest = object;
+        };
+        
+        find_flat(Editor::WORLD.get(), find_flat);
+        
+        Object* selected = nullptr;
+        
+        if (res.data && distance > glm::distance(GetViewPosition(), res.intersection)) {
+            selected = GetEntityFromViewmodel((tram::RenderComponent*) res.data);
+        } else if (nearest) {
+            selected = nearest;
+        }
+        
+        std::cout << " nearest : " << nearest << " distance : " << distance << std::endl;
+        
+        if (selected) {
+            //std::cout << GetEntityFromViewmodel((tram::RenderComponent*) res.data)->GetName() << std::endl;
+            
+            //std::cout << "distance to intersection is " <<  glm::distance(GetViewPosition(), res.intersection) << std::endl;
             
             // create a new selection object
             auto new_selection = std::make_shared<Editor::Selection>();
@@ -870,7 +914,7 @@ void ViewportCtrl::OnLeftClick(wxMouseEvent& event) {
             }
             
             // lookup selected object and try to find it in new selection
-            auto selected_object = GetEntityFromViewmodel((tram::RenderComponent*) res.data)->GetPointer();
+            auto selected_object = selected->GetPointer();
             auto already_selected = std::find(new_selection->objects.begin(), new_selection->objects.end(), selected_object);
             
             // if already selected, deselect. otherwise append to selection
@@ -1090,6 +1134,13 @@ void ViewportCtrl::OnPaint(wxPaintEvent& event)
     using namespace tram::Render;
 
     if (viewport_tool) viewport_tool->Display();
+
+    /*auto recursive_draw = [](Object* object, auto draw_func) {
+        if (object->IsHidden()) return;
+        object->Draw();
+        for (auto& obj : object->GetChildren()) draw_func(obj.get(), draw_func);
+    };
+    recursive_draw(Editor::WORLD.get(), recursive_draw);*/
 
     for (auto& object : Editor::SELECTION->objects) {
         glm::quat space;

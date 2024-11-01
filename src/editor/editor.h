@@ -8,7 +8,7 @@
 #include <typeinfo>
 #include <unordered_map>
 #include <iostream>
-#include <framework/serialization.h>
+#include <framework/math.h>
 
 namespace tram {
     class RenderComponent;
@@ -98,15 +98,16 @@ inline void Redo() {
 enum PropertyType {
     PROPERTY_STRING,
     PROPERTY_FLOAT,     // float
-    PROPERTY_INT,       // int64_t
-    PROPERTY_UINT,      // uint64_t
+    PROPERTY_INT,       // int32_t
+    PROPERTY_UINT,      // uint32_t
     PROPERTY_ENUM,      // int32_t
+    PROPERTY_FLAG,      // int32_t
     PROPERTY_BOOL,      // bool
     PROPERTY_VECTOR,
     PROPERTY_ORIGIN,
     PROPERTY_DIRECTION, // normal vector
     //PROPERTY_POSITION,  // position vector
-    PROPERTY_CATEGORY,
+    PROPERTY_CATEGORY,  // no type
     PROPERTY_NULL
 };
 
@@ -128,21 +129,51 @@ extern std::unordered_map<std::string, std::vector<std::string>> PROPERTY_ENUMER
 
 // maybe add a move constructor to this class?
 /// Value of a property.
-struct PropertyValue {
-    struct Vector {
-        float x;
-        float y;
-        float z;
-    };
+struct PropertyValue {    
+    inline static PropertyValue String(const std::string& value) {
+        PropertyValue v; v.type = PROPERTY_STRING; v.str_value = value; return v;
+    }
+    
+    inline static PropertyValue Float(const float& value) {
+        PropertyValue v; v.type = PROPERTY_FLOAT; v.float_value = value; return v;
+    }
+    
+    inline static PropertyValue Int(const int32_t& value) {
+        PropertyValue v; v.type = PROPERTY_INT; v.int_value = value; return v;
+    }
+    
+    inline static PropertyValue Enum(const int32_t& value) {
+        PropertyValue v; v.type = PROPERTY_ENUM; v.int_value = value; return v;
+    }
+    
+    inline static PropertyValue UInt(const uint32_t& value) {
+        PropertyValue v; v.type = PROPERTY_UINT; v.uint_value = value; return v;
+    }
+    
+    inline static PropertyValue Flag(const uint32_t& value) {
+        PropertyValue v; v.type = PROPERTY_FLAG; v.uint_value = value; return v;
+    }
+    
+    inline static PropertyValue Bool(const bool& value) {
+        PropertyValue v; v.type = PROPERTY_BOOL; v.bool_value = value; return v;
+    }
+    
+    inline static PropertyValue Vector(const tram::vec3& value) {
+        PropertyValue v; v.type = PROPERTY_VECTOR; v.vector_value = value; return v;
+    }
+    
+    inline static PropertyValue Category() {
+        PropertyValue v; v.type = PROPERTY_STRING; return v;
+    }
     
     PropertyValue() { type = PROPERTY_NULL; }
     PropertyValue(const std::string& value) : str_value(value) { type = PROPERTY_STRING; }
     PropertyValue(const float& value) : float_value(value) { type = PROPERTY_FLOAT; }
     PropertyValue(const int64_t& value) : int_value(value) { type = PROPERTY_INT; }
     PropertyValue(const uint64_t& value) : uint_value(value) { type = PROPERTY_UINT; }
-    PropertyValue(const int32_t& value) : enum_value(value) { type = PROPERTY_ENUM; }
+    PropertyValue(const int32_t& value) : int_value(value) { type = PROPERTY_ENUM; }
     PropertyValue(const bool& value) : bool_value(value) { type = PROPERTY_BOOL; }
-    PropertyValue(const Vector& value) : vector_value(value) { type = PROPERTY_VECTOR; }
+    PropertyValue(const tram::vec3& value) : vector_value(value) { type = PROPERTY_VECTOR; }
     PropertyValue(const PropertyValue& value, PropertyType type) : PropertyValue(value) { this->type = type; }
     ~PropertyValue() { if (type == PROPERTY_STRING) str_value.~basic_string(); }
     PropertyValue (const PropertyValue& value) : PropertyValue() { *this = value; }
@@ -155,14 +186,13 @@ struct PropertyValue {
             case PROPERTY_FLOAT:
                 float_value = value.float_value;
                 break;
+            case PROPERTY_ENUM:
             case PROPERTY_INT:
                 int_value = value.int_value;
                 break;
+            case PROPERTY_FLAG:
             case PROPERTY_UINT:
                 uint_value = value.uint_value;
-                break;
-            case PROPERTY_ENUM:
-                enum_value = value.enum_value;
                 break;
             case PROPERTY_BOOL:
                 bool_value = value.bool_value;
@@ -172,7 +202,9 @@ struct PropertyValue {
             case PROPERTY_DIRECTION:
                 vector_value = value.vector_value;
                 break;
-            default:
+            case PROPERTY_CATEGORY:
+                break;
+            case PROPERTY_NULL:
                 break;
         }
         
@@ -188,12 +220,12 @@ struct PropertyValue {
                 return str_value == other.str_value;
             case PROPERTY_FLOAT:
                 return float_value == other.float_value;
+            case PROPERTY_ENUM:
             case PROPERTY_INT:
                 return int_value == other.int_value;
+            case PROPERTY_FLAG:
             case PROPERTY_UINT:
                 return uint_value == other.uint_value;
-            case PROPERTY_ENUM:
-                return enum_value == other.enum_value;
             case PROPERTY_BOOL:
                 return bool_value == other.bool_value;
             case PROPERTY_VECTOR:
@@ -210,21 +242,19 @@ struct PropertyValue {
     
     operator std::string() { assert(type == PROPERTY_STRING); return str_value; }
     operator float() { assert(type == PROPERTY_FLOAT); return float_value; }
-    operator int64_t() { assert(type == PROPERTY_INT); return int_value; }
-    operator uint64_t() { assert(type == PROPERTY_UINT); return uint_value; }
-    operator int32_t() { assert(type == PROPERTY_ENUM); return enum_value; }
+    operator int32_t() { assert(type == PROPERTY_INT || type == PROPERTY_ENUM); return int_value; }
+    operator uint32_t() { assert(type == PROPERTY_UINT || type == PROPERTY_FLAG); return uint_value; }
     operator bool() { assert(type == PROPERTY_BOOL); return bool_value; }
-    operator Vector() { assert(type == PROPERTY_VECTOR || type == PROPERTY_DIRECTION || type == PROPERTY_ORIGIN); return vector_value; }
+    operator tram::vec3() { assert(type == PROPERTY_VECTOR || type == PROPERTY_DIRECTION || type == PROPERTY_ORIGIN); return vector_value; }
     
     PropertyType type;
     union {
         std::string str_value;
         float float_value;
-        int64_t int_value;
-        uint64_t uint_value;
-        int32_t enum_value;
+        int32_t int_value;
+        uint32_t uint_value;
         bool bool_value;
-        Vector vector_value;
+        tram::vec3 vector_value;
     };
 };
 
@@ -279,6 +309,8 @@ public:
     virtual bool IsEditable() { std::cout << "IsEditable() not implemented for " << typeid(*this).name() << std::endl; abort(); }
     virtual bool IsCopyable() { std::cout << "IsCopyable() not implemented for " << typeid(*this).name() << std::endl; abort(); }
     virtual bool IsHidden() { for (auto& child : children) if (child->IsHidden()) return true; return false; }
+    
+    virtual float SelectSize() { return 0.0f; }
     
     virtual std::shared_ptr<Object> Duplicate() { std::cout << "Duplicate(void) not implemented for " << typeid(*this).name() << std::endl; abort(); }
     

@@ -23,6 +23,10 @@ public:
         bool IsRemovable() { return true; }
         bool IsEditable() { return true; }
         bool IsCopyable() { return true; }
+        void SetHidden(bool hidden) { this->is_hidden = hidden; }
+        bool IsHidden() { return this->is_hidden; }
+        
+        float SelectSize() { return 5.0f; }
         
         void Draw();
         
