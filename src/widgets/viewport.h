@@ -20,24 +20,7 @@ public:
     void StartTimer();
     void StopTimer();
     
-    enum ViewportMode : uint8_t {
-        MODE_NONE,
-        MODE_MOVE,
-        MODE_ROTATE,
-        MODE_TRANSLATE
-    };
-    
-    enum TransformAxis : uint8_t {
-        AXIS_NONE = 0,
-        AXIS_X = 1,
-        AXIS_Y = 2,
-        AXIS_Z = 4
-    };
-    
     ViewportTool* viewport_tool = nullptr;
-    
-    ViewportMode viewport_mode = MODE_NONE;
-    uint8_t viewport_axis = AXIS_NONE;
 private:
     void OnPaint(wxPaintEvent& event);
     void OnLeftClick(wxMouseEvent& event);
@@ -50,17 +33,8 @@ private:
     
     void CancelViewportOperation();
     
-    float mouse_x = 0;
-    float mouse_y = 0;
-    bool key_forward = false;
-    bool key_backward = false;
-    bool key_left = false;
-    bool key_right = false;
-    bool key_shift = false;
     wxTimer key_timer;
-    
-    bool mouse_captured = false;
-    
+
     wxGLContext* m_context;
 };
 

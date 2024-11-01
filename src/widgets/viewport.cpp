@@ -24,6 +24,7 @@ using namespace Editor;
 #include <components/render.h>
 
 #include <numeric>
+#include <map>
 
 ViewportCtrl* viewport = nullptr;
 
@@ -128,6 +129,7 @@ public:
         
         if (!any_movement && movement_key_pressed) {
             viewport->StartTimer();
+            Update();
         }
         
         if (code == WXK_SHIFT) {
@@ -339,6 +341,44 @@ public:
         if (keycode == 'Y') translate_y = !translate_y;
         if (keycode == 'Z') translate_z = !translate_z;
         
+        if (code == WXK_SHIFT) shifting = true;
+        
+        if (keycode == 'X' && shifting) {
+            if (!translate_y || !translate_z) {
+                translate_x = false;
+                translate_y = true;
+                translate_z = true;
+            } else {
+                translate_x = false;
+                translate_y = false;
+                translate_z = false;
+            }
+        }
+        
+        if (keycode == 'Y' && shifting) {
+            if (!translate_x || !translate_z) {
+                translate_x = true;
+                translate_y = false;
+                translate_z = true;
+            } else {
+                translate_x = false;
+                translate_y = false;
+                translate_z = false;
+            }
+        }
+        
+        if (keycode == 'Z' && shifting) {
+            if (!translate_x || !translate_y) {
+                translate_x = true;
+                translate_y = true;
+                translate_z = false;
+            } else {
+                translate_x = false;
+                translate_y = false;
+                translate_z = false;
+            }
+        }
+        
         if (code == WXK_CONTROL) {
             for (auto& object : Editor::SELECTION->objects) {
                 float x = object->GetProperty("position-x");
@@ -365,7 +405,7 @@ public:
     }
     
     void Keyup(wchar_t keycode, int code) {
-        
+        if (code == WXK_SHIFT) shifting = false;
     }
     
     void Update() {
@@ -373,7 +413,19 @@ public:
     }
     
     void Display() {
-        
+        for (auto& object : Editor::SELECTION->objects) {
+            vec3 position =  {
+                object->GetProperty("position-x").float_value,
+                object->GetProperty("position-y").float_value,
+                object->GetProperty("position-z").float_value
+            };
+            
+            quat space = {1.0f, 0.0f, 0.0f, 0.0f};
+            
+            if (translate_x) AddLine(position - space * glm::vec3(100.0f, 0.0f, 0.0f), position + space * glm::vec3(100.0f, 0.0f, 0.0f), COLOR_RED);
+            if (translate_y) AddLine(position - space * glm::vec3(0.0f, 100.0f, 0.0f), position + space * glm::vec3(0.0f, 100.0f, 0.0f), COLOR_GREEN);
+            if (translate_z) AddLine(position - space * glm::vec3(0.0f, 0.0f, 100.0f), position + space * glm::vec3(0.0f, 0.0f, 100.0f), COLOR_BLUE);
+        }
     }
     
     void Finish() {
@@ -387,15 +439,59 @@ protected:
     bool translate_x = false;
     bool translate_y = false;
     bool translate_z = false;
+    
+    bool shifting = false;
 };
 
 class RotateTool : public ViewportTool {
 public:
     RotateTool() {
         viewport->CaptureMouse();
-        viewport->CenterMouseCursor();
+        //viewport->CenterMouseCursor();
         
-        Editor::PerformAction<Editor::ActionChangeProperties>(std::vector<std::string> {"rotation-x", "rotation-y", "rotation-z"});
+        for (auto& object : Editor::SELECTION->objects) {
+            vec3 position = {
+                object->GetProperty("position-x").float_value,
+                object->GetProperty("position-y").float_value,
+                object->GetProperty("position-z").float_value
+            };
+            
+            vec3 rotation = {
+                object->GetProperty("rotation-x").float_value,
+                object->GetProperty("rotation-y").float_value,
+                object->GetProperty("rotation-z").float_value
+            };
+            
+            backups[object.get()] = {position, rotation};
+        }
+        
+        vec3 position_sum = {0.0f, 0.0f, 0.0f};
+        vec3 aabb_min = {0.0f, 0.0f, 0.0f};
+        vec3 aabb_max = {0.0f, 0.0f, 0.0f};
+        bool aabb_set = false;
+        
+        for (auto& object : Editor::SELECTION->objects) {
+            vec3 position = {
+                object->GetProperty("position-x").float_value,
+                object->GetProperty("position-y").float_value,
+                object->GetProperty("position-z").float_value
+            };
+            
+            position_sum += position;
+            
+            if (!aabb_set) {
+                aabb_min = position;
+                aabb_max = position;
+                aabb_set = true;
+            } else {
+                aabb_min = MergeAABBMin(aabb_min, position);
+                aabb_max = MergeAABBMax(aabb_max, position);
+            }
+        }
+        
+        middle_point = glm::mix(aabb_min, aabb_max, 0.5f);
+        
+        Editor::PerformAction<Editor::ActionChangeProperties>(std::vector<std::string> {"position-x", "position-y", "position-z", "rotation-x", "rotation-y", "rotation-z"});
     }
 
     ~RotateTool() {
@@ -403,7 +499,63 @@ public:
     }
 
     void MouseMove(float x, float y, float delta_x, float delta_y) {
-        glm::vec3 rotation = glm::vec3 (0.0, 0.0f, 0.0f);
+        if (delta_x == 0.0f && delta_y == 0.0f) return;
+        
+        
+        
+        //glm::vec3 rotation = glm::vec3 (0.0, 0.0f, 0.0f);
+        
+        int selected_axes = (int)rotate_x + (int)rotate_y + (int)rotate_z;
+        if (selected_axes > 1) return;
+        
+        // do screen rotation if applicable
+        // otherwise do axis rotation
+        
+        if (!rotate_x && !rotate_y && !rotate_z) {
+            vec3 axis_x = {1.0f, 0.0f, 0.0f};
+            vec3 axis_y = {0.0f, 1.0f, 0.0f};
+            
+            axis_x = GetViewRotation() * axis_x;
+            axis_y = GetViewRotation() * axis_y;
+            
+            //axis_x = ProjectInverse(axis_x);
+            //axis_y = ProjectInverse(axis_y);
+            
+            //axis_x = glm::normalize(axis_x);
+            //axis_y = glm::normalize(axis_y);
+
+            //std::cout << axis_x.x << " " << axis_x.y << " " << axis_x.z << std::endl;
+
+            rotation = glm::rotate(rotation, delta_y * 0.01f, axis_x);
+            rotation = glm::rotate(rotation, delta_x * 0.01f, axis_y);
+            
+        } else {
+            vec3 axis = {1.0f, 0.0f, 0.0f};
+            
+            if (rotate_x) axis = {1.0f, 0.0f, 0.0f};
+            if (rotate_y) axis = {0.0f, 1.0f, 0.0f};
+            if (rotate_z) axis = {0.0f, 0.0f, 1.0f};
+            
+            vec3 world_axis = middle_point + axis;
+            vec3 world_point = middle_point;
+            
+            Project(world_axis, world_axis);
+            Project(world_point, world_point);
+            
+            vec2 screen_axis = vec2(world_axis.y, world_axis.y) - vec2(world_point.x, world_point.y);
+            
+            vec2 screen_direction = (vec2(delta_x, delta_y));
+            
+            float ammount = glm::dot(glm::normalize(vec2(screen_axis.y,  -screen_axis.x)), glm::normalize(screen_direction));
+            
+            
+            rotation = glm::rotate(rotation, glm::length(screen_direction) * ammount * 0.01f, axis);
+        }
+        
+        
+        
+        //const bool rotate_individual = true;
+        
         
         //if (viewport_axis & AXIS_X) rotation += glm::vec3 (0.05f, 0.0f, 0.0f);
         //if (viewport_axis & AXIS_Y) rotation += glm::vec3 (0.0f, 0.05f, 0.0f);
@@ -411,22 +563,29 @@ public:
         
         //rotation *= delta_x + delta_x;
         
-        rotation.x += 0.01f;
+        
         
         for (auto& object : Editor::SELECTION->objects) {
-            glm::quat object_rotation = glm::vec3 {
+            /*glm::quat object_rotation = glm::vec3 {
                 object->GetProperty("rotation-x").float_value,
                 object->GetProperty("rotation-y").float_value,
                 object->GetProperty("rotation-z").float_value
-            };
+            };*/
             
-            if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_WORLD) {
+            auto [object_position, object_rotation] = backups[object.get()];
+            
+            
+            object_position -= middle_point;
+            object_position = rotation * object_position;
+            object_position += middle_point;
+            
+            //if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_WORLD) {
                 object_rotation = glm::quat(rotation) * object_rotation;
-            }
+            //}
             
-            if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITY) {
-                object_rotation = object_rotation * glm::quat(rotation);
-            }
+            //if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITY) {
+                //object_rotation = object_rotation * glm::quat(rotation);
+           //}
             
             if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITYGROUP) {
                 // TODO: implement entity group transforms
@@ -437,6 +596,10 @@ public:
             object->SetProperty("rotation-x", rotation_euler.x);
             object->SetProperty("rotation-y", rotation_euler.y);
             object->SetProperty("rotation-z", rotation_euler.z);
+            
+            object->SetProperty("position-x", object_position.x);
+            object->SetProperty("position-y", object_position.y);
+            object->SetProperty("position-z", object_position.z);
         }
         
         Editor::Viewport::Refresh();
@@ -451,6 +614,10 @@ public:
     }
     
     void Keydown(wchar_t keycode, int code) {
+        if (keycode == 'X') rotate_x = !rotate_x;
+        if (keycode == 'Y') rotate_y = !rotate_y;
+        if (keycode == 'Z') rotate_z = !rotate_z;
+        
         if (code == WXK_CONTROL) {
             for (auto& object : Editor::SELECTION->objects) {
                 float x = object->GetProperty("rotation-x");
@@ -484,7 +651,13 @@ public:
     }
     
     void Display() {
+        AddLineMarker(middle_point, COLOR_YELLOW);
         
+        quat space = {1.0f, 0.0f, 0.0f, 0.0f};
+        
+        if (rotate_x) AddLine(middle_point - space * glm::vec3(100.0f, 0.0f, 0.0f), middle_point + space * glm::vec3(100.0f, 0.0f, 0.0f), COLOR_RED);
+        if (rotate_y) AddLine(middle_point - space * glm::vec3(0.0f, 100.0f, 0.0f), middle_point + space * glm::vec3(0.0f, 100.0f, 0.0f), COLOR_GREEN);
+        if (rotate_z) AddLine(middle_point - space * glm::vec3(0.0f, 0.0f, 100.0f), middle_point + space * glm::vec3(0.0f, 0.0f, 100.0f), COLOR_BLUE);
     }
     
     void Finish() {
@@ -492,8 +665,22 @@ public:
     }
     
     void Cancel() {
-        
+        Editor::Undo();
     }
+protected:
+    quat rotation = {1.0f, 0.0f, 0.0f, 0.0f};
+    vec3 middle_point = {0.0f, 0.0f, 0.0f};
+
+    struct TransformBackup {
+        vec3 position;
+        quat rotation;
+    };
+
+    std::map<Object*, TransformBackup> backups;
+
+    bool rotate_x = false;
+    bool rotate_y = false;
+    bool rotate_z = false;
 };
 
 class Tool : public ViewportTool {
@@ -642,8 +829,8 @@ void ViewportCtrl::CancelViewportOperation() {
    // ReleaseMouse();
     Refresh();
     
-    viewport_axis = AXIS_NONE;
-    viewport_mode = MODE_NONE;
+    //viewport_axis = AXIS_NONE;
+    //viewport_mode = MODE_NONE;
 }
 
 void ViewportCtrl::OnLeftClick(wxMouseEvent& event) {
@@ -656,10 +843,10 @@ void ViewportCtrl::OnLeftClick(wxMouseEvent& event) {
     }
     
     // if viewport is in move mode or translate mode, cancel them
-    if (viewport_mode != MODE_NONE) {
-        CancelViewportOperation();
-        return;
-    }
+    //if (viewport_mode != MODE_NONE) {
+    //    CancelViewportOperation();
+   //     return;
+   // }
     
     // if control key is pressed down, select object in viewport
     if (wxGetKeyState(WXK_CONTROL)) {
@@ -717,7 +904,7 @@ void ViewportCtrl::OnLeftClick(wxMouseEvent& event) {
     //CaptureMouse();
     //CenterMouseCursor();
     
-    viewport_mode = MODE_MOVE;
+    //viewport_mode = MODE_MOVE;
 }
 
 void ViewportCtrl::OnRightClick(wxMouseEvent& event) {
@@ -786,7 +973,7 @@ void ViewportCtrl::OnMouseMove(wxMouseEvent& event) {
         
     }
     
-    if (viewport_mode != MODE_NONE) {
+    if (viewport_tool) {
         /*int width, height;
         GetSize(&width, &height);
         int center_x = width/2, center_y = height/2;
@@ -805,17 +992,7 @@ void ViewportCtrl::OnKeydown(wxKeyEvent& event) {
     if (viewport_tool) viewport_tool->Keydown(event.GetUnicodeKey(), event.GetKeyCode());
     
 
-        if (keycode == 'X') {
-            viewport_axis ^= AXIS_X;
-        }
-        
-        if (keycode == 'Y') {
-            viewport_axis ^= AXIS_Y;
-        }
-        
-        if (keycode == 'Z') {
-            viewport_axis ^= AXIS_Z;
-        }
+
     
     
     
@@ -837,9 +1014,7 @@ void ViewportCtrl::OnKeydown(wxKeyEvent& event) {
         viewport_tool = new RotateTool;
     }
     
-    if (event.GetKeyCode() == WXK_SHIFT) {
-        key_shift = true;
-    }
+
     
     
     
@@ -938,9 +1113,7 @@ void ViewportCtrl::OnPaint(wxPaintEvent& event)
             AddLine(gizmo_location, gizmo_location + space * glm::vec3(0.0f, 1.0f, 0.0f), COLOR_GREEN);
             AddLine(gizmo_location, gizmo_location + space * glm::vec3(0.0f, 0.0f, 1.0f), COLOR_BLUE);
             
-            if (viewport_axis & AXIS_X) AddLine(gizmo_location - space * glm::vec3(100.0f, 0.0f, 0.0f), gizmo_location + space * glm::vec3(100.0f, 0.0f, 0.0f), COLOR_RED);
-            if (viewport_axis & AXIS_Y) AddLine(gizmo_location - space * glm::vec3(0.0f, 100.0f, 0.0f), gizmo_location + space * glm::vec3(0.0f, 100.0f, 0.0f), COLOR_GREEN);
-            if (viewport_axis & AXIS_Z) AddLine(gizmo_location - space * glm::vec3(0.0f, 0.0f, 100.0f), gizmo_location + space * glm::vec3(0.0f, 0.0f, 100.0f), COLOR_BLUE);
+            
         //}
         
         auto gizmos = object->GetWidgetDefinitions();
