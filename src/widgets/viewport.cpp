@@ -23,6 +23,8 @@ using namespace Editor;
 
 #include <components/render.h>
 
+#include <numeric>
+
 ViewportCtrl* viewport = nullptr;
 
 float Editor::Viewport::CURSOR_X = 0.0f;
@@ -35,7 +37,7 @@ using namespace tram::Render;
 class ViewportTool {
 public:
     virtual ~ViewportTool() = default;
-    virtual void MouseMove(float x, float y) = 0;
+    virtual void MouseMove(float x, float y, float delta_x, float delta_y) = 0;
     virtual void LeftClick() = 0;
     virtual void RightClick() = 0;
     virtual void Keydown(wchar_t keycode, int code) = 0;
@@ -60,7 +62,7 @@ public:
         viewport->ReleaseMouse();
     }
 
-    void MouseMove(float x, float y) {
+    void MouseMove(float x, float y, float delta_x_e, float delta_y_e) {
         static float mouse_x = 0.0f;
         static float mouse_y = 0.0f;
         
@@ -199,7 +201,7 @@ class TranslateTool : public ViewportTool {
 public:
     TranslateTool() {
         viewport->CaptureMouse();
-        viewport->CenterMouseCursor();
+        //viewport->CenterMouseCursor();
         
         Editor::PerformAction<Editor::ActionChangeProperties>(std::vector<std::string> {"position-x", "position-y", "position-z"});
     }
@@ -208,17 +210,88 @@ public:
         viewport->ReleaseMouse();
     }
     
-    void MouseMove(float x, float y) {
-        glm::vec3 translation = glm::vec3 (0.0, 0.0f, 0.0f);
+    void MouseMove(float x, float y, float delta_x, float delta_y) {
+        std::vector<vec3> positions(Editor::SELECTION->objects.size());
+        std::transform(Editor::SELECTION->objects.begin(),
+                       Editor::SELECTION->objects.end(),
+                       positions.begin(),
+                       [](auto& object) -> vec3 {
+                           return {
+                                object->GetProperty("position-x").float_value,
+                                object->GetProperty("position-y").float_value,
+                                object->GetProperty("position-z").float_value
+                            };
+                       });
+        vec3 middle_point = std::accumulate(positions.begin(), positions.end(), vec3(0, 0, 0)) / (float)positions.size();
         
-        //if (viewport_axis & AXIS_X) translation += glm::vec3 (0.05f, 0.0f, 0.0f);
-        //if (viewport_axis & AXIS_Y) translation += glm::vec3 (0.0f, 0.05f, 0.0f);
-        //if (viewport_axis & AXIS_Z) translation += glm::vec3 (0.0f, 0.0f, 0.05f);
+        if (delta_x == 0.0f && delta_y == 0.0f) return;
         
-        //translation *= delta_x + delta_x;
+        vec3 translation = {0.0f, 0.0f, 0.0f};
         
-        translation.x += 0.01f;
+        const bool screen_translate = !translate_x && !translate_y && !translate_z;
+        const bool no_translate = translate_x && translate_y && translate_z;
         
+        if (no_translate) {
+            return;
+        }
+        
+
+        // TODO: fix project function!!!
+        vec3 screen_origin = middle_point;
+        
+        Project(screen_origin, screen_origin);
+        
+        vec3 screen_axis_x = screen_origin + vec3(delta_x, 0.0f, 0.0f);
+        vec3 screen_axis_y = screen_origin + vec3(0.0f, delta_y, 0.0f);
+        
+        vec3 point_origin = ProjectInverse(screen_origin);
+        vec3 point_axis_y = ProjectInverse(screen_axis_y);
+        vec3 point_axis_x = ProjectInverse(screen_axis_x);
+        
+        vec3 axis_x = point_axis_x - point_origin;
+        vec3 axis_y = point_axis_y - point_origin;
+
+        translation += axis_x;
+        translation += axis_y;
+        
+        if (!screen_translate) {
+            vec3 axis = {1, 0, 0};
+            
+            bool single_axis = false;
+            
+            if (translate_x && !translate_y && !translate_z) axis = {1, 0, 0}, single_axis = true;
+            if (!translate_x && translate_y && !translate_z) axis = {0, 1, 0}, single_axis = true;
+            if (!translate_x && !translate_y && translate_z) axis = {0, 0, 1}, single_axis = true;
+            
+            if (single_axis) {
+                vec3 translated = middle_point + translation;
+                
+                vec3 to_pt = middle_point + axis;
+                
+                ProjectLine(translated, middle_point, to_pt);
+                
+                translation = translated - middle_point;
+            } else {
+                vec3 translated = middle_point + translation;
+                
+                if (translate_x && translate_y) {
+                    translated.z = middle_point.z;
+                }
+                
+                if (translate_x && translate_z) {
+                    translated.y = middle_point.y;
+                }
+                
+                if (translate_y && translate_z) {
+                    translated.x = middle_point.x;
+                }
+                
+                translation = translated - middle_point;
+            }
+        }
+        
+        
+
         for (auto& object : Editor::SELECTION->objects) {
             glm::vec3 object_position = glm::vec3 {
                 object->GetProperty("position-x").float_value,
@@ -262,6 +335,10 @@ public:
     }
     
     void Keydown(wchar_t keycode, int code) {
+        if (keycode == 'X') translate_x = !translate_x;
+        if (keycode == 'Y') translate_y = !translate_y;
+        if (keycode == 'Z') translate_z = !translate_z;
+        
         if (code == WXK_CONTROL) {
             for (auto& object : Editor::SELECTION->objects) {
                 float x = object->GetProperty("position-x");
@@ -304,8 +381,12 @@ public:
     }
     
     void Cancel() {
-        
+        Editor::Undo();
     }
+protected:
+    bool translate_x = false;
+    bool translate_y = false;
+    bool translate_z = false;
 };
 
 class RotateTool : public ViewportTool {
@@ -321,7 +402,7 @@ public:
         viewport->ReleaseMouse();
     }
 
-    void MouseMove(float x, float y) {
+    void MouseMove(float x, float y, float delta_x, float delta_y) {
         glm::vec3 rotation = glm::vec3 (0.0, 0.0f, 0.0f);
         
         //if (viewport_axis & AXIS_X) rotation += glm::vec3 (0.05f, 0.0f, 0.0f);
@@ -417,7 +498,7 @@ public:
 
 class Tool : public ViewportTool {
 public:
-    void MouseMove(float x, float y) {
+    void MouseMove(float x, float y, float delta_x, float delta_y) {
         
     }
     
@@ -642,6 +723,8 @@ void ViewportCtrl::OnLeftClick(wxMouseEvent& event) {
 void ViewportCtrl::OnRightClick(wxMouseEvent& event) {
     if (viewport_tool) {
         viewport_tool->Cancel();
+        delete viewport_tool;
+        viewport_tool = nullptr;
         return;
     }
     
@@ -660,7 +743,48 @@ void ViewportCtrl::OnRightClick(wxMouseEvent& event) {
 }
 
 void ViewportCtrl::OnMouseMove(wxMouseEvent& event) {
-    if (viewport_tool) viewport_tool->MouseMove(event.GetX(), event.GetY());
+    static float prev_x = event.GetX();
+    static float prev_y = event.GetY();
+    
+    // if using a tool, wrap mouse pointer around
+    if (viewport_tool) {
+        int width, height;
+        GetSize(&width, &height);
+        
+        int pointer_x = event.GetX();
+        int pointer_y = event.GetY();
+        
+        bool warped = false;
+        
+        if (pointer_x < 0) pointer_x = width, warped = true;
+        if (pointer_y < 0) pointer_y = height, warped = true;
+        if (pointer_x > width) pointer_x = 0, warped = true;
+        if (pointer_y > height) pointer_y = 0, warped = true;
+        
+        if (warped) {
+            prev_x = pointer_x;
+            prev_y = pointer_y;
+            
+            WarpPointer(pointer_x, pointer_y);
+            
+            return;
+        }
+    }
+    
+    const float delta_x = event.GetX() - prev_x;
+    const float delta_y = event.GetY() - prev_y;
+    
+    prev_x = event.GetX();
+    prev_y = event.GetY();
+    
+    if (viewport_tool) {
+        
+        
+        viewport_tool->MouseMove(event.GetX(), event.GetY(), delta_x, delta_y);
+        
+        //std::cout << event.GetX() << ":" << event.GetY() << std::endl;
+        
+    }
     
     if (viewport_mode != MODE_NONE) {
         /*int width, height;
