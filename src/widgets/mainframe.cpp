@@ -57,70 +57,68 @@ enum {
 
 MainFrameCtrl* main_frame = nullptr;
 
-auto& lang = Editor::selected_language;
-
-MainFrameCtrl::MainFrameCtrl() : wxFrame(NULL, wxID_ANY, lang->title_bar, wxDefaultPosition, wxSize(800, 600), wxDEFAULT_FRAME_STYLE) {    
+MainFrameCtrl::MainFrameCtrl() : wxFrame(NULL, wxID_ANY, Editor::Get("title_bar"), wxDefaultPosition, wxSize(800, 600), wxDEFAULT_FRAME_STYLE) {    
     using namespace Editor::Settings;
     
     // --- MENUS ---
     wxMenu* file_menu = new wxMenu;
-    file_menu->Append(ID_Load_Cells, lang->file_menu_load, lang->file_menu_load_info);
-    file_menu->Append(ID_Save_Cells, lang->file_menu_save, lang->file_menu_save_info);
+    file_menu->Append(ID_Load_Cells, Editor::Get("file_menu_load"), Editor::Get("file_menu_load_info"));
+    file_menu->Append(ID_Save_Cells, Editor::Get("file_menu_save"), Editor::Get("file_menu_save_info"));
     file_menu->AppendSeparator();
-    file_menu->Append(wxID_EXIT, lang->file_menu_quit, lang->file_menu_quit_info);
+    file_menu->Append(wxID_EXIT, Editor::Get("file_menu_quit"), Editor::Get("file_menu_quit_info"));
  
     wxMenu* edit_menu = new wxMenu;
-    edit_menu->Append(ID_Action_Undo, lang->edit_menu_undo, lang->edit_menu_undo_info);
-    edit_menu->Append(ID_Action_Redo, lang->edit_menu_redo, lang->edit_menu_undo_info);
+    edit_menu->Append(ID_Action_Undo, Editor::Get("edit_menu_undo"), Editor::Get("edit_menu_undo_info"));
+    edit_menu->Append(ID_Action_Redo, Editor::Get("edit_menu_redo"), Editor::Get("edit_menu_undo_info"));
     edit_menu->AppendSeparator();
-    edit_menu->Append(ID_Action_Duplicate, "Duplicate\tShift-C", "Duplicate selected object.");
-    edit_menu->Append(ID_Action_Signals, "Signals\tShift-V", "Open signal editor.");
+    edit_menu->Append(ID_Action_Duplicate, Editor::Get("edit_menu_duplicate"), Editor::Get("edit_menu_duplicate_info"));
+    edit_menu->Append(ID_Action_Signals, Editor::Get("edit_menu_signals"), Editor::Get("edit_menu_signals_info"));
     edit_menu->AppendSeparator();
-    edit_menu->Append(ID_Action_CenterOrigin, "Center Origin on AABB", "Center origin on AABB.");
+    edit_menu->Append(ID_Action_CenterOrigin, Editor::Get("edit_menu_center_aabb"), Editor::Get("edit_menu_center_aabb_info"));
  
     wxMenu* view_menu = new wxMenu;
-    view_menu->Append(ID_Settings_View_Move_To_Selection, "Center On Selection", "Centers view on selection");
+    view_menu->Append(ID_Settings_View_Move_To_Selection, Editor::Get("view_menu_center_selection"), Editor::Get("view_menu_center_selection_info"));
  
     wxMenu* settings_menu = new wxMenu;
-    settings_menu->AppendRadioItem(ID_Settings_Space_World, lang->settings_menu_world_space, lang->settings_menu_world_space_info)->Check(TRANSFORM_SPACE == SPACE_WORLD);
-    settings_menu->AppendRadioItem(ID_Settings_Space_Entity, lang->settings_menu_entity_space, lang->settings_menu_entity_space_info)->Check(TRANSFORM_SPACE == SPACE_ENTITY);
-    settings_menu->AppendRadioItem(ID_Settings_Space_World, lang->settings_menu_entity_group_space, lang->settings_menu_entity_group_space_info)->Check(TRANSFORM_SPACE == SPACE_ENTITYGROUP);
+    settings_menu->AppendRadioItem(ID_Settings_Space_World, Editor::Get("settings_menu_world_space"), Editor::Get("settings_menu_world_space_info"))->Check(TRANSFORM_SPACE == SPACE_WORLD);
+    settings_menu->AppendRadioItem(ID_Settings_Space_Entity, Editor::Get("settings_menu_entity_space"), Editor::Get("settings_menu_entity_space_info"))->Check(TRANSFORM_SPACE == SPACE_ENTITY);
+    settings_menu->AppendRadioItem(ID_Settings_Space_World, Editor::Get("settings_menu_entity_group_space"), Editor::Get("settings_menu_entity_group_space_info"))->Check(TRANSFORM_SPACE == SPACE_ENTITYGROUP);
     settings_menu->AppendSeparator();
-    settings_menu->AppendRadioItem(ID_Settings_Angle_Radians, lang->settings_menu_radians, lang->settings_menu_radians_info)->Check(ROTATION_UNIT == ROTATION_RADIANS);
-    settings_menu->AppendRadioItem(ID_Settings_Angle_Degrees, lang->settings_menu_degrees, lang->settings_menu_degrees_info)->Check(ROTATION_UNIT == ROTATION_DEGREES);
+    settings_menu->AppendRadioItem(ID_Settings_Angle_Radians, Editor::Get("settings_menu_radians"), Editor::Get("settings_menu_radians_info"))->Check(ROTATION_UNIT == ROTATION_RADIANS);
+    settings_menu->AppendRadioItem(ID_Settings_Angle_Degrees, Editor::Get("settings_menu_degrees"), Editor::Get("settings_menu_degrees_info"))->Check(ROTATION_UNIT == ROTATION_DEGREES);
     settings_menu->AppendSeparator();
-    settings_menu->AppendRadioItem(ID_Settings_Snap_0_01, "Snap to 0.01m", "Snap")->Check(TRANSLATION_SNAP == SNAP_0_01);
-    settings_menu->AppendRadioItem(ID_Settings_Snap_0_10, "Snap to 0.1m", "Snap")->Check(TRANSLATION_SNAP == SNAP_0_10);
-    settings_menu->AppendRadioItem(ID_Settings_Snap_0_25, "Snap to 0.25m", "Snap")->Check(TRANSLATION_SNAP == SNAP_0_25);
-    settings_menu->AppendRadioItem(ID_Settings_Snap_0_50, "Snap to 0.5m", "Snap")->Check(TRANSLATION_SNAP == SNAP_0_50);
-    settings_menu->AppendRadioItem(ID_Settings_Snap_1_00, "Snap to 1m", "Snap")->Check(TRANSLATION_SNAP == SNAP_1_00);
+    settings_menu->AppendRadioItem(ID_Settings_Snap_0_01, Editor::Get("snap_to_0_01"), Editor::Get("snap"))->Check(TRANSLATION_SNAP == SNAP_0_01);
+    settings_menu->AppendRadioItem(ID_Settings_Snap_0_10, Editor::Get("snap_to_0_10"), Editor::Get("snap"))->Check(TRANSLATION_SNAP == SNAP_0_10);
+    settings_menu->AppendRadioItem(ID_Settings_Snap_0_25, Editor::Get("snap_to_0_25"), Editor::Get("snap"))->Check(TRANSLATION_SNAP == SNAP_0_25);
+    settings_menu->AppendRadioItem(ID_Settings_Snap_0_50, Editor::Get("snap_to_0_50"), Editor::Get("snap"))->Check(TRANSLATION_SNAP == SNAP_0_50);
+    settings_menu->AppendRadioItem(ID_Settings_Snap_1_00, Editor::Get("snap_to_1_00"), Editor::Get("snap"))->Check(TRANSLATION_SNAP == SNAP_1_00);
     settings_menu->AppendSeparator();
-    settings_menu->AppendRadioItem(ID_Settings_Snap_15, "Snap to 15°", "Snap")->Check(ROTATION_SNAP == SNAP_15);
-    settings_menu->AppendRadioItem(ID_Settings_Snap_30, "Snap to 30°", "Snap")->Check(ROTATION_SNAP == SNAP_30);
-    settings_menu->AppendRadioItem(ID_Settings_Snap_45, "Snap to 45°", "Snap")->Check(ROTATION_SNAP == SNAP_45);
-    settings_menu->AppendRadioItem(ID_Settings_Snap_90, "Snap to 90°", "Snap")->Check(ROTATION_SNAP == SNAP_90);
+    settings_menu->AppendRadioItem(ID_Settings_Snap_15, Editor::Get("snap_to_15"), Editor::Get("snap"))->Check(ROTATION_SNAP == SNAP_15);
+    settings_menu->AppendRadioItem(ID_Settings_Snap_30, Editor::Get("snap_to_30"), Editor::Get("snap"))->Check(ROTATION_SNAP == SNAP_30);
+    settings_menu->AppendRadioItem(ID_Settings_Snap_45, Editor::Get("snap_to_45"), Editor::Get("snap"))->Check(ROTATION_SNAP == SNAP_45);
+    settings_menu->AppendRadioItem(ID_Settings_Snap_90, Editor::Get("snap_to_90"), Editor::Get("snap"))->Check(ROTATION_SNAP == SNAP_90);
     
     wxMenu* language_menu = new wxMenu;
     language_menu->AppendRadioItem((int) ID_Settings_Language + LANGUAGE_LV, L"Latviešu", L"Latvijas Republikas un Roņu Salas Autonomās Teritorijas valoda.")->Check(INTERFACE_LANGUAGE == LANGUAGE_LV);
     language_menu->AppendRadioItem((int) ID_Settings_Language + LANGUAGE_EN, L"English", L"Language of United Kingdom, Canada, Australia and New Zealand.")->Check(INTERFACE_LANGUAGE == LANGUAGE_EN);
     
     wxMenu* help_menu = new wxMenu;
-    help_menu->Append(ID_Hello, lang->help_menu_hello, lang->help_menu_hello_info);
-    help_menu->Append(wxID_ABOUT, lang->help_menu_about, lang->help_menu_about_info);
+    help_menu->Append(ID_Hello, Editor::Get("help_menu_hello"), Editor::Get("help_menu_hello_info"));
+    help_menu->Append(wxID_ABOUT, Editor::Get("help_menu_about"), Editor::Get("help_menu_about_info"));
  
     wxMenuBar* menu_bar = new wxMenuBar;
-    menu_bar->Append(file_menu, lang->file_menu);
-    menu_bar->Append(edit_menu, lang->edit_menu);
-    menu_bar->Append(view_menu, "View");
-    menu_bar->Append(settings_menu, lang->settings_menu);
-    menu_bar->Append(language_menu, lang->language_menu);
-    menu_bar->Append(help_menu, lang->help_menu);
+    menu_bar->Append(file_menu, Editor::Get("file_menu"));
+    menu_bar->Append(edit_menu, Editor::Get("edit_menu"));
+    menu_bar->Append(view_menu, Editor::Get("View"));
+    menu_bar->Append(settings_menu, Editor::Get("settings_menu"));
+    menu_bar->Append(language_menu, Editor::Get("language_menu"));
+    menu_bar->Append(help_menu, Editor::Get("help_menu"));
 
  
     SetMenuBar(menu_bar);
  
     CreateStatusBar();
-    SetStatusText(lang->info_ready);
+    SetStatusText(Editor::Get("info_ready"));
     
     Bind(wxEVT_MENU, &MainFrameCtrl::OnAction, this);
     
@@ -151,10 +149,10 @@ MainFrameCtrl::MainFrameCtrl() : wxFrame(NULL, wxID_ANY, lang->title_bar, wxDefa
     
     m_mgr.SetManagedWindow(this);
 
-    m_mgr.AddPane(world_tree, wxLEFT, lang->world_tree);
-    m_mgr.AddPane(property_panel, wxLEFT, lang->property_panel);
-    m_mgr.AddPane(object_list, wxBOTTOM, lang->object_list);
-    m_mgr.AddPane(output_text_ctrl, wxBOTTOM, lang->output_text);
+    m_mgr.AddPane(world_tree, wxLEFT, Editor::Get("world_tree"));
+    m_mgr.AddPane(property_panel, wxLEFT, Editor::Get("property_panel"));
+    m_mgr.AddPane(object_list, wxBOTTOM, Editor::Get("object_list"));
+    m_mgr.AddPane(output_text_ctrl, wxBOTTOM, Editor::Get("output_text"));
     m_mgr.AddPane(viewport, wxCENTER, L"HUMONGOUS");
     
     m_mgr.GetPane(world_tree).CloseButton(false);
@@ -187,7 +185,7 @@ void MainFrameCtrl::OnLoadCells(wxCommandEvent& event) {
 
 void MainFrameCtrl::OnClose(wxCloseEvent& event) {
     if (event.CanVeto() && Editor::data_modified) {
-        wxMessageDialog confirmation (this, lang->dialog_save_data, lang->dialog_data_loss, wxYES_NO | wxCANCEL | wxCANCEL_DEFAULT | wxICON_EXCLAMATION);
+        wxMessageDialog confirmation (this, Editor::Get("dialog_save_data"), Editor::Get("dialog_data_loss"), wxYES_NO | wxCANCEL | wxCANCEL_DEFAULT | wxICON_EXCLAMATION);
         auto result = confirmation.ShowModal();
         
         if(result == wxID_YES) {
@@ -212,10 +210,10 @@ void MainFrameCtrl::OnExit(wxCommandEvent& event) {
 void MainFrameCtrl::OnAbout(wxCommandEvent& event)
 {
     wxAboutDialogInfo aboutInfo;
-    aboutInfo.SetName(lang->dialog_about_name);
+    aboutInfo.SetName(Editor::Get("dialog_about_name"));
     aboutInfo.SetVersion(L"v0.0.3");
-    aboutInfo.SetDescription(lang->dialog_description);
-    aboutInfo.SetCopyright(lang->dialog_copyright + L" (C) Lielais Čunguss 2022-2024");
+    aboutInfo.SetDescription(Editor::Get("dialog_description"));
+    aboutInfo.SetCopyright(Editor::Get("dialog_copyright") + L" (C) Lielais Čunguss 2022-2024");
     aboutInfo.SetWebSite(L"https://github.com/racenis/tram-sdk");
     wxAboutBox(aboutInfo);
 }
@@ -277,10 +275,11 @@ void MainFrameCtrl::OnAction(wxCommandEvent& event) {
             int selected = event.GetId() - ID_Settings_Language;
             if (selected >= 0 && selected < 100) {
                 INTERFACE_LANGUAGE = (Language) selected;
-                Editor::selected_language = Editor::Languages[selected];
-                Editor::ResetRename();
+                //Editor::selected_language = Editor::Languages[selected];
+                //Editor::ResetRename();
+                Editor::ResetLanguage();
                 Editor::Settings::Save();
-                wxMessageDialog info_some (this, lang->dialog_change_language, lang->dialog_change_language_title, wxOK | wxOK_DEFAULT | wxICON_INFORMATION);
+                wxMessageDialog info_some (this, Editor::Get("dialog_change_language"), Editor::Get("dialog_change_language_title"), wxOK | wxOK_DEFAULT | wxICON_INFORMATION);
                 info_some.ShowModal();
             } else {
                 std::cout << "SETTINGS_ERROR" << std::endl;

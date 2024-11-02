@@ -10,7 +10,7 @@ namespace Editor {
 
 class WorldCell : public Object {
 public:
-    WorldCell(Object* parent) : WorldCell(parent, "New Worldcell") {}
+    WorldCell(Object* parent) : WorldCell(parent, "new-worldcell") {}
     WorldCell(Object* parent, std::string name) : Object(parent), 
         group_manager(std::make_shared<EntityGroupManager>(this)), 
         transition_manager(std::make_shared<TransitionManager>(this)) {
@@ -34,16 +34,16 @@ public:
     
     std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
-            {"name", "Name", "", PROPERTY_STRING}
+            {"name", "name", "", PROPERTY_STRING}
         };
     }
     
     std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
             {"group-worldcell", "Worldcell", "", PROPERTY_CATEGORY},
-            {"name", "Name", "group-worldcell", PROPERTY_STRING},
-            {"is-interior", "Interior", "group-worldcell", PROPERTY_BOOL},
-            {"is-interior-lighting", "Interior Lighting", "group-worldcell", PROPERTY_BOOL}
+            {"name", "name", "group-worldcell", PROPERTY_STRING},
+            {"is-interior", "interior", "group-worldcell", PROPERTY_BOOL},
+            {"is-interior-lighting", "interior_lighting", "group-worldcell", PROPERTY_BOOL}
         };
     }
     

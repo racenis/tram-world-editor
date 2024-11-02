@@ -29,31 +29,31 @@ void Editor::PropertyPanel::SetCurrentSelection() {
                         case PROPERTY_VECTOR:
                         case PROPERTY_ORIGIN:
                         case PROPERTY_DIRECTION:
-                            field_ptr = new wxStringProperty(Editor::PropertyRename(field.display_name), field.name);
+                            field_ptr = new wxStringProperty(Editor::Get(field.display_name), field.name);
                             break;
                         case PROPERTY_FLOAT:
-                            field_ptr = new wxFloatProperty(Editor::PropertyRename(field.display_name), field.name);
+                            field_ptr = new wxFloatProperty(Editor::Get(field.display_name), field.name);
                             break;
                         case PROPERTY_INT:
-                            field_ptr = new wxIntProperty(Editor::PropertyRename(field.display_name), field.name);
+                            field_ptr = new wxIntProperty(Editor::Get(field.display_name), field.name);
                             break;
                         case PROPERTY_UINT:
                         case PROPERTY_FLAG:
-                            field_ptr = new wxUIntProperty(Editor::PropertyRename(field.display_name), field.name);
+                            field_ptr = new wxUIntProperty(Editor::Get(field.display_name), field.name);
                             break;
                         case PROPERTY_ENUM:
                             {
                                 wxPGChoices choices;
-                                for (auto& enumeration: PROPERTY_ENUMERATIONS[field.name]) choices.Add(Editor::PropertyRename(enumeration));
-                                field_ptr = new wxEnumProperty(Editor::PropertyRename(field.display_name), field.name, choices);
+                                for (auto& enumeration: PROPERTY_ENUMERATIONS[field.name]) choices.Add(Editor::Get(enumeration));
+                                field_ptr = new wxEnumProperty(Editor::Get(field.display_name), field.name, choices);
                             }
                             break;
                         case PROPERTY_BOOL:
-                            field_ptr = new wxBoolProperty(Editor::PropertyRename(field.display_name), field.name);
+                            field_ptr = new wxBoolProperty(Editor::Get(field.display_name), field.name);
                             field_ptr->SetAttribute("UseCheckbox", 1);
                             break;
                         case PROPERTY_CATEGORY:
-                            field_ptr = new wxPropertyCategory(Editor::PropertyRename(field.display_name), field.name);
+                            field_ptr = new wxPropertyCategory(Editor::Get(field.display_name), field.name);
                             field_ptr->ChangeFlag(wxPG_PROP_COLLAPSED, category_is_collapsed[field.name]);
                             break;
                         case PROPERTY_NULL:
@@ -96,7 +96,7 @@ void Editor::PropertyPanel::SetCurrentSelection() {
 
             switch (value.type) {
                 case PROPERTY_STRING:
-                    field->SetValue(Editor::PropertyRename(value.str_value));
+                    field->SetValue(Editor::Get(value.str_value));
                     break;
                 case PROPERTY_FLOAT:
                     field->SetValue(value.float_value);

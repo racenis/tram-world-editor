@@ -7,7 +7,7 @@ namespace Editor {
 
 class EntityGroup : public Object {
 public:
-    EntityGroup(Object* parent) : EntityGroup(parent, std::string("New Entity Group")) {}
+    EntityGroup(Object* parent) : EntityGroup(parent, std::string("new-entity-group")) {}
     EntityGroup(Object* parent, std::string name) : Object(parent) {
         properties["name"] = name;
     }
@@ -24,16 +24,16 @@ public:
     
     std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
-            {"name", "Name", "", PROPERTY_STRING},
-            {"position-x", "X", "", PROPERTY_FLOAT},
-            {"position-y", "Y", "", PROPERTY_FLOAT},
-            {"position-z", "Z", "", PROPERTY_FLOAT}
+            {"name", "name", "", PROPERTY_STRING},
+            {"position-x", "x", "", PROPERTY_FLOAT},
+            {"position-y", "y", "", PROPERTY_FLOAT},
+            {"position-z", "z", "", PROPERTY_FLOAT}
         };
     }
     
     std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
-            {"group-entity-group", "Entity Group", "", PROPERTY_CATEGORY},
+            {"group-entity-group", "entity_group", "", PROPERTY_CATEGORY},
             {"name", "Name", "group-entity-group", PROPERTY_STRING}
         };
     }

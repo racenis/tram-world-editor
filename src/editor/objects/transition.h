@@ -15,7 +15,7 @@ public:
             properties["position-z"] = 0.0f;
         }
         
-        std::string_view GetName() { return "Transition Node"; }
+        std::string_view GetName() { return "transition_node"; }
         
         bool IsChildrenTreeable() { return false; }
         bool IsChildrenListable() { return false; }
@@ -32,7 +32,7 @@ public:
         
         std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
             return std::vector<PropertyDefinition> {
-                {"group-transition-node", "Transition Node", "", PROPERTY_CATEGORY},
+                {"group-transition-node", "transition_node", "", PROPERTY_CATEGORY},
                 {"position-x", "X", "group-transition-node", PROPERTY_FLOAT},
                 {"position-y", "Y", "group-transition-node", PROPERTY_FLOAT},
                 {"position-z", "Z", "group-transition-node", PROPERTY_FLOAT}
@@ -41,7 +41,7 @@ public:
     };
 
     Transition(Object* parent) : Object(parent) {
-        properties["name"] = std::string("New Transition");
+        properties["name"] = std::string("new-transition");
         properties["cell-into"] = std::string("none");
     }
     
@@ -59,15 +59,15 @@ public:
     
     std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
-            {"position-x", "X", "", PROPERTY_FLOAT},
-            {"position-y", "Y", "", PROPERTY_FLOAT},
-            {"position-z", "Z", "", PROPERTY_FLOAT}
+            {"position-x", "x", "", PROPERTY_FLOAT},
+            {"position-y", "y", "", PROPERTY_FLOAT},
+            {"position-z", "z", "", PROPERTY_FLOAT}
         };
     }
     
     std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
-            {"group-transition", "Transition", "", PROPERTY_CATEGORY},
+            {"group-transition", "transition", "", PROPERTY_CATEGORY},
             {"name", "Name", "group-transition", PROPERTY_STRING},
             {"cell-into", "Into", "group-transition", PROPERTY_STRING},
         };

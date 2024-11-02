@@ -30,7 +30,7 @@ namespace Editor::WorldTree {
         
         // if parent is in tree and object isn't in the tree
         auto node_to_parent_to =  wxTreeItemId(obj_to_treeId[object->parent]);
-        auto new_node = world_tree->AppendItem(node_to_parent_to, Editor::PropertyRename(std::string(object->GetName())));
+        auto new_node = world_tree->AppendItem(node_to_parent_to, Editor::Get(std::string(object->GetName())));
         
         obj_to_treeId[object] = new_node.GetID();
         treeId_to_obj[new_node.GetID()] = object;
@@ -67,12 +67,12 @@ namespace Editor::WorldTree {
     
     void Rename (Object* object) {
         if (!obj_to_treeId[object]) return;
-        world_tree->SetItemText(obj_to_treeId[object], Editor::PropertyRename(std::string(object->GetName())));
+        world_tree->SetItemText(obj_to_treeId[object], Editor::Get(std::string(object->GetName())));
     }
     
     void Rebuild () {
         world_tree->DeleteAllItems();
-        root_node = world_tree->AddRoot(Editor::PropertyRename(std::string(WORLD->GetName())));
+        root_node = world_tree->AddRoot(Editor::Get(std::string(WORLD->GetName())));
         obj_to_treeId.clear();
         treeId_to_obj.clear();
         

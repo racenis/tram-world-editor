@@ -75,6 +75,11 @@ void WorldCell::LoadFromDisk() {
             } else if (param_type == "name") {
                 signal.param_type = "name";
                 signal.param = (const char*)file.read_name(); // yes, good
+            } else if (param_type == "vec3") {
+                vec3 vec = {file.read_float32(), file.read_float32(), file.read_float32()};
+                
+                signal.param_type = "vec3";
+                signal.param = std::to_string(vec.x) + " " + std::to_string(vec.y) + " " + std::to_string(vec.z);
             }
             
             loaded_entities[source]->signals.push_back(signal);
@@ -223,6 +228,9 @@ void WorldCell::SaveToDisk() {
                         file.write_name(s.param);
                     } else if (s.param_type == "name") {
                         file.write_name("name");
+                        file.write_name(s.param);
+                    } else if (s.param_type == "vec3") {
+                        file.write_name("vec3");
                         file.write_name(s.param);
                     }
                     

@@ -4,13 +4,13 @@
 
 ## To-do list
 
+- Add path connection tool
+- Add path extrusion tool
+- Implement navmeshes
+- Duplicating should trigger move tool
 - Make signal list let you search for entities by name
 - Add to config a list which signals each entity has
-- Rewrite parts of code to make it more understandable
-	- Current languaging system not good
 - Add thing that lets you do stuff in degrees
-- ~~Add menu to select grid size~~
-- ~~Add snapping to grid~~
 - Make navmesh editing easier
 - Add thing that adds a default id to entities
 - Also default name should be none

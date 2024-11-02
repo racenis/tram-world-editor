@@ -1,16 +1,11 @@
 #include <editor/objects/path.h>
 
 #include <framework/file.h>
+#include <render/render.h>
 
 namespace Editor {
 
 using namespace tram;
-
-static uint64_t path_id_counter = 0;
-
-uint64_t Path::GetNewID() {
-    return ++path_id_counter;
-}
 
 void Path::LoadFromDisk() {
     std::string path = "data/paths/";
@@ -53,10 +48,27 @@ void Path::LoadFromDisk() {
             Node* from_node = nodes[from_node_index];
             Node* to_node = nodes[to_node_index];
             
-            Edge edge = {.from = from_node, .to = to_node};
+            Edge* existing = nullptr;
+            for (auto& edge : edges) {
+                const bool a_to_b = edge.a == from_node && edge.b == to_node;
+                const bool b_to_a = edge.a == to_node && edge.b == from_node;
+                if (a_to_b || b_to_a) {
+                    existing = &edge;
+                }
+            }
             
-            from_node->outgoing.push_back(edge);
-            
+            if (existing) {
+                if (from_node == existing->a && existing->type == BA) {
+                    existing->type = BI;
+                } else if (from_node == existing->b && existing->type == AB) {
+                    existing->type = BI;
+                } else {
+                    std::cout << "Error parsing " << path << ", edge" << from_node_index << " -> " << to_node_index << " duplicate." << std::endl;
+                }
+            } else {
+                Edge edge = {.a = from_node, .b = to_node, .type = AB, .dormant = false};
+                edges.push_back(edge);
+            }
         } else {
             std::cout << "unknown path record: " << record_type << std::endl;
         }
@@ -93,16 +105,145 @@ void Path::SaveToDisk() {
     
     file.write_newline();
     
-    for (auto& child : children) {
-        for (auto& edge : dynamic_cast<Node*>(child.get())->GetOutgoing()) {
+    for (auto& edge : edges) {
+        if (edge.type == AB || edge.type == BI) {
             file.write_name("edge");
             
-            file.write_uint32(edge.from->GetProperty("id"));
-            file.write_uint32(edge.to->GetProperty("id"));
+            file.write_uint32(edge.a->GetProperty("id"));
+            file.write_uint32(edge.b->GetProperty("id"));
+            
+            file.write_newline();
+        }
+        
+        if (edge.type == BA || edge.type == BI) {
+            file.write_name("edge");
+            
+            file.write_uint32(edge.b->GetProperty("id"));
+            file.write_uint32(edge.a->GetProperty("id"));
             
             file.write_newline();
         }
     }
+}
+
+void Path::Draw () {
+    for (auto& child : children) {
+        vec3 position = {
+            child->GetProperty("position-x"),
+            child->GetProperty("position-y"),
+            child->GetProperty("position-z")
+        };
+        
+        Render::AddLineAABB({-0.1f, -0.1f, -0.1f}, {0.1f, 0.1f, 0.1f}, position, vec3(0.0f, 0.0f, 0.0f), Render::COLOR_GREEN);
+    }
+    
+    for (auto& edge : edges) {
+        if (edge.dormant) continue;
+        vec3 node_a = {
+            edge.a->GetProperty("position-x"),
+            edge.a->GetProperty("position-y"),
+            edge.a->GetProperty("position-z")
+        };
+        
+        vec3 node_b = {
+            edge.b->GetProperty("position-x"),
+            edge.b->GetProperty("position-y"),
+            edge.b->GetProperty("position-z")
+        };
+        
+        Render::AddLine(node_a, node_b, Render::COLOR_WHITE);
+    }
+    
+}
+
+void Path::Node::Draw() {
+    parent->Draw();
+    
+    vec3 pos = {
+        this->GetProperty("position-x"),
+        this->GetProperty("position-y"),
+        this->GetProperty("position-z")
+    };
+    
+    Render::AddLineAABB({-0.2f, -0.2f, -0.2f}, {0.2f, 0.2f, 0.2f}, pos, vec3(0.0f, 0.0f, 0.0f), Render::COLOR_RED);    
+}
+
+std::shared_ptr<Object> Path::Node::Extrude() {
+    //auto new_node = std::make_shared<Node>(this);
+    auto new_node = std::dynamic_pointer_cast<Path::Node>(parent->AddChild());
+    
+    new_node->SetProperty("id", parent->GetChildren().size());
+
+    new_node->SetProperty("position-x", this->GetProperty("position-x"));
+    new_node->SetProperty("position-y", this->GetProperty("position-y"));
+    new_node->SetProperty("position-z", this->GetProperty("position-z"));
+    
+    //parent->AddChild(new_node);
+
+    Edge edge;
+    
+    edge.a = this;
+    edge.b = new_node.get();
+    edge.type = BI;
+    edge.dormant = false;
+
+    dynamic_cast<Path*>(parent)->edges.push_back(edge);
+    
+    return new_node;
+}
+
+void Path::Node::Connect(std::shared_ptr<Object> object) {
+    Node* other = dynamic_cast<Node*>(object.get());
+    
+    Edge* existing = nullptr;
+    for (auto& edge : dynamic_cast<Path*>(parent)->edges) {
+        const bool a_to_b = edge.a == this && edge.b == other;
+        const bool b_to_a = edge.a == other && edge.b == this;
+        if (a_to_b || b_to_a) {
+            existing = &edge;
+        }
+    }
+    
+    if (existing) {
+        existing->dormant = false;
+        existing->type = BI;
+    } else {
+        Edge edge = {.a = this, .b = other, .type = BI, .dormant = false};
+        dynamic_cast<Path*>(parent)->edges.push_back(edge);
+    }
+}
+
+void Path::Node::Disconnect(std::shared_ptr<Object> object) {
+    Node* other = dynamic_cast<Node*>(object.get());
+    
+    Edge* existing = nullptr;
+    for (auto& edge : dynamic_cast<Path*>(parent)->edges) {
+        const bool a_to_b = edge.a == this && edge.b == other;
+        const bool b_to_a = edge.a == other && edge.b == this;
+        if (a_to_b || b_to_a) {
+            existing = &edge;
+        }
+    }
+    
+    if (existing) {
+        existing->dormant = true;
+    } else {
+        std::cout << "not connentexc" << std::endl;
+    }
+}
+
+bool Path::Node::IsConnected(std::shared_ptr<Object> object) {
+    Node* other = dynamic_cast<Node*>(object.get());
+    
+    for (auto& edge : dynamic_cast<Path*>(parent)->edges) {
+        const bool a_to_b = edge.a == this && edge.b == other;
+        const bool b_to_a = edge.a == other && edge.b == this;
+        if (a_to_b || b_to_a) {
+            if (!edge.dormant) return true;
+        }
+    }
+    
+    return false;
 }
 
 }

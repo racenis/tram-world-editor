@@ -59,7 +59,7 @@ void Load() {
             }
         }
     } else {
-        std::wcout << selected_language->dialog_settings_not_found << std::endl;
+        std::wcout << Get("Settings not found!") << std::endl;
     }
 }
 

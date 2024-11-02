@@ -11,7 +11,7 @@ public:
         auto default_group = std::make_shared<EntityGroup>(this, "[default]");
         children.push_back(default_group);
         
-        properties["name"] = std::string("Entities");
+        properties["name"] = std::string("entity-manager");
     }
     
     bool IsChildrenTreeable() { return true; }
@@ -23,13 +23,13 @@ public:
     
     std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
-            {"name", "Name", "", PROPERTY_STRING}
+            {"name", "name", "", PROPERTY_STRING}
         };
     }
     
     std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
-            {"group-entity-group-manager", "Entity Group Manager", "", PROPERTY_CATEGORY}
+            {"group-entity-group-manager", "entity_group_manager", "", PROPERTY_CATEGORY}
         };
     }
     

@@ -383,6 +383,148 @@ public:
     std::list<std::pair<std::shared_ptr<Object>, PropertyValue>> origin_backups;
 };
 
+class ActionExtrude : public Action {
+public:
+    ActionExtrude() {
+        if (SELECTION->objects.size() == 0 ) {
+            std::cout << "Need a lest a single objec tto extrude!" << std::endl;
+            failed = true;
+            return;
+        }
+        
+        auto dupables = SELECTION->objects;
+        SELECTION->objects.clear();
+        
+        for (auto& object : dupables) {
+            auto dupe = object->Extrude();
+            
+            dupe->SetHidden(object->IsHidden());
+            auto parent = dupe->GetParent();
+            
+            if (parent->IsChildrenTreeable()) {
+                 Editor::WorldTree::Add(dupe.get());
+            }
+            
+            SELECTION->objects.push_back(dupe);
+            
+            duped_objects.push_back({parent, dupe});
+        }
+        Editor::PropertyPanel::Refresh();
+        Editor::Viewport::Refresh();
+    }
+    
+    void Perform() {
+        if (failed) return;
+        
+        SELECTION->objects.clear();
+        
+        for (auto& [parent, dupe, was_hidden] : duped_objects) {
+            parent->AddChild(dupe);
+            dupe->SetHidden(was_hidden);
+            
+            if (parent->IsChildrenTreeable()) {
+                Editor::WorldTree::Add(dupe.get()); 
+            }
+            
+            SELECTION->objects.push_back(dupe);
+        }
+        
+        Editor::PropertyPanel::Refresh();
+        Editor::Viewport::Refresh();
+    }
+    
+    void Unperform() {
+        if (failed) return;
+        
+        SELECTION->objects.clear();
+        
+        for (auto& [parent, dupe, was_hidden] : duped_objects) {
+            was_hidden = dupe->IsHidden();
+            parent->RemoveChild(dupe);
+            dupe->SetHidden(true);
+            
+            if (parent->IsChildrenTreeable()) {
+                Editor::WorldTree::Remove(dupe.get());
+            }
+            
+            SELECTION->objects.push_back(parent);
+        }
+        
+        Editor::PropertyPanel::Refresh();
+        Editor::Viewport::Refresh();
+    }
+    
+    bool failed = false;
+    
+    struct ParentDupePair {
+        std::shared_ptr<Object> parent;
+        std::shared_ptr<Object> dupe;
+        bool was_hidden;
+    };
+    
+    std::list<ParentDupePair> duped_objects;
+};
+
+class ActionConnect : public Action {
+public:
+
+    ActionConnect() {
+        if (SELECTION->objects.size() != 2) {
+            std::cout << "we can  only connect 2 objects" << std::endl;
+            failed = true;
+            return;
+        }
+        
+        object_a = *SELECTION->objects.begin();
+        object_b = *++SELECTION->objects.begin();
+        
+        std::cout << "object_a "<< object_a.get() << " object b " << object_b.get() << std::endl;
+        
+        connect = !object_a->IsConnected(object_b);
+        
+        if (connect) {
+            object_a->Connect(object_b);
+        } else {
+            object_a->Disconnect(object_b);
+        }
+        
+        failed = false;
+        Editor::data_modified = true;
+        
+        Editor::Viewport::Refresh();
+    }
+    
+    void Perform () {
+        if (failed) return;
+        
+        if (connect) {
+            object_a->Connect(object_b);
+        } else {
+            object_a->Disconnect(object_b);
+        }
+        
+        Editor::Viewport::Refresh();
+    }
+    
+    void Unperform() {
+        if (failed) return;
+        
+        if (connect) {
+            object_a->Disconnect(object_b);
+        } else {
+            object_a->Connect(object_b);
+        }
+        
+        Editor::Viewport::Refresh();
+    }
+    
+    std::shared_ptr<Object> object_a;
+    std::shared_ptr<Object> object_b;
+    
+    bool failed = false;
+    bool connect = false;
+};
+
 /*class ActionSwapSelection : public Action {
 public:
     ActionSwapSelection (std::shared_ptr<Selection> new_selection) {

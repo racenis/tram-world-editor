@@ -22,7 +22,7 @@ struct Signal {
     
 class Entity : public Object {
 public:
-    Entity(Object* parent) : Entity(parent, "New Entity") {}
+    Entity(Object* parent) : Entity(parent, "none") {}
     Entity(Object* parent, std::string name) : Object(parent) {
         properties["name"] = name;
         properties["action"] = std::string("none");

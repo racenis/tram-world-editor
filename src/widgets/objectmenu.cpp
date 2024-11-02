@@ -10,12 +10,12 @@
 ObjectMenuCtrl* world_tree_popup = nullptr;
 
 ObjectMenuCtrl::ObjectMenuCtrl () : wxMenu() {
-    is_visible_checkbox = AppendCheckItem(1, Editor::selected_language->dialog_show); 
-    add_selection = Append(2, Editor::selected_language->dialog_add_new);
-    edit_selection = Append(3, Editor::selected_language->dialog_edit);
-    duplicate_selection = Append(4, L"Duplicate");
-    duplicate_selection = Append(5, L"Signals");
-    delete_selection = Append(6, Editor::selected_language->dialog_delete);
+    is_visible_checkbox = AppendCheckItem(1, Editor::Get("dialog_show")); 
+    add_selection = Append(2, Editor::Get("dialog_add_new"));
+    edit_selection = Append(3, Editor::Get("dialog_edit"));
+    duplicate_selection = Append(4,Editor::Get("dialog_duplicate"));
+    duplicate_selection = Append(5, Editor::Get("dialog_signals"));
+    delete_selection = Append(6, Editor::Get("dialog_delete"));
     
     this->Bind(wxEVT_MENU, &ObjectMenuCtrl::OnIsVisibleCheckboxClick, this, 1);
     this->Bind(wxEVT_MENU, &ObjectMenuCtrl::OnAddSelection, this, 2);

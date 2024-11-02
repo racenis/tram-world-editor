@@ -292,9 +292,14 @@ public:
     
     virtual std::string_view GetName() { return properties["name"].str_value; }
     
-    void AddChild(std::shared_ptr<Object> child) { children.push_back(child); }
-    void RemoveChild(std::shared_ptr<Object> child) { children.remove(child); }
+    virtual void AddChild(std::shared_ptr<Object> child) { children.push_back(child); }
+    virtual void RemoveChild(std::shared_ptr<Object> child) { children.remove(child); }
     virtual std::list<std::shared_ptr<Object>> GetChildren() { return children; }
+
+    virtual std::shared_ptr<Object> Extrude() { std::cout << "Extrude() not implemented for " << typeid(*this).name() << std::endl; return this->GetPointer(); }
+    virtual void Connect(std::shared_ptr<Object> other) { std::cout << "Connect() not implemented for " << typeid(*this).name() << std::endl; }
+    virtual void Disconnect(std::shared_ptr<Object> other) { std::cout << "Connect() not implemented for " << typeid(*this).name() << std::endl; }
+    virtual bool IsConnected(std::shared_ptr<Object> other) { std::cout << "Connect() not implemented for " << typeid(*this).name() << std::endl; return false; }
 
     bool is_hidden = true;
     Object* parent = nullptr;

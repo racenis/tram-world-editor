@@ -52,7 +52,7 @@ void Editor::ObjectList::SetCurrentSelection() {
         columns = selected_object->GetListPropertyDefinitions();
         
         for (size_t i = 0; i < columns.size(); i++) {
-            object_list->InsertColumn(i, Editor::PropertyRename(columns[i].display_name));
+            object_list->InsertColumn(i, Editor::Get(columns[i].display_name));
         }
         
         object_list->SetItemCount(selected_object->GetChildren().size());
@@ -106,7 +106,7 @@ wxString ObjectListCtrl::OnGetItemText (long item, long column) const {
     
     switch (value.type) {
         case PROPERTY_STRING: 
-            return wxString(Editor::PropertyRename(value.str_value));
+            return wxString(Editor::Get(value.str_value));
         case PROPERTY_FLOAT:
             return wxString(std::to_string(value.float_value));
         case PROPERTY_INT:

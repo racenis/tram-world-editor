@@ -8,10 +8,10 @@ namespace Editor {
 class TransitionManager : public Object {
 public:
     TransitionManager(Object* parent) : Object(parent) {
-        properties["name"] = std::string("Transitions");
+        properties["name"] = std::string("transitions");
     }
     
-    std::string_view GetName() { return "Transitions"; }
+    std::string_view GetName() { return "transitions"; }
     
     bool IsChildrenTreeable() { return true; }
     bool IsChildrenListable() { return true; }
@@ -22,13 +22,13 @@ public:
     
     std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
-            {"name", "Name", "", PROPERTY_STRING}
+            {"name", "name", "", PROPERTY_STRING}
         };
     }
     
     std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
-            {"group-transition-manager", "Transition Manager", "", PROPERTY_CATEGORY}
+            {"group-transition-manager", "transition_manager", "", PROPERTY_CATEGORY}
         };
     }
     

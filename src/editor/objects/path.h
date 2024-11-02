@@ -9,25 +9,29 @@ class Path : public Object {
 public:
     class Node;
     
+    enum EdgeType {
+        AB,
+        BA,
+        BI
+    };
+    
     struct Edge {
-        Node* from;
-        Node* to;
+        Node* a;
+        Node* b;
+        EdgeType type;
+        bool dormant;
     };
     
     class Node : public Object {
     public:
         Node (Object* parent) : Object(parent) {
-            properties["id"] = GetNewID();
-            properties["next-id"] = 0;
-            properties["prev-id"] = 0;
-            properties["left-id"] = 0;
-            properties["right-id"] = 0;
+            properties["id"] = PropertyValue::UInt(parent->GetChildren().size());
             properties["position-x"] = 0.0f;
             properties["position-y"] = 0.0f;
             properties["position-z"] = 0.0f;
         }
         
-        std::string_view GetName() { return "Path Node"; }
+        std::string_view GetName() { return "path_node"; }
         
         bool IsChildrenTreeable() { return false; }
         bool IsChildrenListable() { return false; }
@@ -36,9 +40,14 @@ public:
         bool IsEditable() { return true; }
         bool IsCopyable() { return true; }
         
-        std::list<Edge> GetOutgoing() { return outgoing; }
+        std::shared_ptr<Object> Extrude();
+        void Connect(std::shared_ptr<Object> other);
+        void Disconnect(std::shared_ptr<Object> other);
+        bool IsConnected(std::shared_ptr<Object> other);
         
-        std::list<Edge> outgoing;
+        float SelectSize() { return 5.0f; }
+        
+        void Draw();
         
         std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
             return std::vector<PropertyDefinition> {
@@ -64,27 +73,40 @@ public:
     bool IsEditable() { return true; }
     bool IsCopyable() { return true; }
     
+    std::list<Edge> GetEdges() { return edges; }
+    std::list<Edge> edges;
+    
+    void Draw();
+    
     void LoadFromDisk();
     void SaveToDisk();
     
-    static uint64_t GetNewID();
-    
     std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
-            {"position-x", "X", "", PROPERTY_FLOAT},
-            {"position-y", "Y", "", PROPERTY_FLOAT},
-            {"position-z", "Z", "", PROPERTY_FLOAT}
+            {"position-x", "x", "", PROPERTY_FLOAT},
+            {"position-y", "y", "", PROPERTY_FLOAT},
+            {"position-z", "z", "", PROPERTY_FLOAT}
         };
     }
     
     std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
-            {"group-path", "Path", "", PROPERTY_CATEGORY},
+            {"group-path", "path", "", PROPERTY_CATEGORY},
             {"name", "Name", "group-path", PROPERTY_STRING}
         };
     }
     
     std::shared_ptr<Object> AddChild() { auto child = std::make_shared<Node>(this); children.push_back(child); return child; }
+    
+    void ReindexChildren() {
+        uint32_t id = 0;
+        for (auto& child : children) {
+            child->SetProperty("id", PropertyValue::UInt(id++));
+        }
+    }
+    
+    void AddChild(std::shared_ptr<Object> child) { children.push_back(child); ReindexChildren(); }
+    void RemoveChild(std::shared_ptr<Object> child) { children.remove(child); ReindexChildren(); }
 };
 
 }

@@ -17,7 +17,7 @@ public:
         navmesh_manager (std::make_shared<NavmeshManager>(this)),
         worldcell_manager (std::make_shared<WorldCellManager>(this))
     {
-        properties["name"] = std::string("World");
+        properties["name"] = std::string("world");
         
         children.push_back(worldcell_manager);
         children.push_back(path_manager);
@@ -26,13 +26,13 @@ public:
     
     std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
-            {"name", "Name", "", PROPERTY_STRING}
+            {"name", "name", "", PROPERTY_STRING}
         };
     }
     
     std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
-            {"group-world", "World", "", PROPERTY_CATEGORY}
+            {"group-world", "world", "", PROPERTY_CATEGORY}
         };
     }
     

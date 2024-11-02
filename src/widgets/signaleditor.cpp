@@ -100,11 +100,12 @@ static const char* all_messages[17] = {
     "set-animation"
 };
 
-static const char* all_types[4] = {
+static const char* all_types[5] = {
 "none",    
 "int",    
 "float",
-"name"
+"name",
+"vec3"
 };
 
 enum {
@@ -149,7 +150,7 @@ SignalEditor::SignalEditor() : wxDialog(NULL, wxID_ANY, "Signal Editor", wxDefau
         message_type_value->SetString(i, all_messages[i]);
     }
     
-    parameter_type_value = new wxChoice(signal_box, INPUT_FIELD_PARAMETER_TYPE, wxDefaultPosition, wxSize(169, -1), {4, all_types});
+    parameter_type_value = new wxChoice(signal_box, INPUT_FIELD_PARAMETER_TYPE, wxDefaultPosition, wxSize(169, -1), {5, all_types});
     parameter_type_label = new wxStaticText(signal_box, INPUT_FIELD_PARAMETER_TYPE, "With a parameter type of  ");
     
     parameter_value = new wxTextCtrl(signal_box, INPUT_FIELD_PARAMETER, wxEmptyString, wxDefaultPosition, wxSize(169, -1));
@@ -326,9 +327,18 @@ void SignalEditor::Closng(wxCloseEvent& event) {
             info_some.ShowModal(); event.Veto(); return;
         }
         
-        if (/*signal.param_type != "none" &&*/ signal.param.find_first_of(" \t\r\n") != std::string::npos) {
+        if (signal.param_type != "vec3" && signal.param.find_first_of(" \t\r\n") != std::string::npos) {
             wxMessageDialog info_some (nullptr, "There is a signal that has a borked parameter. Delete it or fix the parameter.", "Signal configuration error!", wxOK | wxOK_DEFAULT | wxICON_INFORMATION);
             info_some.ShowModal(); event.Veto(); return;
+        }
+        
+        if (signal.param_type == "vec3") {
+            int spaces = 0;
+            for (auto& c : signal.param) if (isspace(c)) spaces++;
+            if (spaces != 2) {
+                wxMessageDialog info_some (nullptr, "There is a signal that has a borked parameter. Delete it or fix the parameter.", "Signal configuration error!", wxOK | wxOK_DEFAULT | wxICON_INFORMATION);
+                info_some.ShowModal(); event.Veto(); return;
+            }
         }
     }
     

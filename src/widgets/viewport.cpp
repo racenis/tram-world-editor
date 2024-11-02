@@ -1038,8 +1038,6 @@ void ViewportCtrl::OnKeydown(wxKeyEvent& event) {
 
 
     
-    
-    
     if (keycode == 'G') {
         if (viewport_tool) {
             viewport_tool->Cancel();
@@ -1058,7 +1056,28 @@ void ViewportCtrl::OnKeydown(wxKeyEvent& event) {
         viewport_tool = new RotateTool;
     }
     
+    
+    if (keycode == 'E') {
+        if (viewport_tool) {
+            //viewport_tool->Cancel();
+            delete viewport_tool;
+            //viewport_tool = nullptr;
+        }
+        
+        Editor::PerformAction<Editor::ActionExtrude>();
+        
+        viewport_tool = new TranslateTool;
+    }
 
+    if (keycode == 'F') {
+        if (viewport_tool) {
+            viewport_tool->Cancel();
+            delete viewport_tool;
+            viewport_tool = nullptr;
+        }
+        
+        Editor::PerformAction<Editor::ActionConnect>();
+    }
     
     
     
