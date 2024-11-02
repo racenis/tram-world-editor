@@ -7,6 +7,13 @@ namespace Editor {
 
 class Path : public Object {
 public:
+    class Node;
+    
+    struct Edge {
+        Node* from;
+        Node* to;
+    };
+    
     class Node : public Object {
     public:
         Node (Object* parent) : Object(parent) {
@@ -29,14 +36,14 @@ public:
         bool IsEditable() { return true; }
         bool IsCopyable() { return true; }
         
+        std::list<Edge> GetOutgoing() { return outgoing; }
+        
+        std::list<Edge> outgoing;
+        
         std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
             return std::vector<PropertyDefinition> {
                 {"group-path-node", "Path Node", "", PROPERTY_CATEGORY},
                 {"id", "ID", "group-path-node", PROPERTY_UINT},
-                {"next-id", "Next ID", "group-path-node", PROPERTY_UINT},
-                {"prev-id", "Prev ID", "group-path-node", PROPERTY_UINT},
-                {"left-id", "Left ID", "group-path-node", PROPERTY_UINT},
-                {"right-id", "Right ID", "group-path-node", PROPERTY_UINT},
                 {"group-path-node-pos", "Position", "group-path-node", PROPERTY_CATEGORY},
                 {"position-x", "X", "group-path-node-pos", PROPERTY_FLOAT},
                 {"position-y", "Y", "group-path-node-pos", PROPERTY_FLOAT},
