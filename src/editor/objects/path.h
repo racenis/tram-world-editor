@@ -105,8 +105,8 @@ public:
         }
     }
     
-    void AddChild(std::shared_ptr<Object> child) { children.push_back(child); ReindexChildren(); }
-    void RemoveChild(std::shared_ptr<Object> child) { children.remove(child); ReindexChildren(); }
+    void AddChild(std::shared_ptr<Object> child) { children.push_back(child); ReindexChildren(); for (auto& edge : edges) { if (edge.a == child.get() || edge.b == child.get()) edge.dormant = false;} }
+    void RemoveChild(std::shared_ptr<Object> child) { children.remove(child); ReindexChildren(); for (auto& edge : edges) { if (edge.a == child.get() || edge.b == child.get()) edge.dormant = true;} }
 };
 
 }
