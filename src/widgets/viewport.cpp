@@ -266,6 +266,23 @@ public:
             if (!translate_x && translate_y && !translate_z) axis = {0, 1, 0}, single_axis = true;
             if (!translate_x && !translate_y && translate_z) axis = {0, 0, 1}, single_axis = true;
             
+            vec3 object_rotation = {0.0f, 0.0f, 0.0f};
+            
+            if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITY) {
+                object_rotation = vec3 {
+                    Editor::SELECTION->objects.front()->GetProperty("rotation-x").float_value,
+                    Editor::SELECTION->objects.front()->GetProperty("rotation-y").float_value,
+                    Editor::SELECTION->objects.front()->GetProperty("rotation-z").float_value
+                };
+                
+                axis = quat(object_rotation) * axis;
+            }
+            
+            if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITYGROUP) {
+                // TODO: implement entity group transforms
+                Editor::Viewport::ShowErrorDialog("EntityGroup transform not implemented yet!");
+            }
+            
             if (single_axis) {
                 vec3 translated = middle_point + translation;
                 
@@ -275,21 +292,25 @@ public:
                 
                 translation = translated - middle_point;
             } else {
-                vec3 translated = middle_point + translation;
+                mat4 matrix = PositionRotationToMatrix(middle_point, object_rotation);
                 
+                translation += middle_point;
+                translation = glm::inverse(matrix) * vec4(translation, 1.0f);
+
                 if (translate_x && translate_y) {
-                    translated.z = middle_point.z;
+                    translation.z = 0.0f;
                 }
                 
                 if (translate_x && translate_z) {
-                    translated.y = middle_point.y;
+                    translation.y = 0.0f;
                 }
                 
                 if (translate_y && translate_z) {
-                    translated.x = middle_point.x;
+                    translation.x = 0.0f;
                 }
                 
-                translation = translated - middle_point;
+                translation = matrix * vec4(translation, 1.0f);
+                translation -= middle_point;
             }
         }
         
@@ -303,21 +324,6 @@ public:
             };
             
             auto translation_adjusted = translation;
-            
-            if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITY) {
-                glm::vec3 object_rotation = glm::vec3 {
-                    object->GetProperty("rotation-x").float_value,
-                    object->GetProperty("rotation-y").float_value,
-                    object->GetProperty("rotation-z").float_value
-                };
-                
-                translation_adjusted = glm::quat(object_rotation) * translation;
-            }
-            
-            if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITYGROUP) {
-                // TODO: implement entity group transforms
-                Editor::Viewport::ShowErrorDialog("EntityGroup transform not implemented yet!");
-            }
             
             object_position += translation_adjusted;
                             
@@ -423,6 +429,14 @@ public:
             
             quat space = {1.0f, 0.0f, 0.0f, 0.0f};
             
+            if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITY) {
+                space = vec3 {
+                    Editor::SELECTION->objects.front()->GetProperty("rotation-x").float_value,
+                    Editor::SELECTION->objects.front()->GetProperty("rotation-y").float_value,
+                    Editor::SELECTION->objects.front()->GetProperty("rotation-z").float_value
+                };
+            }
+            
             if (translate_x) AddLine(position - space * glm::vec3(100.0f, 0.0f, 0.0f), position + space * glm::vec3(100.0f, 0.0f, 0.0f), COLOR_RED);
             if (translate_y) AddLine(position - space * glm::vec3(0.0f, 100.0f, 0.0f), position + space * glm::vec3(0.0f, 100.0f, 0.0f), COLOR_GREEN);
             if (translate_z) AddLine(position - space * glm::vec3(0.0f, 0.0f, 100.0f), position + space * glm::vec3(0.0f, 0.0f, 100.0f), COLOR_BLUE);
@@ -519,14 +533,6 @@ public:
             axis_x = GetViewRotation() * axis_x;
             axis_y = GetViewRotation() * axis_y;
             
-            //axis_x = ProjectInverse(axis_x);
-            //axis_y = ProjectInverse(axis_y);
-            
-            //axis_x = glm::normalize(axis_x);
-            //axis_y = glm::normalize(axis_y);
-
-            //std::cout << axis_x.x << " " << axis_x.y << " " << axis_x.z << std::endl;
-
             rotation = glm::rotate(rotation, delta_y * 0.01f, axis_x);
             rotation = glm::rotate(rotation, delta_x * 0.01f, axis_y);
             
@@ -536,6 +542,16 @@ public:
             if (rotate_x) axis = {1.0f, 0.0f, 0.0f};
             if (rotate_y) axis = {0.0f, 1.0f, 0.0f};
             if (rotate_z) axis = {0.0f, 0.0f, 1.0f};
+            
+            if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITY) {
+                vec3 object_rotation = vec3 {
+                    Editor::SELECTION->objects.front()->GetProperty("rotation-x").float_value,
+                    Editor::SELECTION->objects.front()->GetProperty("rotation-y").float_value,
+                    Editor::SELECTION->objects.front()->GetProperty("rotation-z").float_value
+                };
+                
+                axis = quat(object_rotation) * axis;
+            }
             
             vec3 world_axis = middle_point + axis;
             vec3 world_point = middle_point;
@@ -655,6 +671,14 @@ public:
         AddLineMarker(middle_point, COLOR_YELLOW);
         
         quat space = {1.0f, 0.0f, 0.0f, 0.0f};
+        
+        if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITY) {
+            space = vec3 {
+                Editor::SELECTION->objects.front()->GetProperty("rotation-x").float_value,
+                Editor::SELECTION->objects.front()->GetProperty("rotation-y").float_value,
+                Editor::SELECTION->objects.front()->GetProperty("rotation-z").float_value
+            };
+        }
         
         if (rotate_x) AddLine(middle_point - space * glm::vec3(100.0f, 0.0f, 0.0f), middle_point + space * glm::vec3(100.0f, 0.0f, 0.0f), COLOR_RED);
         if (rotate_y) AddLine(middle_point - space * glm::vec3(0.0f, 100.0f, 0.0f), middle_point + space * glm::vec3(0.0f, 100.0f, 0.0f), COLOR_GREEN);
