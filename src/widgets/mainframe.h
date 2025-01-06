@@ -12,7 +12,7 @@ public:
         m_mgr.UnInit();
     }
 protected:
-    void OnHello(wxCommandEvent& event);
+    void OnHelp(wxCommandEvent& event);
     void OnExit(wxCommandEvent& event);
     void OnAbout(wxCommandEvent& event);
     

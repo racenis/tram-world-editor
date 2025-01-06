@@ -26,6 +26,14 @@ public:
         void SetHidden(bool hidden) { this->is_hidden = hidden; }
         bool IsHidden() { return this->is_hidden; }
         
+        std::shared_ptr<Object> Duplicate() {
+            auto dupe = parent->AddChild();
+            dupe->SetProperty("position-x", this->GetProperty("position-x"));
+            dupe->SetProperty("position-y", this->GetProperty("position-y"));
+            dupe->SetProperty("position-z", this->GetProperty("position-z"));
+            return dupe;
+        }
+        
         float SelectSize() { return 5.0f; }
         
         void Draw();

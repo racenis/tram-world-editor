@@ -32,7 +32,7 @@ using namespace tram;
 
 /// Reads the Settings from disk.
 void Load() {
-    SetSystemLoggingSeverity(System::SYSTEM_PLATFORM, SEVERITY_WARNING);
+    //SetSystemLoggingSeverity(System::SYSTEM_PLATFORM, SEVERITY_WARNING);
     
     std::ifstream file ("data/editor_settings.ini");
     

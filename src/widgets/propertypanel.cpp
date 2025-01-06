@@ -1,6 +1,7 @@
 #include <editor/editor.h>
 #include <editor/language.h>
 #include <editor/actions.h>
+#include <editor/settings.h>
 
 #include <widgets/propertypanel.h>
 
@@ -99,7 +100,12 @@ void Editor::PropertyPanel::SetCurrentSelection() {
                     field->SetValue(Editor::Get(value.str_value));
                     break;
                 case PROPERTY_FLOAT:
-                    field->SetValue(value.float_value);
+                    // hack
+                    if (Settings::ROTATION_UNIT == Settings::ROTATION_DEGREES && (field_name == "rotation-x" || field_name == "rotation-y" || field_name == "rotation-z")) {
+                        field->SetValue(glm::degrees(value.float_value));
+                    } else {
+                        field->SetValue(value.float_value);
+                    }
                     break;
                 case PROPERTY_INT:
                     field->SetValue(wxLongLong(value.int_value));
@@ -143,7 +149,7 @@ void Editor::PropertyPanel::SetCurrentSelection() {
         
         property_panel->Refresh();
     } else {
-        std::cout << "Selection canceled! " << std::endl;
+        //std::cout << "Selection canceled! " << std::endl;
     }
 }
     
@@ -171,7 +177,13 @@ void PropertyPanelCtrl::OnChanged (wxPropertyGridEvent& event) {
         } else if (value.GetType() == "ulonglong") {
             object->SetProperty(value_name, value.GetULongLong().GetValue());
         } else if (value.GetType() == "double") {
-            object->SetProperty(value_name, (float) value.GetDouble());
+            float float_value = value.GetDouble();
+            
+            if (Editor::Settings::ROTATION_UNIT == Editor::Settings::ROTATION_DEGREES && (value_name == "rotation-x" || value_name == "rotation-y" || value_name == "rotation-z")) {
+                float_value = glm::radians(float_value);
+            } 
+            
+            object->SetProperty(value_name, float_value);
         } else if (value.GetType() == "string") {
             switch (object->GetProperty(value_name).type) {
                 case Editor::PROPERTY_VECTOR:

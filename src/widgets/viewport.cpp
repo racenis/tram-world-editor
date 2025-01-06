@@ -11,6 +11,8 @@
 #include <widgets/objectmenu.h>
 #include <widgets/mainframe.h>
 
+#include <widgets/signaleditor.h>
+
 using namespace Editor;
 
 #include <framework/core.h>
@@ -20,7 +22,7 @@ using namespace Editor;
 #include <render/render.h>
 #include <render/renderer.h>
 #include <render/api.h>
-#include <render/aabb.h>
+#include <render/scene.h>
 
 #include <components/render.h>
 
@@ -513,6 +515,45 @@ public:
         viewport->ReleaseMouse();
     }
 
+    void Apply() {
+        for (auto& object : Editor::SELECTION->objects) {
+            /*glm::quat object_rotation = glm::vec3 {
+                object->GetProperty("rotation-x").float_value,
+                object->GetProperty("rotation-y").float_value,
+                object->GetProperty("rotation-z").float_value
+            };*/
+            
+            auto [object_position, object_rotation] = backups[object.get()];
+            
+            
+            object_position -= middle_point;
+            object_position = rotation * object_position;
+            object_position += middle_point;
+            
+            //if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_WORLD) {
+                object_rotation = glm::quat(rotation) * object_rotation;
+            //}
+            
+            //if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITY) {
+                //object_rotation = object_rotation * glm::quat(rotation);
+           //}
+            
+            if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITYGROUP) {
+                // TODO: implement entity group transforms
+            }
+            
+            auto rotation_euler = glm::eulerAngles(object_rotation);
+            
+            object->SetProperty("rotation-x", rotation_euler.x);
+            object->SetProperty("rotation-y", rotation_euler.y);
+            object->SetProperty("rotation-z", rotation_euler.z);
+            
+            object->SetProperty("position-x", object_position.x);
+            object->SetProperty("position-y", object_position.y);
+            object->SetProperty("position-z", object_position.z);
+        }
+    }
+
     void MouseMove(float x, float y, float delta_x, float delta_y) {
         if (delta_x == 0.0f && delta_y == 0.0f) return;
         
@@ -581,43 +622,8 @@ public:
         //rotation *= delta_x + delta_x;
         
         
+        Apply();
         
-        for (auto& object : Editor::SELECTION->objects) {
-            /*glm::quat object_rotation = glm::vec3 {
-                object->GetProperty("rotation-x").float_value,
-                object->GetProperty("rotation-y").float_value,
-                object->GetProperty("rotation-z").float_value
-            };*/
-            
-            auto [object_position, object_rotation] = backups[object.get()];
-            
-            
-            object_position -= middle_point;
-            object_position = rotation * object_position;
-            object_position += middle_point;
-            
-            //if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_WORLD) {
-                object_rotation = glm::quat(rotation) * object_rotation;
-            //}
-            
-            //if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITY) {
-                //object_rotation = object_rotation * glm::quat(rotation);
-           //}
-            
-            if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITYGROUP) {
-                // TODO: implement entity group transforms
-            }
-            
-            auto rotation_euler = glm::eulerAngles(object_rotation);
-            
-            object->SetProperty("rotation-x", rotation_euler.x);
-            object->SetProperty("rotation-y", rotation_euler.y);
-            object->SetProperty("rotation-z", rotation_euler.z);
-            
-            object->SetProperty("position-x", object_position.x);
-            object->SetProperty("position-y", object_position.y);
-            object->SetProperty("position-z", object_position.z);
-        }
         
         Editor::Viewport::Refresh();
     }
@@ -636,10 +642,33 @@ public:
         if (keycode == 'Z') rotate_z = !rotate_z;
         
         if (code == WXK_CONTROL) {
-            for (auto& object : Editor::SELECTION->objects) {
-                float x = object->GetProperty("rotation-x");
-                float y = object->GetProperty("rotation-y");
-                float z = object->GetProperty("rotation-z");
+            if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITY) {
+                for (auto& object : Editor::SELECTION->objects) {
+                    float x = object->GetProperty("rotation-x");
+                    float y = object->GetProperty("rotation-y");
+                    float z = object->GetProperty("rotation-z");
+                    
+                    float div = 1.0f;
+                    switch (Editor::Settings::ROTATION_SNAP) {
+                        case Editor::Settings::SNAP_15: div = 0.261799f; break;
+                        case Editor::Settings::SNAP_30: div = 0.523599f; break;
+                        case Editor::Settings::SNAP_45: div = 0.785398f; break;
+                        default:
+                        case Editor::Settings::SNAP_90: div = 1.5708f; break;
+                    }
+                    
+                    object->SetProperty("rotation-x", round(x/div)*div);
+                    object->SetProperty("rotation-y", round(y/div)*div);
+                    object->SetProperty("rotation-z", round(z/div)*div);
+                }
+                
+                Editor::Viewport::Refresh();
+                
+            } else {
+                vec3 euler_rotation = glm::eulerAngles(rotation);
+                
+                vec3 rotato = glm::degrees(euler_rotation);
+                std::cout << "now: " << rotato.x << " " << rotato.y << " " << rotato.z << std::endl;
                 
                 float div = 1.0f;
                 switch (Editor::Settings::ROTATION_SNAP) {
@@ -650,12 +679,28 @@ public:
                     case Editor::Settings::SNAP_90: div = 1.5708f; break;
                 }
                 
-                object->SetProperty("rotation-x", round(x/div)*div);
-                object->SetProperty("rotation-y", round(y/div)*div);
-                object->SetProperty("rotation-z", round(z/div)*div);
+                //if (euler_rotation.x < 0.0f) euler_rotation.x += 6.28319f;
+                //if (euler_rotation.y < 0.0f) euler_rotation.y += 6.28319f;
+                //if (euler_rotation.z < 0.0f) euler_rotation.z += 6.28319f;
+                
+                //const float x = roundf(euler_rotation.x/div) * div;
+                //const float y = roundf(euler_rotation.y/div) * div;
+                //const float z = roundf(euler_rotation.z/div) * div;
+                
+                euler_rotation = glm::round(euler_rotation/div) * div;
+                //euler_rotation = vec3(x, y, z);
+                
+                rotato = glm::degrees(euler_rotation);
+                std::cout << "thn: " << rotato.x << " " << rotato.y << " " << rotato.z << std::endl;
+                
+                //euler_rotation = euler_rotation - glm::mod(euler_rotation, div);// * div;
+                
+                rotation = euler_rotation;
+
+                Apply();
+                
+                Editor::Viewport::Refresh();
             }
-            
-            Editor::Viewport::Refresh();
         }
     }
     
@@ -792,7 +837,7 @@ ViewportCtrl::ViewportCtrl(wxWindow* parent) : wxGLCanvas(parent, wxID_ANY, null
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     
-    tram::System::SetInitialized(tram::System::SYSTEM_UI, true);
+    tram::System::SetInitialized(tram::System::UI, true);
     
     tram::Render::Init();
     tram::Async::Init(0);
@@ -1057,10 +1102,9 @@ void ViewportCtrl::OnMouseMove(wxMouseEvent& event) {
 void ViewportCtrl::OnKeydown(wxKeyEvent& event) {
     auto keycode = event.GetUnicodeKey();
     
-    if (viewport_tool) viewport_tool->Keydown(event.GetUnicodeKey(), event.GetKeyCode());
+    if (event.IsAutoRepeat()) return;
     
-
-
+    if (viewport_tool) viewport_tool->Keydown(event.GetUnicodeKey(), event.GetKeyCode());
     
     if (keycode == 'G') {
         if (viewport_tool) {
@@ -1081,6 +1125,26 @@ void ViewportCtrl::OnKeydown(wxKeyEvent& event) {
     }
     
     
+    if (keycode == 'D' /*&& event.ShiftDown()*/ && (!viewport_tool || !dynamic_cast<MoveTool*>(viewport_tool))) {
+        if (viewport_tool) {
+            delete viewport_tool;
+        }
+        
+        Editor::PerformAction<Editor::ActionDuplicate>();
+        
+        viewport_tool = new TranslateTool;
+    }
+    
+    if (keycode == 'S' /*&& event.ShiftDown()*/ && (!viewport_tool || !dynamic_cast<MoveTool*>(viewport_tool))) {
+        if (viewport_tool) {
+            delete viewport_tool;
+            viewport_tool = nullptr;
+        }
+        
+        OpenSignalEditorModal();
+    }
+
+
     if (keycode == 'E') {
         if (viewport_tool) {
             //viewport_tool->Cancel();

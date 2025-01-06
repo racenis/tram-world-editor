@@ -102,6 +102,8 @@ void Entity::SetProperty (std::string property_name, PropertyValue property_valu
         }
     }
     
+    if (property_name == "entity-type") Editor::PropertyPanel::Refresh();
+    
     Entity::CheckModel();
 }
 

@@ -15,11 +15,12 @@
 #include <framework/uid.cpp>
 #include <framework/logging.cpp>
 #include <framework/language.cpp>
+#include <framework/type.cpp>
 
 #include <render/opengl/renderer.cpp>
 #include <render/opengl/shader.cpp>
 
-#include <render/aabb.cpp>
+#include <render/scene.cpp>
 #include <render/animation.cpp>
 #include <render/material.cpp>
 #include <render/sprite.cpp>
@@ -32,3 +33,10 @@
 #include <components/animation.cpp>
 
 #include <glad/glad.c>
+
+bool tram::Platform::Window::IsRenderContextThread() {
+	return true;
+}
+
+
+#include <platform/other.cpp>

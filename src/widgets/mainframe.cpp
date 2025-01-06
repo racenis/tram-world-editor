@@ -82,7 +82,7 @@ MainFrameCtrl::MainFrameCtrl() : wxFrame(NULL, wxID_ANY, Editor::Get("title_bar"
     wxMenu* settings_menu = new wxMenu;
     settings_menu->AppendRadioItem(ID_Settings_Space_World, Editor::Get("settings_menu_world_space"), Editor::Get("settings_menu_world_space_info"))->Check(TRANSFORM_SPACE == SPACE_WORLD);
     settings_menu->AppendRadioItem(ID_Settings_Space_Entity, Editor::Get("settings_menu_entity_space"), Editor::Get("settings_menu_entity_space_info"))->Check(TRANSFORM_SPACE == SPACE_ENTITY);
-    settings_menu->AppendRadioItem(ID_Settings_Space_World, Editor::Get("settings_menu_entity_group_space"), Editor::Get("settings_menu_entity_group_space_info"))->Check(TRANSFORM_SPACE == SPACE_ENTITYGROUP);
+    settings_menu->AppendRadioItem(ID_Settings_Space_Group, Editor::Get("settings_menu_entity_group_space"), Editor::Get("settings_menu_entity_group_space_info"))->Check(TRANSFORM_SPACE == SPACE_ENTITYGROUP);
     settings_menu->AppendSeparator();
     settings_menu->AppendRadioItem(ID_Settings_Angle_Radians, Editor::Get("settings_menu_radians"), Editor::Get("settings_menu_radians_info"))->Check(ROTATION_UNIT == ROTATION_RADIANS);
     settings_menu->AppendRadioItem(ID_Settings_Angle_Degrees, Editor::Get("settings_menu_degrees"), Editor::Get("settings_menu_degrees_info"))->Check(ROTATION_UNIT == ROTATION_DEGREES);
@@ -103,13 +103,13 @@ MainFrameCtrl::MainFrameCtrl() : wxFrame(NULL, wxID_ANY, Editor::Get("title_bar"
     language_menu->AppendRadioItem((int) ID_Settings_Language + LANGUAGE_EN, L"English", L"Language of United Kingdom, Canada, Australia and New Zealand.")->Check(INTERFACE_LANGUAGE == LANGUAGE_EN);
     
     wxMenu* help_menu = new wxMenu;
-    help_menu->Append(ID_Hello, Editor::Get("help_menu_hello"), Editor::Get("help_menu_hello_info"));
+    help_menu->Append(ID_Hello, Editor::Get("help_menu_help"), Editor::Get("help_menu_help_info"));
     help_menu->Append(wxID_ABOUT, Editor::Get("help_menu_about"), Editor::Get("help_menu_about_info"));
  
     wxMenuBar* menu_bar = new wxMenuBar;
     menu_bar->Append(file_menu, Editor::Get("file_menu"));
     menu_bar->Append(edit_menu, Editor::Get("edit_menu"));
-    menu_bar->Append(view_menu, Editor::Get("View"));
+    menu_bar->Append(view_menu, Editor::Get("view_menu"));
     menu_bar->Append(settings_menu, Editor::Get("settings_menu"));
     menu_bar->Append(language_menu, Editor::Get("language_menu"));
     menu_bar->Append(help_menu, Editor::Get("help_menu"));
@@ -122,7 +122,7 @@ MainFrameCtrl::MainFrameCtrl() : wxFrame(NULL, wxID_ANY, Editor::Get("title_bar"
     
     Bind(wxEVT_MENU, &MainFrameCtrl::OnAction, this);
     
-    Bind(wxEVT_MENU, &MainFrameCtrl::OnHello, this, ID_Hello);
+    Bind(wxEVT_MENU, &MainFrameCtrl::OnHelp, this, ID_Hello);
     Bind(wxEVT_MENU, &MainFrameCtrl::OnAbout, this, wxID_ABOUT);
     Bind(wxEVT_MENU, &MainFrameCtrl::OnExit, this, wxID_EXIT);
     
@@ -207,20 +207,19 @@ void MainFrameCtrl::OnExit(wxCommandEvent& event) {
  
 
 
-void MainFrameCtrl::OnAbout(wxCommandEvent& event)
-{
+void MainFrameCtrl::OnAbout(wxCommandEvent& event) {
     wxAboutDialogInfo aboutInfo;
     aboutInfo.SetName(Editor::Get("dialog_about_name"));
-    aboutInfo.SetVersion(L"v0.0.3");
+    aboutInfo.SetVersion(L"v0.1.0");
     aboutInfo.SetDescription(Editor::Get("dialog_description"));
-    aboutInfo.SetCopyright(Editor::Get("dialog_copyright") + L" (C) Lielais Čunguss 2022-2024");
+    aboutInfo.SetCopyright(Editor::Get("dialog_copyright") + L" (C) racenis 2022-2025");
     aboutInfo.SetWebSite(L"https://github.com/racenis/tram-sdk");
     wxAboutBox(aboutInfo);
 }
  
-void MainFrameCtrl::OnHello(wxCommandEvent& event)
-{
-    wxLogMessage("Hello world from wxWidgets!");
+void MainFrameCtrl::OnHelp(wxCommandEvent& event) {
+    wxLaunchDefaultBrowser("https://racenis.github.io/tram-sdk/documentation.html");
+    //wxLogMessage("Hello world from wxWidgets!");
 }
 
 void MainFrameCtrl::OnAction(wxCommandEvent& event) {
@@ -243,9 +242,11 @@ void MainFrameCtrl::OnAction(wxCommandEvent& event) {
             break;
         case ID_Settings_Angle_Radians:
             ROTATION_UNIT = ROTATION_RADIANS;
+            Editor::PropertyPanel::Refresh();
             break;
         case ID_Settings_Angle_Degrees:
             ROTATION_UNIT = ROTATION_DEGREES;
+            Editor::PropertyPanel::Refresh();
             break;
         case ID_Settings_Space_World:
             TRANSFORM_SPACE = SPACE_WORLD;

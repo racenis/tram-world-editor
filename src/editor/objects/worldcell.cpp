@@ -8,7 +8,7 @@ void WorldCell::LoadFromDisk() {
     using namespace tram;
     WorldCell* cell = this;
     
-    File file ((std::string("data/worldcells/") + std::string(cell->GetName()) + ".cell").c_str(), MODE_READ);
+    File file ((std::string("data/worldcells/") + std::string(cell->GetName()) + ".cell").c_str(), File::READ);
     EntityGroup* current_group = (EntityGroup*) cell->group_manager->GetChildren().front().get();
     
     if (!file.is_open()) {
@@ -139,7 +139,7 @@ void WorldCell::LoadFromDisk() {
 
 void WorldCell::SaveToDisk() {
     using namespace tram;
-    File file ((std::string("data/worldcells/") + std::string(this->GetName()) + ".cell").c_str(), MODE_WRITE);
+    File file ((std::string("data/worldcells/") + std::string(this->GetName()) + ".cell").c_str(), File::WRITE);
     
     if (!file.is_open()) {
         std::wcout << "FILE NOT OPENABLE" << std::wstring(this->GetName().begin(), this->GetName().end()) << ".cell." << std::endl;

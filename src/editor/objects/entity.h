@@ -26,6 +26,7 @@ public:
     Entity(Object* parent, std::string name) : Object(parent) {
         properties["name"] = name;
         properties["action"] = std::string("none");
+        properties["entity-flags"] = PropertyValue::Flag(0);
         properties["position-x"] = Viewport::CURSOR_X;
         properties["position-y"] = Viewport::CURSOR_Y;
         properties["position-z"] = Viewport::CURSOR_Z;

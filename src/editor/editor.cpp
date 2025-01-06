@@ -165,7 +165,7 @@ void ReadEntityDefinition(File& file) {
 }
 
 void Init() {
-    File file("data/entities.entdef", MODE_READ);
+    File file("data/entities.entdef", File::READ);
     
     if (!file.is_open()) {
         std::cout << "Entity file defintiion did not open!" << std::endl;

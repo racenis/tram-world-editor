@@ -17,7 +17,7 @@ void Navmesh::LoadFromDisk() {
     path += this->GetName();
     path += ".navmesh";
     
-    File file (path.c_str(), MODE_READ);
+    File file (path.c_str(), File::READ);
     
     if (!file.is_open()) {
         std::cout << "Can't find path file: " << path << std::endl; return;
@@ -58,7 +58,7 @@ void Navmesh::SaveToDisk() {
     path += this->GetName();
     path += ".navmesh";
     
-    File file (path.c_str(), MODE_WRITE);
+    File file (path.c_str(), File::WRITE);
     
     if (!file.is_open()) {
         std::cout << "Can't open path file for writing: " << path << std::endl; return;

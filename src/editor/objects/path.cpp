@@ -12,7 +12,7 @@ void Path::LoadFromDisk() {
     path += this->GetName();
     path += ".path";
     
-    File file (path.c_str(), MODE_READ /*| MODE_PAUSE_LINE*/);
+    File file (path.c_str(), File::READ /*| MODE_PAUSE_LINE*/);
     
     if (!file.is_open()) {
         std::cout << "Can't find path file: " << path << std::endl; return;
@@ -48,6 +48,14 @@ void Path::LoadFromDisk() {
             Node* from_node = nodes[from_node_index];
             Node* to_node = nodes[to_node_index];
             
+            if (from_node_index >= nodes.size()) {
+                std::cout << "invalid from node index " << from_node_index << std::endl;
+            }
+            
+            if (to_node_index >= nodes.size()) {
+                std::cout << "invalid to node index " << to_node_index << std::endl;
+            }
+            
             Edge* existing = nullptr;
             for (auto& edge : edges) {
                 const bool a_to_b = edge.a == from_node && edge.b == to_node;
@@ -82,11 +90,13 @@ void Path::SaveToDisk() {
     path += this->GetName();
     path += ".path";
     
-    File file (path.c_str(), MODE_WRITE);
+    File file (path.c_str(), File::WRITE);
     
     if (!file.is_open()) {
         std::cout << "Can't open path file for writing: " << path << std::endl; return;
     }
+    
+    ReindexChildren();
     
     file.write_name("PATHv2");
     
@@ -126,7 +136,7 @@ void Path::SaveToDisk() {
     }
 }
 
-void Path::Draw () {
+void Path::Draw() {
     for (auto& child : children) {
         vec3 position = {
             child->GetProperty("position-x"),
