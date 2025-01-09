@@ -338,7 +338,17 @@ public:
     virtual bool HasProperty (std::string property_name) { return properties.contains(property_name); }
 };
 
-void RegisterEntityType(std::string name, std::string model_name, std::vector<PropertyDefinition> definitions, std::vector<WidgetDefinition> widgets);
+struct EntityDefinition {
+    uint32_t version;
+    
+    std::string name;
+    std::string model_name;
+    
+    std::vector<PropertyDefinition> definitions;
+    std::vector<WidgetDefinition> widgets;
+};
+
+void RegisterEntityType(EntityDefinition definition);
 
 class WorldCell;
 void LoadCell(WorldCell* cell);

@@ -2,6 +2,8 @@
 
 #include <framework/file.h>
 
+#include <set>
+
 namespace Editor {
 
 void WorldCell::LoadFromDisk() {
@@ -27,6 +29,8 @@ void WorldCell::LoadFromDisk() {
     
     // this will be used, so that we can attach signals to entities
     std::unordered_map<uint32_t, Entity*> loaded_entities;
+    
+    std::unordered_map<std::string, uint32_t> serialized_versions;
     
     while (file.is_continue()) {
         name_t ent_type = file.read_name();
@@ -83,7 +87,10 @@ void WorldCell::LoadFromDisk() {
             }
             
             loaded_entities[source]->signals.push_back(signal);
-            
+        } else if (ent_type == "version") {
+            name_t entity_type = file.read_name();
+            uint32_t version = file.read_uint32();
+            serialized_versions[(const char*)entity_type] = version;
         } else {
             auto entity = std::make_shared<Entity>(current_group);
 
@@ -101,7 +108,7 @@ void WorldCell::LoadFromDisk() {
             entity->properties["rotation-y"] = file.read_float32();
             entity->properties["rotation-z"] = file.read_float32();
             
-            auto entity_definitions = entity->GetSerializationPropertyDefinitions();
+            auto entity_definitions = entity->GetSerializationPropertyDefinitions(serialized_versions[(const char*)ent_type]);
             
             for (auto& prop : entity_definitions) {
                 switch (prop.type) {
@@ -153,7 +160,23 @@ void WorldCell::SaveToDisk() {
     file.write_uint32((bool) GetProperty("is-interior-lighting"));
 
     file.write_newline();
-              
+    
+    std::set<int32_t> types_in_file; 
+    for (auto& group : group_manager->GetChildren()) {
+        for (auto& ent : group->GetChildren()) {
+            types_in_file.insert(ent->GetProperty("entity-type"));
+        }
+    }
+    
+    for (auto type_id : types_in_file) {
+        if (!GetEntityTypeVersion(type_id)) continue;
+        
+        file.write_name("version");
+        file.write_name(PROPERTY_ENUMERATIONS["entity-type"][type_id]);
+        file.write_uint32(GetEntityTypeVersion(type_id));
+        file.write_newline();
+    }
+    
     for (auto& group : group_manager->GetChildren()) {
         if (group->GetName() != "[default]") {
             file.write_name("group");

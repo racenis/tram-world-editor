@@ -134,6 +134,8 @@ WidgetDefinition ReadEntityWidget(File& file) {
 void ReadEntityDefinition(File& file) {
     name_t entity_name;
     name_t model_name;
+    uint32_t entity_version = 0;
+    
     std::vector<PropertyDefinition> property_defs;
     std::vector<WidgetDefinition> widget_defs;
     
@@ -142,6 +144,8 @@ void ReadEntityDefinition(File& file) {
         
         if (entry_type == "name") {
             entity_name = file.read_name();
+        } else if (entry_type == "version") {
+            entity_version = file.read_uint32();
         } else if (entry_type == "model") {
             model_name = file.read_name();
         } else if (entry_type == "field") {
@@ -156,29 +160,50 @@ void ReadEntityDefinition(File& file) {
         
     }
     
+    // TODO: check for dupes
+    // TODO: check if not using builitin properrtyy names
+    
     if (!entity_name) {
         std::cout << "Entity type is not set!" << std::endl;
         return;
     }
     
-    RegisterEntityType(entity_name, model_name, property_defs, widget_defs);
+    EntityDefinition definition;
+    
+    definition.version = entity_version;
+    
+    definition.name = (const char*)entity_name;
+    definition.model_name = (const char*)model_name;
+    
+    definition.definitions = property_defs;
+    definition.widgets = widget_defs;
+    
+    RegisterEntityType(definition);
 }
 
 void Init() {
-    File file("data/entities.entdef", File::READ);
-    
-    if (!file.is_open()) {
-        std::cout << "Entity file defintiion did not open!" << std::endl;
-    }
-    
-    while (file.is_continue()) {
-        name_t record_type = file.read_name();
+    for (const auto &entry : std::filesystem::recursive_directory_iterator("data/")) {
+        if (entry.path().extension() != ".entdef") continue;
         
-        if (record_type == "begin") {
-            ReadEntityDefinition(file);
-        } else {
-            std::cout << "Unrezognized record: " << record_type << std::endl;
-            return;
+        auto path = entry.path().string();
+        
+        //File file("data/entities.entdef", File::READ);
+        File file(path.c_str(), File::READ);
+    
+        if (!file.is_open()) {
+            std::cout << "Entity file defintiion did not open!" << std::endl;
+        }
+        
+        while (file.is_continue()) {
+            name_t record_type = file.read_name();
+            
+            if (record_type == "begin") {
+                ReadEntityDefinition(file);
+            } else {
+                std::cout << "Unrezognized record: " << record_type << std::endl;
+                return;
+            }
+            
         }
         
     }

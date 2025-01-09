@@ -9,13 +9,7 @@ namespace Editor {
 
 using namespace tram;
 
-struct EntityTypeInfo {
-    std::string model_name;
-    std::vector<PropertyDefinition> definition;
-    std::vector<WidgetDefinition> widgets;
-};
-
-static std::unordered_map<int32_t, EntityTypeInfo> entity_type_infos;
+static std::unordered_map<int32_t, std::vector<EntityDefinition>> entity_type_infos;
 static std::unordered_map<std::string, int32_t> entity_name_to_id;
 static std::unordered_map<RenderComponent*, Entity*> viewmodel_ptr_to_entity_ptr;
 
@@ -77,13 +71,38 @@ void Entity::CenterOrigin() {
     SetProperty("origin", vec);
 }
 
-void RegisterEntityType(std::string name, std::string model_name, std::vector<PropertyDefinition> definitions, std::vector<WidgetDefinition> widgets) {
+uint32_t GetEntityTypeVersion(int32_t type_id) {
+    uint32_t highest_version = 0;
+    
+    for (auto& definition : entity_type_infos[type_id]) {
+        if (definition.version > highest_version)  {
+            highest_version = definition.version;
+        }
+    }
+    
+    return highest_version;
+}
+
+EntityDefinition* FindEntityDefinition(uint32_t version, int32_t type_id) {
+    for (auto& definition : entity_type_infos[type_id]) {
+        if (definition.version != version) continue;
+        return &definition;
+    }
+    
+    return nullptr;
+}
+
+EntityDefinition* FindEntityDefinition(int32_t type_id) {
+    return FindEntityDefinition(GetEntityTypeVersion(type_id), type_id);
+}
+
+void RegisterEntityType(EntityDefinition definition) {
     int32_t type_index = PROPERTY_ENUMERATIONS["entity-type"].size();
-    PROPERTY_ENUMERATIONS["entity-type"].push_back(name);
+    PROPERTY_ENUMERATIONS["entity-type"].push_back(definition.name);
     
-    entity_name_to_id[name] = type_index;
+    entity_name_to_id[definition.name] = type_index;
     
-    entity_type_infos[type_index] = {model_name, definitions, widgets};
+    entity_type_infos[type_index].push_back(definition);
 }
 
 PropertyValue Entity::GetProperty (std::string property_name) {
@@ -124,7 +143,8 @@ void Entity::CheckModel() {
     
     
     // find the name of the model
-    EntityTypeInfo& type_info = entity_type_infos[this->GetProperty("entity-type")];
+    //EntityDefinition& type_info = entity_type_infos[this->GetProperty("entity-type")];
+    EntityDefinition& type_info = *FindEntityDefinition(this->GetProperty("entity-type"));
     
     std::string model_name = type_info.model_name;
     
@@ -183,7 +203,7 @@ void Entity::SetHidden(bool is_hidden) {
 }
 
 std::vector<WidgetDefinition> Entity::GetWidgetDefinitions() {
-    return entity_type_infos[(int32_t) this->GetProperty("entity-type")].widgets;
+    return FindEntityDefinition((int32_t) this->GetProperty("entity-type"))->widgets;
 }
 
 std::vector<PropertyDefinition> Entity::GetFullPropertyDefinitions() { 
@@ -204,7 +224,7 @@ std::vector<PropertyDefinition> Entity::GetFullPropertyDefinitions() {
         {"group-entity-specific", "Type", "", PROPERTY_CATEGORY},
     };
     
-    auto special_defs = entity_type_infos[(int32_t) this->GetProperty("entity-type")].definition;
+    auto special_defs = FindEntityDefinition((int32_t) this->GetProperty("entity-type"))->definitions;
     
     defs.insert(defs.end(), special_defs.begin(), special_defs.end());
     
@@ -212,7 +232,11 @@ std::vector<PropertyDefinition> Entity::GetFullPropertyDefinitions() {
 }
 
 std::vector<PropertyDefinition> Entity::GetSerializationPropertyDefinitions() {
-    return entity_type_infos[(int32_t) this->GetProperty("entity-type")].definition;
+    return FindEntityDefinition((int32_t) this->GetProperty("entity-type"))->definitions;
+}
+
+std::vector<PropertyDefinition> Entity::GetSerializationPropertyDefinitions(uint32_t version) {
+    return FindEntityDefinition(version, (int32_t) this->GetProperty("entity-type"))->definitions;
 }
 
 /// Sets the entity type from registred types.

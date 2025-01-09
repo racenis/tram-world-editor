@@ -53,6 +53,7 @@ public:
     
     std::vector<PropertyDefinition> GetFullPropertyDefinitions();
     std::vector<PropertyDefinition> GetSerializationPropertyDefinitions();
+    std::vector<PropertyDefinition> GetSerializationPropertyDefinitions(uint32_t);
     
     void SetEntityType (std::string type);
     
@@ -72,6 +73,8 @@ public:
 };
 
 Entity* GetEntityFromViewmodel(tram::RenderComponent* model);
+
+uint32_t GetEntityTypeVersion(int32_t type);
 
 }
 
