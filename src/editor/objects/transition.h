@@ -10,9 +10,9 @@ public:
     class Node : public Object {
     public:
         Node (Object* parent) : Object(parent) {
-            properties["position-x"] = 0.0f;
-            properties["position-y"] = 0.0f;
-            properties["position-z"] = 0.0f;
+            properties["position-x"] = Viewport::CURSOR_X;
+            properties["position-y"] = Viewport::CURSOR_Y;
+            properties["position-z"] = Viewport::CURSOR_Z;
         }
         
         std::string_view GetName() { return "transition_node"; }
@@ -32,6 +32,10 @@ public:
             dupe->SetProperty("position-y", this->GetProperty("position-y"));
             dupe->SetProperty("position-z", this->GetProperty("position-z"));
             return dupe;
+        }
+        
+        std::shared_ptr<Object> Extrude() {
+            return Duplicate();
         }
         
         float SelectSize() { return 5.0f; }
@@ -62,6 +66,17 @@ public:
     
     //bool IsHidden() { return is_hidden; }
     //void SetHidden(bool is_hidden) { this->is_hidden = is_hidden; }
+    
+    std::shared_ptr<Object> Duplicate() {
+        auto new_transition = parent->AddChild();
+        for (auto& child: children) {
+            auto new_node = new_transition->AddChild();
+            new_node->SetProperty("position-x", child->GetProperty("position-x"));
+            new_node->SetProperty("position-y", child->GetProperty("position-y"));
+            new_node->SetProperty("position-z", child->GetProperty("position-z"));
+        }
+        return new_transition;
+    }
     
     void Draw();
     

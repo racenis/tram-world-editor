@@ -20,7 +20,7 @@ public:
     bool IsCopyable() { return true; }
     
     std::shared_ptr<Object> AddChild() { auto child = std::make_shared<Entity>(this); children.push_back(child); return child; }
-
+    bool IsChildAddable(std::shared_ptr<Object> child) { return dynamic_cast<Entity*>(child.get()); }
     
     std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {

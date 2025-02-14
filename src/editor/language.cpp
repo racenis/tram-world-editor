@@ -50,6 +50,12 @@ void Editor::ResetLanguage() {
             l["edit_menu_signals_info"] = L"Opens the signal editor for the selected entity.";
             l["edit_menu_center_aabb"] = L"Center Origin on AABB";
             l["edit_menu_center_aabb_info"] = L"Centers the origin of an entity on its 3D model's AABB.";
+            l["edit_menu_worldspawn_offset"] = L"Set Worldspawn Offset";
+            l["edit_menu_worldspawn_offset_info"] = L"TODO: fill in";
+            l["edit_menu_stash_selection"] = L"Stash Selection\tCtrl-X";
+            l["edit_menu_stash_selection_info"] = L"TODO: fill in";
+            l["edit_menu_reparent_stash"] = L"Reparent Objects\tCtrl-V";
+            l["edit_menu_reparent_stash_info"] = L"TODO: fill in";
             
             l["view_menu_center_selection"] = L"Center View on Selection";
             l["view_menu_center_selection_info"] = L"Centers the vieport on the selected object.";

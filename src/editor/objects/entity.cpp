@@ -71,6 +71,35 @@ void Entity::CenterOrigin() {
     SetProperty("origin", vec);
 }
 
+void Entity::WorldspawnOffset(Entity* worldspawn) {
+    if (!model) {
+        std::cout << "Entity has no model to base worldspawn offset off of!" << std::endl;
+        return;
+    }
+    
+    std::cout << "settings!!!" << std::endl;
+    std::cout << "ee " << model->GetModel()->GetOrigin().x<< std::endl;
+    std::cout << "ee " << model->GetModel()->GetOrigin().y<< std::endl;
+    std::cout << "ee " << model->GetModel()->GetOrigin().z<< std::endl;
+    
+    vec3 worldspawn_pos = vec3 {worldspawn->GetProperty("position-x"),
+                                worldspawn->GetProperty("position-y"),
+                                worldspawn->GetProperty("position-z")};
+    quat worldspawn_rot = vec3 {worldspawn->GetProperty("rotation-x"),
+                                worldspawn->GetProperty("rotation-y"),
+                                worldspawn->GetProperty("rotation-z")};
+                                
+    vec3 new_position = worldspawn_pos + worldspawn_rot * model->GetModel()->GetOrigin();
+                       
+    SetProperty("position-x", new_position.x);
+    SetProperty("position-y", new_position.y);
+    SetProperty("position-z", new_position.z);
+    
+    SetProperty("rotation-x", worldspawn->GetProperty("rotation-x"));
+    SetProperty("rotation-y", worldspawn->GetProperty("rotation-y"));
+    SetProperty("rotation-z", worldspawn->GetProperty("rotation-z"));
+}
+
 uint32_t GetEntityTypeVersion(int32_t type_id) {
     uint32_t highest_version = 0;
     
@@ -144,7 +173,10 @@ void Entity::CheckModel() {
     
     // find the name of the model
     //EntityDefinition& type_info = entity_type_infos[this->GetProperty("entity-type")];
-    EntityDefinition& type_info = *FindEntityDefinition(this->GetProperty("entity-type"));
+    EntityDefinition* type_def = FindEntityDefinition(this->GetProperty("entity-type"));
+    if (!type_def) return;
+    
+    EntityDefinition& type_info = *type_def;
     
     std::string model_name = type_info.model_name;
     
@@ -203,7 +235,10 @@ void Entity::SetHidden(bool is_hidden) {
 }
 
 std::vector<WidgetDefinition> Entity::GetWidgetDefinitions() {
-    return FindEntityDefinition((int32_t) this->GetProperty("entity-type"))->widgets;
+    auto entity_defs = FindEntityDefinition((int32_t) this->GetProperty("entity-type"));
+    
+    if (entity_defs) return entity_defs->widgets;
+    return std::vector<WidgetDefinition>();
 }
 
 std::vector<PropertyDefinition> Entity::GetFullPropertyDefinitions() { 
@@ -224,9 +259,11 @@ std::vector<PropertyDefinition> Entity::GetFullPropertyDefinitions() {
         {"group-entity-specific", "Type", "", PROPERTY_CATEGORY},
     };
     
-    auto special_defs = FindEntityDefinition((int32_t) this->GetProperty("entity-type"))->definitions;
-    
-    defs.insert(defs.end(), special_defs.begin(), special_defs.end());
+    // add entity type specific definitions, it it has any
+    auto entity_def = FindEntityDefinition((int32_t) this->GetProperty("entity-type"));
+    if (entity_def) {
+        defs.insert(defs.end(), entity_def->definitions.begin(), entity_def->definitions.end());
+    }
     
     return defs;
 }

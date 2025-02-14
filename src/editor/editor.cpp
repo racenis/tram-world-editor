@@ -16,6 +16,7 @@ namespace Editor {
 using namespace tram;
 
 std::shared_ptr<Selection> SELECTION;
+std::shared_ptr<Selection> STASH;
 std::list<std::unique_ptr<Action>> PERFORMED_ACTIONS;
 std::list<std::unique_ptr<Action>> UNPERFORMED_ACTIONS;
 bool data_modified = false;

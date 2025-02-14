@@ -67,6 +67,7 @@ public:
     void CheckModel();
     
     void CenterOrigin();
+    void WorldspawnOffset(Entity* worldspawn);
     
     std::vector<Signal> signals;
     tram::RenderComponent* model = nullptr;

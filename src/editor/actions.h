@@ -10,7 +10,7 @@ namespace Editor {
 
 class ActionChangeSelection : public Action {
 public:
-    ActionChangeSelection (std::shared_ptr<Selection> new_selection) {
+    ActionChangeSelection(std::shared_ptr<Selection> new_selection) {
         prev_selection = SELECTION;
         next_selection = new_selection;
         
@@ -50,6 +50,127 @@ public:
     std::shared_ptr<Selection> next_selection = nullptr;
 };
 
+class ActionStashSelection : public Action {
+public:
+    ActionStashSelection() {
+        Perform();
+    }
+    
+    void Perform() {
+        prev_stash = STASH;
+        STASH = SELECTION;
+        SELECTION = std::make_shared<Editor::Selection>();
+        
+        Editor::PropertyPanel::Refresh();
+        Editor::ObjectList::Refresh();
+        Editor::Viewport::Refresh();
+    }
+    
+    void Unperform() {
+        SELECTION = STASH;
+        STASH = prev_stash;
+        
+        Editor::PropertyPanel::Refresh();
+        Editor::ObjectList::Refresh();
+        Editor::Viewport::Refresh();
+    }
+    
+    std::shared_ptr<Selection> prev_stash = nullptr;
+};
+
+class ActionReparent : public Action {
+public:
+    ActionReparent() {
+        if (STASH->objects.size() == 0) {
+            Editor::Viewport::ShowErrorDialog("Reparenting can occur only if an object or objects are stashed!");
+            failed = true;
+            return;
+        }
+        
+        if (SELECTION->objects.size() != 1) {
+            Editor::Viewport::ShowErrorDialog("Reparenting can occur only if a single object is selected!");
+            failed = true;
+            return;
+        }
+        
+        new_parent = SELECTION->objects.front();
+        
+        for (auto& object : STASH->objects) {
+            reparent_info.push_back({.prev_parent = object->GetParent(), .object = object});
+            
+            if (!new_parent->IsChildAddable(object)) {
+                Object* obj_parent = new_parent.get();
+                Object* obj_child = object.get();
+                
+                Editor::Viewport::ShowErrorDialog(std::string("Cannot parent a ") + typeid(*obj_child).name() + " to a " + typeid(*obj_parent).name() + "!");
+                
+                failed = true;
+                return;
+            }
+        }
+        
+        Perform();
+    }
+    
+    void Perform() {
+        if (failed) return;
+        
+        for (auto& reparent : reparent_info) {
+            if (reparent.prev_parent->IsChildrenTreeable()) Editor::WorldTree::Remove(reparent.object.get());
+            reparent.prev_parent->RemoveChild(reparent.object);
+            
+            reparent.object->SetHidden(new_parent->IsHidden());
+            
+            new_parent->AddChild(reparent.object);
+            if (new_parent->IsChildrenTreeable()) Editor::WorldTree::Add(reparent.object.get());
+        }
+        
+        Editor::SELECTION = std::make_shared<Editor::Selection>();
+        
+        std::swap(Editor::SELECTION, Editor::STASH);
+        
+        Editor::PropertyPanel::Refresh();
+        Editor::ObjectList::Refresh();
+        Editor::Viewport::Refresh();
+    }
+    
+    void Unperform() {
+        if (failed) return;
+        
+        for (auto& reparent : reparent_info) {
+            if (new_parent->IsChildrenTreeable()) Editor::WorldTree::Remove(reparent.object.get());
+            new_parent->RemoveChild(reparent.object);
+
+            reparent.object->SetHidden(reparent.prev_parent->IsHidden());
+
+            reparent.prev_parent->AddChild(reparent.object);
+            if (reparent.prev_parent->IsChildrenTreeable()) Editor::WorldTree::Remove(reparent.object.get());
+        }
+        
+        std::swap(Editor::SELECTION, Editor::STASH);
+        
+        Editor::SELECTION->objects.push_back(new_parent);
+        
+        Editor::PropertyPanel::Refresh();
+        Editor::ObjectList::Refresh();
+        Editor::Viewport::Refresh();
+    }
+    
+    bool failed = false;
+    
+    struct ReparentInfo {
+        std::shared_ptr<Object> prev_parent = nullptr;
+        std::shared_ptr<Object> object = nullptr;
+    };
+    
+    std::list<ReparentInfo> reparent_info;
+    
+    std::shared_ptr<Object> new_parent = nullptr;
+    
+    std::shared_ptr<Selection> prev_selection = nullptr;
+    std::shared_ptr<Selection> next_selection = nullptr;
+};
+
 class ActionNew : public Action {
 public:
     ActionNew() {
@@ -57,25 +178,40 @@ public:
         // otherwise it would be weird. usually you don't do something like that.
         if (SELECTION->objects.size() == 1) {
             parent_object = SELECTION->objects.front();
-            bool parent_hidden = parent_object->IsHidden();
+            
             child_object = parent_object->AddChild();
-            child_object->SetHidden(parent_hidden);
-            if (parent_object->IsChildrenTreeable()) Editor::WorldTree::Add(child_object.get());
-            selection = std::make_shared<Editor::Selection>();
-            selection->objects.push_back(child_object);
-            std::swap(selection, Editor::SELECTION);
-            Editor::PropertyPanel::Refresh();
-            Editor::ObjectList::Refresh();
-            Editor::Viewport::Refresh();
+            
+            // AddChild() can fail and in that case it will return a nullptr, so
+            // we have to handle that
+            if (child_object) {
+                
+                // set parent visibility properties
+                child_object->SetHidden(parent_object->IsHidden());
+                if (parent_object->IsChildrenTreeable()) Editor::WorldTree::Add(child_object.get());
+                
+                // create a new selection containing our new object and swap it
+                selection = std::make_shared<Editor::Selection>();
+                selection->objects.push_back(child_object);
+                
+                std::swap(selection, Editor::SELECTION);
+                
+                Editor::PropertyPanel::Refresh();
+                Editor::ObjectList::Refresh();
+                Editor::Viewport::Refresh();
+            }
         } else {
             Editor::Viewport::ShowErrorDialog("Adding new objects can only if single object is selected!\n\nDo not DO NOT press undo, or you will crash the program!!!SAVE AND RESTART!!!!\n\n//TODO: fix");
         }
     }
     
     void Perform() {
+        if (!child_object) return;
+        
         parent_object->AddChild(child_object);
         child_object->SetHidden(child_was_hidden);
+        
         std::swap(selection, Editor::SELECTION);
+        
         Editor::PropertyPanel::Refresh();
         Editor::ObjectList::Refresh();
         Editor::Viewport::Refresh();
@@ -83,10 +219,14 @@ public:
     }
     
     void Unperform() {
+        if (!child_object) return;
+        
         child_was_hidden = child_object->IsHidden();
         parent_object->RemoveChild(child_object);
         child_object->SetHidden(true);
+        
         std::swap(selection, Editor::SELECTION);
+        
         Editor::PropertyPanel::Refresh();
         Editor::ObjectList::Refresh();
         Editor::Viewport::Refresh();
@@ -151,159 +291,6 @@ public:
     std::list<Removal> removal_list;
     std::shared_ptr<Editor::Selection> selection;
 };
-
-class ActionDuplicate : public Action {
-public:
-    ActionDuplicate() {
-        if (SELECTION->objects.size() == 0 ) {
-            std::cout << "Need a lest a single objec tto dupe!" << std::endl;
-            failed = true;
-            return;
-        }
-        
-        auto dupables = SELECTION->objects;
-        SELECTION->objects.clear();
-        
-        for (auto& object : dupables) {
-            auto dupe = object->Duplicate();
-            
-            dupe->SetHidden(object->IsHidden());
-            auto parent = dupe->GetParent();
-            
-            if (parent->IsChildrenTreeable()) {
-                 Editor::WorldTree::Add(dupe.get());
-            }
-            
-            SELECTION->objects.push_back(dupe);
-            
-            duped_objects.push_back({parent, dupe});
-            
-            /*duped_object = SELECTION->objects.front()->Duplicate();
-            parent_object = duped_object->GetParent();
-            duped_object->SetHidden(SELECTION->objects.front()->IsHidden());
-            if (parent_object->IsChildrenTreeable()) Editor::WorldTree::Add(duped_object.get());
-            
-            SELECTION->objects.clear();
-            SELECTION->objects.push_back(duped_object);
-            
-            Editor::PropertyPanel::Refresh();
-            Editor::Viewport::Refresh();*/
-        }// else {
-         //   std::cout << "Adding new objects can only if single object is selected!" << std::endl;
-        //    failed = true;
-        //}
-        
-        Editor::PropertyPanel::Refresh();
-        Editor::Viewport::Refresh();
-    }
-    
-    void Perform() {
-        if (failed) return;
-        
-        SELECTION->objects.clear();
-        
-        for (auto& [parent, dupe, was_hidden] : duped_objects) {
-            parent->AddChild(dupe);
-            dupe->SetHidden(was_hidden);
-            
-            if (parent->IsChildrenTreeable()) {
-                Editor::WorldTree::Add(dupe.get()); 
-            }
-            
-            SELECTION->objects.push_back(dupe);
-        }
-        
-        Editor::PropertyPanel::Refresh();
-        Editor::Viewport::Refresh();
-        
-        /*
-        parent_object->AddChild(duped_object);
-        duped_object->SetHidden(was_hidden);
-        
-        SELECTION->objects.clear();
-        SELECTION->objects.push_back(duped_object);
-        
-        Editor::PropertyPanel::Refresh();
-        Editor::Viewport::Refresh();
-        if (parent_object->IsChildrenTreeable()) Editor::WorldTree::Add(duped_object.get());*/
-    }
-    
-    void Unperform() {
-        if (failed) return;
-        
-        SELECTION->objects.clear();
-        
-        for (auto& [parent, dupe, was_hidden] : duped_objects) {
-            was_hidden = dupe->IsHidden();
-            parent->RemoveChild(dupe);
-            dupe->SetHidden(true);
-            
-            if (parent->IsChildrenTreeable()) {
-                Editor::WorldTree::Remove(dupe.get());
-            }
-            
-            SELECTION->objects.push_back(parent);
-        }
-        
-        Editor::PropertyPanel::Refresh();
-        Editor::Viewport::Refresh();
-        
-        /*was_hidden = duped_object->IsHidden();
-        parent_object->RemoveChild(duped_object);
-        duped_object->SetHidden(true);
-        
-        SELECTION->objects.clear();
-        SELECTION->objects.push_back(parent_object);
-        
-        Editor::PropertyPanel::Refresh();
-        Editor::Viewport::Refresh();
-        if (parent_object->IsChildrenTreeable()) Editor::WorldTree::Remove(duped_object.get());*/
-    }
-    
-    bool failed = false;
-    
-    //bool was_hidden = false;
-    //std::shared_ptr<Object> parent_object = nullptr;
-    //std::shared_ptr<Object> duped_object = nullptr;
-    
-    struct ParentDupePair {
-        std::shared_ptr<Object> parent;
-        std::shared_ptr<Object> dupe;
-        bool was_hidden;
-    };
-    
-    std::list<ParentDupePair> duped_objects;
-};
-
-/*class ActionChangeProperties : public Action {
-public:
-    // Makes a backup of the properties of the selected objects.
-    ActionChangeProperties() {
-        for (auto& object : selection->objects) {
-            property_backups.push_back({object, object->GetProperties()});
-        }
-    }
-    
-    // Swaps the backed-up properties with the new properties.
-    void Perform () {
-        for (auto& backup : property_backups) {
-            auto new_property = backup.first->GetProperties();
-            backup.first->SetProperties(backup.second);
-            backup.second = new_property;
-        }
-        
-        Editor::PropertyPanel::Refresh();
-        Editor::ObjectList::Refresh();
-        Editor::Viewport::Refresh();
-    }
-    
-    // Swaps the new properties with the backed-up properties.
-    void Unperform() {
-        Perform();
-    }
-    
-    std::list<std::pair<std::shared_ptr<Object>, std::unordered_map<std::string, PropertyValue>>> property_backups;
-};*/
 
 class ActionChangeProperties : public Action {
 public:
@@ -383,20 +370,102 @@ public:
     std::list<std::pair<std::shared_ptr<Object>, PropertyValue>> origin_backups;
 };
 
-class ActionExtrude : public Action {
+class ActionWorldspawnOffset : public Action {
 public:
-    ActionExtrude() {
-        if (SELECTION->objects.size() == 0 ) {
-            std::cout << "Need a lest a single objec tto extrude!" << std::endl;
-            failed = true;
+    // This will back up the values of the properties of the selection.
+    ActionWorldspawnOffset() {
+        if (STASH->objects.size() == 0) {
+            Editor::Viewport::ShowErrorDialog("No stashed objects to worldspawn offset to!");
             return;
         }
         
-        auto dupables = SELECTION->objects;
-        SELECTION->objects.clear();
+        if (SELECTION->objects.size() != 1) {
+            Editor::Viewport::ShowErrorDialog("Need to select a single worldspawn object!");
+            return;
+        }
         
-        for (auto& object : dupables) {
-            auto dupe = object->Extrude();
+        Entity* worldspawn = dynamic_cast<Entity*>(SELECTION->objects.front().get());
+        
+        if (!worldspawn) {
+            Editor::Viewport::ShowErrorDialog("Selected worldspawn is not an entity!");
+            return;
+        }
+        
+        for (auto& object : STASH->objects) {
+            origin_backups.push_back({object, {object->GetProperty("position-x"),
+                                               object->GetProperty("position-y"),
+                                               object->GetProperty("position-z"),
+                                               
+                                               object->GetProperty("rotation-x"),
+                                               object->GetProperty("rotation-y"),
+                                               object->GetProperty("rotation-z")}});
+                                               
+            auto entity = std::dynamic_pointer_cast<Entity>(object);
+            if (entity) {
+                entity->WorldspawnOffset(worldspawn);
+            } else {
+                std::cout << "Couldn't set worldspawn offset, object not entity!" << std::endl;
+            }
+        }
+        
+        Editor::PropertyPanel::Refresh();
+        Editor::ObjectList::Refresh();
+        Editor::Viewport::Refresh();
+        
+        Editor::data_modified = true;
+    }
+    
+    // Swaps the backed-up properties with the new properties.
+    void Perform () {
+        for (auto& backup : origin_backups) {
+            Transform new_transform = {backup.first->GetProperty("position-x"),
+                                       backup.first->GetProperty("position-y"),
+                                       backup.first->GetProperty("position-z"),
+                                       
+                                       backup.first->GetProperty("rotation-x"),
+                                       backup.first->GetProperty("rotation-y"),
+                                       backup.first->GetProperty("rotation-z")};
+            
+            backup.first->SetProperty("position-x", backup.second.pos_x);
+            backup.first->SetProperty("position-y", backup.second.pos_y);
+            backup.first->SetProperty("position-z", backup.second.pos_z);
+            
+            backup.first->SetProperty("rotation-x", backup.second.rot_x);
+            backup.first->SetProperty("rotation-y", backup.second.rot_y);
+            backup.first->SetProperty("rotation-z", backup.second.rot_z);
+            
+            backup.second = new_transform;
+        }
+        
+        Editor::data_modified = true;
+        
+        Editor::PropertyPanel::Refresh();
+        Editor::ObjectList::Refresh();
+        Editor::Viewport::Refresh();
+    }
+    
+    // Swaps the new properties with the backed-up properties.
+    void Unperform() {
+        Perform();
+    }
+    
+    struct Transform {
+        float pos_x, pos_y, pos_z;
+        float rot_x, rot_y, rot_z;
+    };
+    
+    std::list<std::pair<std::shared_ptr<Object>, Transform>> origin_backups;
+};
+
+class ActionDuplicate : public Action {
+public:
+    ActionDuplicate() {
+        selection = std::make_shared<Editor::Selection>();
+        
+        for (auto& object : SELECTION->objects) {
+            auto dupe = object->Duplicate();
+
+            if (!dupe) continue;
             
             dupe->SetHidden(object->IsHidden());
             auto parent = dupe->GetParent();
@@ -405,19 +474,18 @@ public:
                  Editor::WorldTree::Add(dupe.get());
             }
             
-            SELECTION->objects.push_back(dupe);
+            selection->objects.push_back(dupe);
             
             duped_objects.push_back({parent, dupe});
         }
+        
+        std::swap(selection, Editor::SELECTION);
+        
         Editor::PropertyPanel::Refresh();
         Editor::Viewport::Refresh();
     }
     
     void Perform() {
-        if (failed) return;
-        
-        SELECTION->objects.clear();
-        
         for (auto& [parent, dupe, was_hidden] : duped_objects) {
             parent->AddChild(dupe);
             dupe->SetHidden(was_hidden);
@@ -425,19 +493,15 @@ public:
             if (parent->IsChildrenTreeable()) {
                 Editor::WorldTree::Add(dupe.get()); 
             }
-            
-            SELECTION->objects.push_back(dupe);
         }
+        
+        std::swap(selection, Editor::SELECTION);
         
         Editor::PropertyPanel::Refresh();
         Editor::Viewport::Refresh();
     }
     
     void Unperform() {
-        if (failed) return;
-        
-        SELECTION->objects.clear();
-        
         for (auto& [parent, dupe, was_hidden] : duped_objects) {
             was_hidden = dupe->IsHidden();
             parent->RemoveChild(dupe);
@@ -446,15 +510,13 @@ public:
             if (parent->IsChildrenTreeable()) {
                 Editor::WorldTree::Remove(dupe.get());
             }
-            
-            SELECTION->objects.push_back(parent);
         }
+        
+        std::swap(selection, Editor::SELECTION);
         
         Editor::PropertyPanel::Refresh();
         Editor::Viewport::Refresh();
     }
-    
-    bool failed = false;
     
     struct ParentDupePair {
         std::shared_ptr<Object> parent;
@@ -462,6 +524,76 @@ public:
         bool was_hidden;
     };
     
+    std::shared_ptr<Editor::Selection> selection;
+    std::list<ParentDupePair> duped_objects;
+};
+
+class ActionExtrude : public Action {
+public:
+    ActionExtrude() {
+        selection = std::make_shared<Editor::Selection>();
+        
+        for (auto& object : SELECTION->objects) {
+            auto dupe = object->Extrude();
+            
+            if (!dupe) continue;
+            
+            dupe->SetHidden(object->IsHidden());
+            auto parent = dupe->GetParent();
+            
+            if (parent->IsChildrenTreeable()) {
+                 Editor::WorldTree::Add(dupe.get());
+            }
+            
+            duped_objects.push_back({parent, dupe});
+        }
+        
+        std::swap(selection, Editor::SELECTION);
+        
+        Editor::PropertyPanel::Refresh();
+        Editor::Viewport::Refresh();
+    }
+    
+    void Perform() {
+        for (auto& [parent, dupe, was_hidden] : duped_objects) {
+            parent->AddChild(dupe);
+            dupe->SetHidden(was_hidden);
+            
+            if (parent->IsChildrenTreeable()) {
+                Editor::WorldTree::Add(dupe.get()); 
+            }
+        }
+        
+        std::swap(selection, Editor::SELECTION);
+        
+        Editor::PropertyPanel::Refresh();
+        Editor::Viewport::Refresh();
+    }
+    
+    void Unperform() {
+        for (auto& [parent, dupe, was_hidden] : duped_objects) {
+            was_hidden = dupe->IsHidden();
+            parent->RemoveChild(dupe);
+            dupe->SetHidden(true);
+            
+            if (parent->IsChildrenTreeable()) {
+                Editor::WorldTree::Remove(dupe.get());
+            }
+        }
+        
+        std::swap(selection, Editor::SELECTION);
+        
+        Editor::PropertyPanel::Refresh();
+        Editor::Viewport::Refresh();
+    }
+    
+    struct ParentDupePair {
+        std::shared_ptr<Object> parent;
+        std::shared_ptr<Object> dupe;
+        bool was_hidden;
+    };
+    
+    std::shared_ptr<Editor::Selection> selection;
     std::list<ParentDupePair> duped_objects;
 };
 
@@ -524,66 +656,6 @@ public:
     bool failed = false;
     bool connect = false;
 };
-
-/*class ActionSwapSelection : public Action {
-public:
-    ActionSwapSelection (std::shared_ptr<Selection> new_selection) {
-        prev_selection = selection;
-        next_selection = new_selection;
-    }
-    
-    // TODO: you also have to
-    // - update the property panel about the new selection
-    // - update the object list about the new selection
-    // - reparent all children of the selected objects
-    // - reparent the object to its children
-    void Perform() {
-        for (auto& object : prev_selection->objects) {
-            auto parent_object = object->GetParent();
-            parent_object->RemoveChild(object);
-            
-            if (parent_object->IsChildrenTreeable()) {
-                Editor::WorldTree::Remove(object.get());
-            }
-        }
-
-        for (auto& object : next_selection->objects) {
-            auto parent_object = object->GetParent();
-            parent_object->AddChild(object);
-            
-            if (parent_object->IsChildrenTreeable()) {
-                Editor::WorldTree::Add(object.get());
-            }
-        }
-        
-        selection = next_selection;
-    }
-    
-    void Unperform() {
-        for (auto& object : next_selection->objects) {
-            auto parent_object = object->GetParent();
-            parent_object->RemoveChild(object);
-            
-            if (parent_object->IsChildrenTreeable()) {
-                Editor::WorldTree::Remove(object.get());
-            }
-        }
-
-        for (auto& object : prev_selection->objects) {
-            auto parent_object = object->GetParent();
-            parent_object->AddChild(object);
-            
-            if (parent_object->IsChildrenTreeable()) {
-                Editor::WorldTree::Add(object.get());
-            }
-        }
-        
-        selection = prev_selection;
-    }
-    
-    std::shared_ptr<Selection> prev_selection = nullptr;
-    std::shared_ptr<Selection> next_selection = nullptr;
-};*/
 
 }
 

@@ -27,6 +27,9 @@ enum {
     ID_Action_Signals = 12,
     ID_Action_Duplicate = 14,
     ID_Action_CenterOrigin = 15,
+    ID_Action_WorldspawnOffset = 16,
+    ID_Action_StashSelection = 17,
+    ID_Action_ReparentStash = 18,
     ID_World_Tree_Show = 40,
     ID_World_Tree_Hide = 41,
     ID_World_Tree_Begonis = 42,
@@ -75,6 +78,10 @@ MainFrameCtrl::MainFrameCtrl() : wxFrame(NULL, wxID_ANY, Editor::Get("title_bar"
     edit_menu->Append(ID_Action_Signals, Editor::Get("edit_menu_signals"), Editor::Get("edit_menu_signals_info"));
     edit_menu->AppendSeparator();
     edit_menu->Append(ID_Action_CenterOrigin, Editor::Get("edit_menu_center_aabb"), Editor::Get("edit_menu_center_aabb_info"));
+    edit_menu->Append(ID_Action_WorldspawnOffset, Editor::Get("edit_menu_worldspawn_offset"), Editor::Get("edit_menu_worldspawn_offset_info"));
+    edit_menu->AppendSeparator();
+    edit_menu->Append(ID_Action_StashSelection, Editor::Get("edit_menu_stash_selection"), Editor::Get("edit_menu_stash_selection_info"));
+    edit_menu->Append(ID_Action_ReparentStash, Editor::Get("edit_menu_reparent_stash"), Editor::Get("edit_menu_reparent_stash_info"));
  
     wxMenu* view_menu = new wxMenu;
     view_menu->Append(ID_Settings_View_Move_To_Selection, Editor::Get("view_menu_center_selection"), Editor::Get("view_menu_center_selection_info"));
@@ -134,6 +141,9 @@ MainFrameCtrl::MainFrameCtrl() : wxFrame(NULL, wxID_ANY, Editor::Get("title_bar"
     Bind(wxEVT_MENU, &MainFrameCtrl::OnAction, this, ID_Action_Duplicate);
     Bind(wxEVT_MENU, &MainFrameCtrl::OnAction, this, ID_Action_Signals);
     Bind(wxEVT_MENU, &MainFrameCtrl::OnAction, this, ID_Action_CenterOrigin);
+    Bind(wxEVT_MENU, &MainFrameCtrl::OnAction, this, ID_Action_WorldspawnOffset);
+    Bind(wxEVT_MENU, &MainFrameCtrl::OnAction, this, ID_Action_StashSelection);
+    Bind(wxEVT_MENU, &MainFrameCtrl::OnAction, this, ID_Action_ReparentStash);
     
     Bind(wxEVT_CLOSE_WINDOW, &MainFrameCtrl::OnClose, this);
     
@@ -239,6 +249,15 @@ void MainFrameCtrl::OnAction(wxCommandEvent& event) {
             break;
         case ID_Action_CenterOrigin:
             Editor::PerformAction<Editor::ActionCenterOrigin>();
+            break;
+        case ID_Action_WorldspawnOffset:
+            Editor::PerformAction<Editor::ActionWorldspawnOffset>();
+            break;
+        case ID_Action_StashSelection:
+            Editor::PerformAction<Editor::ActionStashSelection>();
+            break;
+        case ID_Action_ReparentStash:
+            Editor::PerformAction<Editor::ActionReparent>();
             break;
         case ID_Settings_Angle_Radians:
             ROTATION_UNIT = ROTATION_RADIANS;

@@ -292,11 +292,19 @@ public:
     
     virtual std::string_view GetName() { return properties["name"].str_value; }
     
+    // object hierarchy operations
     virtual void AddChild(std::shared_ptr<Object> child) { children.push_back(child); }
     virtual void RemoveChild(std::shared_ptr<Object> child) { children.remove(child); }
+    virtual bool IsChildAddable(std::shared_ptr<Object> child) { std::cout << "IsChildAddable() not implemented for " << typeid(*this).name() << std::endl; return false; }
     virtual std::list<std::shared_ptr<Object>> GetChildren() { return children; }
 
-    virtual std::shared_ptr<Object> Extrude() { std::cout << "Extrude() not implemented for " << typeid(*this).name() << std::endl; return this->GetPointer(); }
+    virtual bool IsChildrenTreeable() { std::cout << "IsChildrenTreeable() not implemented for " << typeid(*this).name() << std::endl; return false; }
+    virtual bool IsChildrenListable() { std::cout << "IsChildrenListable() not implemented for " << typeid(*this).name() << std::endl; return false; }
+    virtual void SetHidden(bool is_hidden) { for (auto& child : children) child->SetHidden(is_hidden); }
+    virtual std::shared_ptr<Object> AddChild() { std::cout << "AddChild(void) not implemented for " << typeid(*this).name() << std::endl; return std::shared_ptr<Object>(nullptr); }
+
+    // graph object operations
+    virtual std::shared_ptr<Object> Extrude() { std::cout << "Extrude() not implemented for " << typeid(*this).name() << std::endl; return std::shared_ptr<Object>(nullptr); }
     virtual void Connect(std::shared_ptr<Object> other) { std::cout << "Connect() not implemented for " << typeid(*this).name() << std::endl; }
     virtual void Disconnect(std::shared_ptr<Object> other) { std::cout << "Connect() not implemented for " << typeid(*this).name() << std::endl; }
     virtual bool IsConnected(std::shared_ptr<Object> other) { std::cout << "Connect() not implemented for " << typeid(*this).name() << std::endl; return false; }
@@ -304,20 +312,16 @@ public:
     bool is_hidden = true;
     Object* parent = nullptr;
     
-    virtual bool IsChildrenTreeable() { std::cout << "IsChildrenTreeable() not implemented for " << typeid(*this).name() << std::endl; abort(); }
-    virtual bool IsChildrenListable() { std::cout << "IsChildrenListable() not implemented for " << typeid(*this).name() << std::endl; abort(); }
-    virtual void SetHidden(bool is_hidden) { for (auto& child : children) child->SetHidden(is_hidden); }
-    virtual std::shared_ptr<Object> AddChild() { std::cout << "AddChild(void) not implemented for " << typeid(*this).name() << std::endl; abort(); }
-
-    virtual bool IsAddable() { std::cout << "IsAddable() not implemented for " << typeid(*this).name() << std::endl; abort(); }
-    virtual bool IsRemovable() { std::cout << "IsRemovable() not implemented for " << typeid(*this).name() << std::endl; abort(); }
-    virtual bool IsEditable() { std::cout << "IsEditable() not implemented for " << typeid(*this).name() << std::endl; abort(); }
-    virtual bool IsCopyable() { std::cout << "IsCopyable() not implemented for " << typeid(*this).name() << std::endl; abort(); }
+    // operation checks
+    virtual bool IsAddable() { std::cout << "IsAddable() not implemented for " << typeid(*this).name() << std::endl; return false; }
+    virtual bool IsRemovable() { std::cout << "IsRemovable() not implemented for " << typeid(*this).name() << std::endl; return false; }
+    virtual bool IsEditable() { std::cout << "IsEditable() not implemented for " << typeid(*this).name() << std::endl; return false; }
+    virtual bool IsCopyable() { std::cout << "IsCopyable() not implemented for " << typeid(*this).name() << std::endl; return false; }
     virtual bool IsHidden() { for (auto& child : children) if (child->IsHidden()) return true; return false; }
     
     virtual float SelectSize() { return 0.0f; }
     
-    virtual std::shared_ptr<Object> Duplicate() { std::cout << "Duplicate(void) not implemented for " << typeid(*this).name() << std::endl; abort(); }
+    virtual std::shared_ptr<Object> Duplicate() { std::cout << "Duplicate(void) not implemented for " << typeid(*this).name() << std::endl; return std::shared_ptr<Object>(nullptr); }
     
     // this is stupid and it should be yeeted, but alas, it is not possible for the time being
     virtual void Draw() {}
@@ -325,13 +329,13 @@ public:
     virtual std::vector<WidgetDefinition> GetWidgetDefinitions() { return {}; }
     
     // these are the properties that will be shown in the object list
-    virtual std::vector<PropertyDefinition> GetListPropertyDefinitions() { std::cout << "GetListPropertyDefinitions() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+    virtual std::vector<PropertyDefinition> GetListPropertyDefinitions() { std::cout << "GetListPropertyDefinitions() not implemented for " << typeid(*this).name() <<  std::endl; return {}; }
     
     // these properties will be shown and will be editable from property panel
-    virtual std::vector<PropertyDefinition> GetFullPropertyDefinitions() { std::cout << "GetFullPropertyDefinitions() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+    virtual std::vector<PropertyDefinition> GetFullPropertyDefinitions() { std::cout << "GetFullPropertyDefinitions() not implemented for " << typeid(*this).name() <<  std::endl; return {}; }
     
     // these properties will be used for serialization
-    virtual std::vector<PropertyDefinition> GetSerializationPropertyDefinitions() { std::cout << "GetSerializationPropertyDefinitions() not implemented for " << typeid(*this).name() <<  std::endl; abort(); }
+    virtual std::vector<PropertyDefinition> GetSerializationPropertyDefinitions() { std::cout << "GetSerializationPropertyDefinitions() not implemented for " << typeid(*this).name() <<  std::endl; return {}; }
     
     virtual PropertyValue GetProperty (std::string property_name) { return properties[property_name]; }
     virtual void SetProperty (std::string property_name, PropertyValue property_value) { properties[property_name] = property_value; if (property_name == "name" && parent && parent->IsChildrenTreeable()) WorldTree::Rename(this); }
@@ -360,6 +364,7 @@ struct Selection {
 
 extern bool data_modified;
 extern std::shared_ptr<Selection> SELECTION;
+extern std::shared_ptr<Selection> STASH;
 
 }
 
