@@ -8,6 +8,10 @@
     <File Name="src/main.cpp"/>
     <VirtualDirectory Name="editor">
       <VirtualDirectory Name="objects">
+        <File Name="src/editor/objects/soundgraph.h"/>
+        <File Name="src/editor/objects/soundgraph.cpp"/>
+        <File Name="src/editor/objects/lightgraph.h"/>
+        <File Name="src/editor/objects/lightgraph.cpp"/>
         <File Name="src/editor/objects/transition.cpp"/>
         <File Name="src/editor/objects/path.cpp"/>
         <File Name="src/editor/objects/navmesh.cpp"/>

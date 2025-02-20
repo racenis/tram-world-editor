@@ -14,7 +14,7 @@ CurrentFileName        :=
 CurrentFilePath        :=
 CurrentFileFullPath    :=
 User                   :=Poga
-Date                   :=14/02/2025
+Date                   :=20/02/2025
 CodeLitePath           :="C:/Program Files/CodeLite"
 MakeDirCommand         :=mkdir
 LinkerName             :=C:/mingw64/bin/g++.exe
@@ -66,9 +66,9 @@ AS       := C:/mingw64/bin/as.exe
 CodeLiteDir:=C:\Program Files\CodeLite
 WXWIN:=C:\Users\Poga\Desktop\miskaste\wxwidgets
 WXCFG:=gcc_dll\mswu
-Objects0=$(IntermediateDirectory)/src_editor_objects_worldcell.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_objects_entity.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_dialogs.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_signaleditor.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_objects_world.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_main.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_worldtree.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_viewport.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_editor.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_tramsdk.cpp$(ObjectSuffix) \
-	$(IntermediateDirectory)/src_editor_language.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_objects_worldcellmanager.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_settings.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_propertypanel.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_init.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_mainframe.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_objectmenu.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_objectlist.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_objects_transition.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_objects_path.cpp$(ObjectSuffix) \
-	$(IntermediateDirectory)/src_editor_objects_navmesh.cpp$(ObjectSuffix) 
+Objects0=$(IntermediateDirectory)/src_editor_objects_soundgraph.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_objects_worldcell.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_objects_entity.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_dialogs.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_signaleditor.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_objects_world.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_main.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_worldtree.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_viewport.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_editor.cpp$(ObjectSuffix) \
+	$(IntermediateDirectory)/src_tramsdk.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_language.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_objects_worldcellmanager.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_settings.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_objects_navmesh.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_objects_path.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_objects_transition.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_propertypanel.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_init.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_mainframe.cpp$(ObjectSuffix) \
+	$(IntermediateDirectory)/src_widgets_objectmenu.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_widgets_objectlist.cpp$(ObjectSuffix) $(IntermediateDirectory)/src_editor_objects_lightgraph.cpp$(ObjectSuffix) 
 
 
 
@@ -99,6 +99,14 @@ PreBuild:
 ##
 ## Objects
 ##
+$(IntermediateDirectory)/src_editor_objects_soundgraph.cpp$(ObjectSuffix): src/editor/objects/soundgraph.cpp $(IntermediateDirectory)/src_editor_objects_soundgraph.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/editor/objects/soundgraph.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_editor_objects_soundgraph.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/src_editor_objects_soundgraph.cpp$(DependSuffix): src/editor/objects/soundgraph.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/src_editor_objects_soundgraph.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/src_editor_objects_soundgraph.cpp$(DependSuffix) -MM src/editor/objects/soundgraph.cpp
+
+$(IntermediateDirectory)/src_editor_objects_soundgraph.cpp$(PreprocessSuffix): src/editor/objects/soundgraph.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_editor_objects_soundgraph.cpp$(PreprocessSuffix) src/editor/objects/soundgraph.cpp
+
 $(IntermediateDirectory)/src_editor_objects_worldcell.cpp$(ObjectSuffix): src/editor/objects/worldcell.cpp $(IntermediateDirectory)/src_editor_objects_worldcell.cpp$(DependSuffix)
 	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/editor/objects/worldcell.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_editor_objects_worldcell.cpp$(ObjectSuffix) $(IncludePath)
 $(IntermediateDirectory)/src_editor_objects_worldcell.cpp$(DependSuffix): src/editor/objects/worldcell.cpp
@@ -203,6 +211,30 @@ $(IntermediateDirectory)/src_editor_settings.cpp$(DependSuffix): src/editor/sett
 $(IntermediateDirectory)/src_editor_settings.cpp$(PreprocessSuffix): src/editor/settings.cpp
 	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_editor_settings.cpp$(PreprocessSuffix) src/editor/settings.cpp
 
+$(IntermediateDirectory)/src_editor_objects_navmesh.cpp$(ObjectSuffix): src/editor/objects/navmesh.cpp $(IntermediateDirectory)/src_editor_objects_navmesh.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/editor/objects/navmesh.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_editor_objects_navmesh.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/src_editor_objects_navmesh.cpp$(DependSuffix): src/editor/objects/navmesh.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/src_editor_objects_navmesh.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/src_editor_objects_navmesh.cpp$(DependSuffix) -MM src/editor/objects/navmesh.cpp
+
+$(IntermediateDirectory)/src_editor_objects_navmesh.cpp$(PreprocessSuffix): src/editor/objects/navmesh.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_editor_objects_navmesh.cpp$(PreprocessSuffix) src/editor/objects/navmesh.cpp
+
+$(IntermediateDirectory)/src_editor_objects_path.cpp$(ObjectSuffix): src/editor/objects/path.cpp $(IntermediateDirectory)/src_editor_objects_path.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/editor/objects/path.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_editor_objects_path.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/src_editor_objects_path.cpp$(DependSuffix): src/editor/objects/path.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/src_editor_objects_path.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/src_editor_objects_path.cpp$(DependSuffix) -MM src/editor/objects/path.cpp
+
+$(IntermediateDirectory)/src_editor_objects_path.cpp$(PreprocessSuffix): src/editor/objects/path.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_editor_objects_path.cpp$(PreprocessSuffix) src/editor/objects/path.cpp
+
+$(IntermediateDirectory)/src_editor_objects_transition.cpp$(ObjectSuffix): src/editor/objects/transition.cpp $(IntermediateDirectory)/src_editor_objects_transition.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/editor/objects/transition.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_editor_objects_transition.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/src_editor_objects_transition.cpp$(DependSuffix): src/editor/objects/transition.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/src_editor_objects_transition.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/src_editor_objects_transition.cpp$(DependSuffix) -MM src/editor/objects/transition.cpp
+
+$(IntermediateDirectory)/src_editor_objects_transition.cpp$(PreprocessSuffix): src/editor/objects/transition.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_editor_objects_transition.cpp$(PreprocessSuffix) src/editor/objects/transition.cpp
+
 $(IntermediateDirectory)/src_widgets_propertypanel.cpp$(ObjectSuffix): src/widgets/propertypanel.cpp $(IntermediateDirectory)/src_widgets_propertypanel.cpp$(DependSuffix)
 	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/widgets/propertypanel.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_widgets_propertypanel.cpp$(ObjectSuffix) $(IncludePath)
 $(IntermediateDirectory)/src_widgets_propertypanel.cpp$(DependSuffix): src/widgets/propertypanel.cpp
@@ -243,29 +275,13 @@ $(IntermediateDirectory)/src_widgets_objectlist.cpp$(DependSuffix): src/widgets/
 $(IntermediateDirectory)/src_widgets_objectlist.cpp$(PreprocessSuffix): src/widgets/objectlist.cpp
 	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_widgets_objectlist.cpp$(PreprocessSuffix) src/widgets/objectlist.cpp
 
-$(IntermediateDirectory)/src_editor_objects_transition.cpp$(ObjectSuffix): src/editor/objects/transition.cpp $(IntermediateDirectory)/src_editor_objects_transition.cpp$(DependSuffix)
-	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/editor/objects/transition.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_editor_objects_transition.cpp$(ObjectSuffix) $(IncludePath)
-$(IntermediateDirectory)/src_editor_objects_transition.cpp$(DependSuffix): src/editor/objects/transition.cpp
-	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/src_editor_objects_transition.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/src_editor_objects_transition.cpp$(DependSuffix) -MM src/editor/objects/transition.cpp
+$(IntermediateDirectory)/src_editor_objects_lightgraph.cpp$(ObjectSuffix): src/editor/objects/lightgraph.cpp $(IntermediateDirectory)/src_editor_objects_lightgraph.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/editor/objects/lightgraph.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_editor_objects_lightgraph.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/src_editor_objects_lightgraph.cpp$(DependSuffix): src/editor/objects/lightgraph.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/src_editor_objects_lightgraph.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/src_editor_objects_lightgraph.cpp$(DependSuffix) -MM src/editor/objects/lightgraph.cpp
 
-$(IntermediateDirectory)/src_editor_objects_transition.cpp$(PreprocessSuffix): src/editor/objects/transition.cpp
-	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_editor_objects_transition.cpp$(PreprocessSuffix) src/editor/objects/transition.cpp
-
-$(IntermediateDirectory)/src_editor_objects_path.cpp$(ObjectSuffix): src/editor/objects/path.cpp $(IntermediateDirectory)/src_editor_objects_path.cpp$(DependSuffix)
-	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/editor/objects/path.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_editor_objects_path.cpp$(ObjectSuffix) $(IncludePath)
-$(IntermediateDirectory)/src_editor_objects_path.cpp$(DependSuffix): src/editor/objects/path.cpp
-	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/src_editor_objects_path.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/src_editor_objects_path.cpp$(DependSuffix) -MM src/editor/objects/path.cpp
-
-$(IntermediateDirectory)/src_editor_objects_path.cpp$(PreprocessSuffix): src/editor/objects/path.cpp
-	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_editor_objects_path.cpp$(PreprocessSuffix) src/editor/objects/path.cpp
-
-$(IntermediateDirectory)/src_editor_objects_navmesh.cpp$(ObjectSuffix): src/editor/objects/navmesh.cpp $(IntermediateDirectory)/src_editor_objects_navmesh.cpp$(DependSuffix)
-	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Poga/Desktop/painis/tram-editor/src/editor/objects/navmesh.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/src_editor_objects_navmesh.cpp$(ObjectSuffix) $(IncludePath)
-$(IntermediateDirectory)/src_editor_objects_navmesh.cpp$(DependSuffix): src/editor/objects/navmesh.cpp
-	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/src_editor_objects_navmesh.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/src_editor_objects_navmesh.cpp$(DependSuffix) -MM src/editor/objects/navmesh.cpp
-
-$(IntermediateDirectory)/src_editor_objects_navmesh.cpp$(PreprocessSuffix): src/editor/objects/navmesh.cpp
-	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_editor_objects_navmesh.cpp$(PreprocessSuffix) src/editor/objects/navmesh.cpp
+$(IntermediateDirectory)/src_editor_objects_lightgraph.cpp$(PreprocessSuffix): src/editor/objects/lightgraph.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/src_editor_objects_lightgraph.cpp$(PreprocessSuffix) src/editor/objects/lightgraph.cpp
 
 
 -include $(IntermediateDirectory)/*$(DependSuffix)

@@ -1,24 +1,17 @@
-#ifndef TRAM_SDK_EDITOR_OBJECTS_PATH_H
-#define TRAM_SDK_EDITOR_OBJECTS_PATH_H
+#ifndef TRAM_SDK_EDITOR_OBJECTS_LIGHT_GRAPH_H
+#define TRAM_SDK_EDITOR_OBJECTS_LIGHT_GRAPH_H
 
 #include <editor/editor.h>
 
 namespace Editor {
 
-class Path : public Object {
+class LightGraph : public Object {
 public:
     class Node;
-    
-    enum EdgeType {
-        AB,
-        BA,
-        BI
-    };
-    
+
     struct Edge {
         Node* a;
         Node* b;
-        EdgeType type;
         bool dormant;
     };
     
@@ -29,9 +22,11 @@ public:
             properties["position-x"] = Viewport::CURSOR_X;
             properties["position-y"] = Viewport::CURSOR_Y;
             properties["position-z"] = Viewport::CURSOR_Z;
+            properties["probe-light"] = true;
+            properties["probe-reflection"] = true;
         }
         
-        std::string_view GetName() { return "path_node"; }
+        std::string_view GetName() { return "light_node"; }
         
         bool IsChildrenTreeable() { return false; }
         bool IsChildrenListable() { return false; }
@@ -51,18 +46,20 @@ public:
         
         std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
             return std::vector<PropertyDefinition> {
-                {"group-path-node", "Path Node", "", PROPERTY_CATEGORY},
-                {"index", "Index", "group-path-node", PROPERTY_UINT},
-                {"group-path-node-pos", "Position", "group-path-node", PROPERTY_CATEGORY},
-                {"position-x", "X", "group-path-node-pos", PROPERTY_FLOAT},
-                {"position-y", "Y", "group-path-node-pos", PROPERTY_FLOAT},
-                {"position-z", "Z", "group-path-node-pos", PROPERTY_FLOAT},
+                {"group-light-graph-node", "Path Node", "", PROPERTY_CATEGORY},
+                {"index", "Index", "group-light-graph-node", PROPERTY_UINT},
+                {"probe-light", "Probe Light", "group-light-graph-node", PROPERTY_BOOL},
+                {"probe-reflection", "Probe Reflection", "group-light-graph-node", PROPERTY_BOOL},
+                {"group-light-graph-node-pos", "Position", "group-light-graph-node", PROPERTY_CATEGORY},
+                {"position-x", "X", "group-light-graph-node-pos", PROPERTY_FLOAT},
+                {"position-y", "Y", "group-light-graph-node-pos", PROPERTY_FLOAT},
+                {"position-z", "Z", "group-light-graph-node-pos", PROPERTY_FLOAT},
             };
         }
     };
     
-    Path (Object* parent) : Path (parent, "New Path") {}
-    Path (Object* parent, std::string name) : Object(parent) {
+    LightGraph(Object* parent) : LightGraph (parent, "Light Graph") {}
+    LightGraph(Object* parent, std::string name) : Object(parent) {
         properties["name"] = name;
     }
     
@@ -91,8 +88,7 @@ public:
     
     std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
-            {"group-path", "path", "", PROPERTY_CATEGORY},
-            {"name", "Name", "group-path", PROPERTY_STRING}
+            {"group-light-graph", "light_graph", "", PROPERTY_CATEGORY}
         };
     }
     
@@ -111,4 +107,4 @@ public:
 
 }
 
-#endif // TRAM_SDK_EDITOR_OBJECTS_PATH_H
+#endif // TRAM_SDK_EDITOR_OBJECTS_LIGHT_GRAPH_H

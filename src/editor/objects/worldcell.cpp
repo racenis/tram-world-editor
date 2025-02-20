@@ -142,6 +142,8 @@ void WorldCell::LoadFromDisk() {
             loaded_entities[entity->properties["id"]] = entity.get();
         }
     }
+    
+    this->light_graph->LoadFromDisk();
 }
 
 void WorldCell::SaveToDisk() {
@@ -279,6 +281,8 @@ void WorldCell::SaveToDisk() {
         
         file.write_newline();
     }
+    
+    this->light_graph->SaveToDisk();
 }
 
 }

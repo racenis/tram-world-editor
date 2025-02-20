@@ -545,6 +545,8 @@ public:
                  Editor::WorldTree::Add(dupe.get());
             }
             
+            selection->objects.push_back(dupe);
+            
             duped_objects.push_back({parent, dupe});
         }
         

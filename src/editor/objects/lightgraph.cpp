@@ -1,24 +1,16 @@
-#include <editor/objects/path.h>
+#include <editor/objects/lightgraph.h>
 
 #include <framework/file.h>
 #include <render/render.h>
-
-// TODO:
-// - add option to tag edge as ?? side. yes, side edge.
-//   during runtime, the path follower will determine whether an edge is a left,
-//   or a right edge based on the followers orientation
-// - add visualization ??? for a, b of the edge and add option to flip a and b
-// - this might need modification to runtime, it needs AddLine() where you say
-//   both end colors
 
 namespace Editor {
 
 using namespace tram;
 
-void Path::LoadFromDisk() {
-    std::string path = "data/paths/";
-    path += this->GetName();
-    path += ".path";
+void LightGraph::LoadFromDisk() {
+    std::string path = "data/worldcells/";
+    path += this->parent->GetName();
+    path += ".light";
     
     File file (path.c_str(), File::READ /*| MODE_PAUSE_LINE*/);
     
@@ -26,8 +18,8 @@ void Path::LoadFromDisk() {
         std::cout << "Can't find path file: " << path << std::endl; return;
     }
     
-    if (file.read_name() != "PATHv2") {
-        Viewport::ShowErrorDialog(std::string("Unrecognized path format in ") + path + "!"); return;
+    if (file.read_name() != "LIGHTGRAPHv1") {
+        Viewport::ShowErrorDialog(std::string("Unrecognized light graph format in ") + path + "!"); return;
     }
     
     //file.skip_linebreak();
@@ -45,6 +37,9 @@ void Path::LoadFromDisk() {
             new_node->SetProperty("position-x", file.read_float32());
             new_node->SetProperty("position-y", file.read_float32());
             new_node->SetProperty("position-z", file.read_float32());
+            
+            new_node->SetProperty("probe-light", (bool)file.read_uint32());
+            new_node->SetProperty("probe-reflection", (bool)file.read_uint32());
             
             nodes.push_back(new_node.get());
             children.push_back(new_node);
@@ -74,17 +69,26 @@ void Path::LoadFromDisk() {
             }
             
             if (existing) {
-                if (from_node == existing->a && existing->type == BA) {
-                    existing->type = BI;
-                } else if (from_node == existing->b && existing->type == AB) {
-                    existing->type = BI;
-                } else {
-                    std::cout << "Error parsing " << path << ", edge" << from_node_index << " -> " << to_node_index << " duplicate." << std::endl;
-                }
+                std::cout << "Error parsing " << path << ", edge" << from_node_index << " -> " << to_node_index << " duplicate." << std::endl;
             } else {
-                Edge edge = {.a = from_node, .b = to_node, .type = AB, .dormant = false};
+                Edge edge = {.a = from_node, .b = to_node, .dormant = false};
                 edges.push_back(edge);
             }
+        } else if (record_type == "light") {
+            file.read_uint32();     // layer
+            file.read_name();       // channel
+            
+            file.read_float32();    // coefficients
+            
+            file.read_float32();
+            file.read_float32();
+            file.read_float32();
+            
+            file.read_float32();
+            file.read_float32();
+            file.read_float32();
+            file.read_float32();
+            file.read_float32();
         } else {
             std::cout << "unknown path record: " << record_type << std::endl;
         }
@@ -93,9 +97,9 @@ void Path::LoadFromDisk() {
     }
 }
 
-void Path::SaveToDisk() {
+void LightGraph::SaveToDisk() {
     std::string path = "data/paths/";
-    path += this->GetName();
+    path += this->parent->GetName();
     path += ".path";
     
     File file (path.c_str(), File::WRITE);
@@ -106,7 +110,7 @@ void Path::SaveToDisk() {
     
     ReindexChildren();
     
-    file.write_name("PATHv2");
+    file.write_name("LIGHTGRAPHv1");
     
     file.write_newline();
     file.write_newline();
@@ -118,33 +122,26 @@ void Path::SaveToDisk() {
         file.write_float32(child->GetProperty("position-y"));
         file.write_float32(child->GetProperty("position-z"));
         
+        file.write_uint32((bool)child->GetProperty("probe-light"));
+        file.write_uint32((bool)child->GetProperty("probe-reflection"));
+        
         file.write_newline();
     }
     
     file.write_newline();
     
     for (auto& edge : edges) {
-        if (edge.type == AB || edge.type == BI) {
-            file.write_name("edge");
-            
-            file.write_uint32(edge.a->GetProperty("index"));
-            file.write_uint32(edge.b->GetProperty("index"));
-            
-            file.write_newline();
-        }
+        file.write_name("edge");
         
-        if (edge.type == BA || edge.type == BI) {
-            file.write_name("edge");
-            
-            file.write_uint32(edge.b->GetProperty("index"));
-            file.write_uint32(edge.a->GetProperty("index"));
-            
-            file.write_newline();
-        }
+        file.write_uint32(edge.a->GetProperty("index"));
+        file.write_uint32(edge.b->GetProperty("index"));
+        
+        file.write_newline();
+    
     }
 }
 
-void Path::Draw() {
+void LightGraph::Draw() {
     for (auto& child : children) {
         vec3 position = {
             child->GetProperty("position-x"),
@@ -174,7 +171,7 @@ void Path::Draw() {
     
 }
 
-void Path::Node::Draw() {
+void LightGraph::Node::Draw() {
     parent->Draw();
     
     vec3 pos = {
@@ -186,9 +183,9 @@ void Path::Node::Draw() {
     Render::AddLineAABB({-0.2f, -0.2f, -0.2f}, {0.2f, 0.2f, 0.2f}, pos, vec3(0.0f, 0.0f, 0.0f), Render::COLOR_RED);    
 }
 
-std::shared_ptr<Object> Path::Node::Extrude() {
+std::shared_ptr<Object> LightGraph::Node::Extrude() {
     //auto new_node = std::make_shared<Node>(this);
-    auto new_node = std::dynamic_pointer_cast<Path::Node>(parent->AddChild());
+    auto new_node = std::dynamic_pointer_cast<LightGraph::Node>(parent->AddChild());
     
     new_node->SetProperty("index", parent->GetChildren().size());
 
@@ -202,19 +199,18 @@ std::shared_ptr<Object> Path::Node::Extrude() {
     
     edge.a = this;
     edge.b = new_node.get();
-    edge.type = BI;
     edge.dormant = false;
 
-    dynamic_cast<Path*>(parent)->edges.push_back(edge);
+    dynamic_cast<LightGraph*>(parent)->edges.push_back(edge);
     
     return new_node;
 }
 
-void Path::Node::Connect(std::shared_ptr<Object> object) {
+void LightGraph::Node::Connect(std::shared_ptr<Object> object) {
     Node* other = dynamic_cast<Node*>(object.get());
     
     Edge* existing = nullptr;
-    for (auto& edge : dynamic_cast<Path*>(parent)->edges) {
+    for (auto& edge : dynamic_cast<LightGraph*>(parent)->edges) {
         const bool a_to_b = edge.a == this && edge.b == other;
         const bool b_to_a = edge.a == other && edge.b == this;
         if (a_to_b || b_to_a) {
@@ -224,18 +220,17 @@ void Path::Node::Connect(std::shared_ptr<Object> object) {
     
     if (existing) {
         existing->dormant = false;
-        existing->type = BI;
     } else {
-        Edge edge = {.a = this, .b = other, .type = BI, .dormant = false};
-        dynamic_cast<Path*>(parent)->edges.push_back(edge);
+        Edge edge = {.a = this, .b = other, .dormant = false};
+        dynamic_cast<LightGraph*>(parent)->edges.push_back(edge);
     }
 }
 
-void Path::Node::Disconnect(std::shared_ptr<Object> object) {
+void LightGraph::Node::Disconnect(std::shared_ptr<Object> object) {
     Node* other = dynamic_cast<Node*>(object.get());
     
     Edge* existing = nullptr;
-    for (auto& edge : dynamic_cast<Path*>(parent)->edges) {
+    for (auto& edge : dynamic_cast<LightGraph*>(parent)->edges) {
         const bool a_to_b = edge.a == this && edge.b == other;
         const bool b_to_a = edge.a == other && edge.b == this;
         if (a_to_b || b_to_a) {
@@ -250,10 +245,10 @@ void Path::Node::Disconnect(std::shared_ptr<Object> object) {
     }
 }
 
-bool Path::Node::IsConnected(std::shared_ptr<Object> object) {
+bool LightGraph::Node::IsConnected(std::shared_ptr<Object> object) {
     Node* other = dynamic_cast<Node*>(object.get());
     
-    for (auto& edge : dynamic_cast<Path*>(parent)->edges) {
+    for (auto& edge : dynamic_cast<LightGraph*>(parent)->edges) {
         const bool a_to_b = edge.a == this && edge.b == other;
         const bool b_to_a = edge.a == other && edge.b == this;
         if (a_to_b || b_to_a) {

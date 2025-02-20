@@ -1,24 +1,17 @@
-#ifndef TRAM_SDK_EDITOR_OBJECTS_PATH_H
-#define TRAM_SDK_EDITOR_OBJECTS_PATH_H
+#ifndef TRAM_SDK_EDITOR_OBJECTS_SOUND_GRAPH_H
+#define TRAM_SDK_EDITOR_OBJECTS_SOUND_GRAPH_H
 
 #include <editor/editor.h>
 
 namespace Editor {
 
-class Path : public Object {
+class SoundGraph : public Object {
 public:
     class Node;
-    
-    enum EdgeType {
-        AB,
-        BA,
-        BI
-    };
-    
+
     struct Edge {
         Node* a;
         Node* b;
-        EdgeType type;
         bool dormant;
     };
     
@@ -31,7 +24,7 @@ public:
             properties["position-z"] = Viewport::CURSOR_Z;
         }
         
-        std::string_view GetName() { return "path_node"; }
+        std::string_view GetName() { return "sound_node"; }
         
         bool IsChildrenTreeable() { return false; }
         bool IsChildrenListable() { return false; }
@@ -51,18 +44,18 @@ public:
         
         std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
             return std::vector<PropertyDefinition> {
-                {"group-path-node", "Path Node", "", PROPERTY_CATEGORY},
-                {"index", "Index", "group-path-node", PROPERTY_UINT},
-                {"group-path-node-pos", "Position", "group-path-node", PROPERTY_CATEGORY},
-                {"position-x", "X", "group-path-node-pos", PROPERTY_FLOAT},
-                {"position-y", "Y", "group-path-node-pos", PROPERTY_FLOAT},
-                {"position-z", "Z", "group-path-node-pos", PROPERTY_FLOAT},
+                {"group-sound-graph-node", "Path Node", "", PROPERTY_CATEGORY},
+                {"index", "Index", "group-sound-graph-node", PROPERTY_UINT},
+                {"group-sound-graph-node-pos", "Position", "group-sound-graph-node", PROPERTY_CATEGORY},
+                {"position-x", "X", "group-sound-graph-node-pos", PROPERTY_FLOAT},
+                {"position-y", "Y", "group-sound-graph-node-pos", PROPERTY_FLOAT},
+                {"position-z", "Z", "group-sound-graph-node-pos", PROPERTY_FLOAT},
             };
         }
     };
     
-    Path (Object* parent) : Path (parent, "New Path") {}
-    Path (Object* parent, std::string name) : Object(parent) {
+    SoundGraph(Object* parent) : SoundGraph (parent, "Sound Graph") {}
+    SoundGraph(Object* parent, std::string name) : Object(parent) {
         properties["name"] = name;
     }
     
@@ -91,8 +84,7 @@ public:
     
     std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
-            {"group-path", "path", "", PROPERTY_CATEGORY},
-            {"name", "Name", "group-path", PROPERTY_STRING}
+            {"group-sound-graph", "sound_graph", "", PROPERTY_CATEGORY}
         };
     }
     
@@ -111,4 +103,4 @@ public:
 
 }
 
-#endif // TRAM_SDK_EDITOR_OBJECTS_PATH_H
+#endif // TRAM_SDK_EDITOR_OBJECTS_SOUND_GRAPH_H

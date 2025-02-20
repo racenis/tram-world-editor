@@ -5,6 +5,8 @@
 #include <editor/objects/navmeshmanager.h>
 #include <editor/objects/transitionmanager.h>
 #include <editor/objects/entitygroupmanager.h>
+#include <editor/objects/lightgraph.h>
+#include <editor/objects/soundgraph.h>
 
 namespace Editor {
 
@@ -13,13 +15,18 @@ public:
     WorldCell(Object* parent) : WorldCell(parent, "new-worldcell") {}
     WorldCell(Object* parent, std::string name) : Object(parent), 
         group_manager(std::make_shared<EntityGroupManager>(this)), 
-        transition_manager(std::make_shared<TransitionManager>(this)) {
+        transition_manager(std::make_shared<TransitionManager>(this)),
+        light_graph(std::make_shared<LightGraph>(this)),
+        sound_graph(std::make_shared<SoundGraph>(this))
+    {
         properties["name"] = name;
         properties["is-interior"] = false;
         properties["is-interior-lighting"] = false;
         
         children.push_back(group_manager);
         children.push_back(transition_manager);
+        children.push_back(light_graph);
+        children.push_back(sound_graph);
     }
     
     bool IsChildrenTreeable() { return true; }
@@ -49,6 +56,8 @@ public:
     
     std::shared_ptr<EntityGroupManager> group_manager;
     std::shared_ptr<TransitionManager> transition_manager;
+    std::shared_ptr<LightGraph> light_graph;
+    std::shared_ptr<SoundGraph> sound_graph;
 };
 
 }
