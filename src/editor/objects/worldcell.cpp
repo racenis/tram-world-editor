@@ -144,6 +144,7 @@ void WorldCell::LoadFromDisk() {
     }
     
     this->light_graph->LoadFromDisk();
+    this->sound_graph->LoadFromDisk();
 }
 
 void WorldCell::SaveToDisk() {
@@ -283,6 +284,7 @@ void WorldCell::SaveToDisk() {
     }
     
     this->light_graph->SaveToDisk();
+    this->sound_graph->SaveToDisk();
 }
 
 }

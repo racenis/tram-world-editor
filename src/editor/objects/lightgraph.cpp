@@ -28,7 +28,7 @@ void LightGraph::LoadFromDisk() {
     
     while (file.is_continue()) {
         name_t record_type = file.read_name();
-        
+
         if (record_type == "node") {
             auto new_node = std::make_shared<Node>(this);
             
@@ -78,6 +78,8 @@ void LightGraph::LoadFromDisk() {
             file.read_uint32();     // layer
             file.read_name();       // channel
             
+            file.read_name();
+            
             file.read_float32();    // coefficients
             
             file.read_float32();
@@ -89,6 +91,8 @@ void LightGraph::LoadFromDisk() {
             file.read_float32();
             file.read_float32();
             file.read_float32();
+        } else if (record_type == "entity") {
+            file.read_uint32();
         } else {
             std::cout << "unknown path record: " << record_type << std::endl;
         }
@@ -98,9 +102,9 @@ void LightGraph::LoadFromDisk() {
 }
 
 void LightGraph::SaveToDisk() {
-    std::string path = "data/paths/";
+    std::string path = "data/worldcells/";
     path += this->parent->GetName();
-    path += ".path";
+    path += ".light";
     
     File file (path.c_str(), File::WRITE);
     

@@ -19,10 +19,17 @@
 
 #include <render/opengl/renderer.cpp>
 #include <render/opengl/shader.cpp>
+#include <render/opengl/buffer.cpp>
+#include <render/opengl/drawlist.cpp>
+#include <render/opengl/light.cpp>
+#include <render/opengl/material.cpp>
+#include <render/opengl/sprite.cpp>
+#include <render/opengl/texture.cpp>
 
 #include <render/scene.cpp>
 #include <render/animation.cpp>
 #include <render/material.cpp>
+#include <render/light.cpp>
 #include <render/sprite.cpp>
 #include <render/model.cpp>
 #include <render/error.cpp>
