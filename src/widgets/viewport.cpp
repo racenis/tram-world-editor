@@ -519,7 +519,6 @@ public:
         for (auto& object : Editor::SELECTION->objects) {
             auto [object_position, object_rotation, object_rotation_euler] = backups[object.get()];
             
-            
             object_position -= middle_point;
             object_position = rotation * object_position;
             object_position += middle_point;
@@ -649,14 +648,28 @@ public:
 
             Apply();
             
+            // this helps with floating point imprecision, e.g. instead of the
+            // interface displaying that an object snapped to 45.02 degrees, it
+            // will show that it snapped to 45.0 degrees
             for (auto& object : Editor::SELECTION->objects) {
                 float x = object->GetProperty("rotation-x");
                 float y = object->GetProperty("rotation-y");
                 float z = object->GetProperty("rotation-z");
                 
-                object->SetProperty("rotation-x", round(x/div)*div);
-                object->SetProperty("rotation-y", round(y/div)*div);
-                object->SetProperty("rotation-z", round(z/div)*div);
+                const float tupi = 2.0f * glm::pi<float>();
+                const float bias = 0.02f;
+
+                x = round(x/div)*div;
+                y = round(y/div)*div;
+                z = round(z/div)*div;
+
+                if (x > tupi - bias) x = 0.0f;
+                if (y > tupi - bias) y = 0.0f;
+                if (z > tupi - bias) z = 0.0f;
+                
+                object->SetProperty("rotation-x", x);
+                object->SetProperty("rotation-y", y);
+                object->SetProperty("rotation-z", z);
             }
             
             Editor::Viewport::Refresh();
