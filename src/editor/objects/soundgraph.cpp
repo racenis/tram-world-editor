@@ -84,7 +84,7 @@ void SoundGraph::LoadFromDisk() {
 void SoundGraph::SaveToDisk() {
     std::string path = "data/paths/";
     path += this->parent->GetName();
-    path += ".path";
+    path += ".sound";
     
     File file (path.c_str(), File::WRITE);
     

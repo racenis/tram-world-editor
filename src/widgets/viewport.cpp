@@ -479,7 +479,7 @@ public:
                 object->GetProperty("rotation-z").float_value
             };
             
-            backups[object.get()] = {position, rotation};
+            backups[object.get()] = {position, rotation, rotation};
         }
         
         vec3 position_sum = {0.0f, 0.0f, 0.0f};
@@ -517,13 +517,7 @@ public:
 
     void Apply() {
         for (auto& object : Editor::SELECTION->objects) {
-            /*glm::quat object_rotation = glm::vec3 {
-                object->GetProperty("rotation-x").float_value,
-                object->GetProperty("rotation-y").float_value,
-                object->GetProperty("rotation-z").float_value
-            };*/
-            
-            auto [object_position, object_rotation] = backups[object.get()];
+            auto [object_position, object_rotation, alt_object_rotation] = backups[object.get()];
             
             
             object_position -= middle_point;
@@ -542,7 +536,14 @@ public:
                 // TODO: implement entity group transforms
             }
             
-            auto rotation_euler = glm::eulerAngles(object_rotation);
+            auto rotation_euler = EulerFromQuat(object_rotation);
+            //auto rotation_euler = glm::eulerAngles(object_rotation);
+            
+            // temporary alt rotation
+            if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_WORLD && (rotate_x || rotate_y || rotate_z)) {
+                rotation_euler = alt_euler_rotation + alt_object_rotation;
+                rotation_euler = glm::mod(rotation_euler, 6.28318f);
+            }
             
             object->SetProperty("rotation-x", rotation_euler.x);
             object->SetProperty("rotation-y", rotation_euler.y);
@@ -557,15 +558,8 @@ public:
     void MouseMove(float x, float y, float delta_x, float delta_y) {
         if (delta_x == 0.0f && delta_y == 0.0f) return;
         
-        
-        
-        //glm::vec3 rotation = glm::vec3 (0.0, 0.0f, 0.0f);
-        
         int selected_axes = (int)rotate_x + (int)rotate_y + (int)rotate_z;
         if (selected_axes > 1) return;
-        
-        // do screen rotation if applicable
-        // otherwise do axis rotation
         
         if (!rotate_x && !rotate_y && !rotate_z) {
             vec3 axis_x = {1.0f, 0.0f, 0.0f};
@@ -606,21 +600,13 @@ public:
             
             float ammount = glm::dot(glm::normalize(vec2(screen_axis.y,  -screen_axis.x)), glm::normalize(screen_direction));
             
+            // temporary alt rotation
+            if (rotate_x) alt_euler_rotation.x += glm::length(screen_direction) * ammount * 0.01f;
+            if (rotate_y) alt_euler_rotation.y += glm::length(screen_direction) * ammount * 0.01f;
+            if (rotate_z) alt_euler_rotation.z += glm::length(screen_direction) * ammount * 0.01f;
             
             rotation = glm::rotate(rotation, glm::length(screen_direction) * ammount * 0.01f, axis);
         }
-        
-        
-        
-        //const bool rotate_individual = true;
-        
-        
-        //if (viewport_axis & AXIS_X) rotation += glm::vec3 (0.05f, 0.0f, 0.0f);
-        //if (viewport_axis & AXIS_Y) rotation += glm::vec3 (0.0f, 0.05f, 0.0f);
-        //if (viewport_axis & AXIS_Z) rotation += glm::vec3 (0.0f, 0.0f, 0.05f);
-        
-        //rotation *= delta_x + delta_x;
-        
         
         Apply();
         
@@ -640,6 +626,21 @@ public:
         if (keycode == 'X') rotate_x = !rotate_x;
         if (keycode == 'Y') rotate_y = !rotate_y;
         if (keycode == 'Z') rotate_z = !rotate_z;
+        
+        if (code == WXK_CONTROL && !rotate_x && !rotate_y && !rotate_z) {
+            if (!control) {
+                control = true;
+            } else {
+                for (auto& backup : backups) {
+                    backup.second.rotation = {1.0f, 0.0f, 0.0f, 0.0f};
+                }
+                rotation = {1.0f, 0.0f, 0.0f, 0.0f};
+            }
+        } else {
+            control = false;
+        }
+            
+            
         
         if (code == WXK_CONTROL) {
             if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITY) {
@@ -665,10 +666,8 @@ public:
                 Editor::Viewport::Refresh();
                 
             } else {
-                vec3 euler_rotation = glm::eulerAngles(rotation);
-                
-                vec3 rotato = glm::degrees(euler_rotation);
-                std::cout << "now: " << rotato.x << " " << rotato.y << " " << rotato.z << std::endl;
+                //vec3 euler_rotation = glm::eulerAngles(rotation);
+                vec3 euler_rotation = EulerFromQuat(rotation);
                 
                 float div = 1.0f;
                 switch (Editor::Settings::ROTATION_SNAP) {
@@ -679,22 +678,9 @@ public:
                     case Editor::Settings::SNAP_90: div = 1.5708f; break;
                 }
                 
-                //if (euler_rotation.x < 0.0f) euler_rotation.x += 6.28319f;
-                //if (euler_rotation.y < 0.0f) euler_rotation.y += 6.28319f;
-                //if (euler_rotation.z < 0.0f) euler_rotation.z += 6.28319f;
-                
-                //const float x = roundf(euler_rotation.x/div) * div;
-                //const float y = roundf(euler_rotation.y/div) * div;
-                //const float z = roundf(euler_rotation.z/div) * div;
-                
                 euler_rotation = glm::round(euler_rotation/div) * div;
-                //euler_rotation = vec3(x, y, z);
-                
-                rotato = glm::degrees(euler_rotation);
-                std::cout << "thn: " << rotato.x << " " << rotato.y << " " << rotato.z << std::endl;
-                
-                //euler_rotation = euler_rotation - glm::mod(euler_rotation, div);// * div;
-                
+                alt_euler_rotation = glm::round(alt_euler_rotation/div) * div;
+
                 rotation = euler_rotation;
 
                 Apply();
@@ -741,9 +727,12 @@ protected:
     quat rotation = {1.0f, 0.0f, 0.0f, 0.0f};
     vec3 middle_point = {0.0f, 0.0f, 0.0f};
 
+    vec3 alt_euler_rotation = {0.0f, 0.0f, 0.0f};
+
     struct TransformBackup {
         vec3 position;
         quat rotation;
+        vec3 alt_euler_rotation;
     };
 
     std::map<Object*, TransformBackup> backups;
@@ -751,6 +740,8 @@ protected:
     bool rotate_x = false;
     bool rotate_y = false;
     bool rotate_z = false;
+    
+    bool control = false;
 };
 
 class Tool : public ViewportTool {
