@@ -517,33 +517,26 @@ public:
 
     void Apply() {
         for (auto& object : Editor::SELECTION->objects) {
-            auto [object_position, object_rotation, alt_object_rotation] = backups[object.get()];
+            auto [object_position, object_rotation, object_rotation_euler] = backups[object.get()];
             
             
             object_position -= middle_point;
             object_position = rotation * object_position;
             object_position += middle_point;
             
-            //if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_WORLD) {
+            if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_WORLD) {
                 object_rotation = glm::quat(rotation) * object_rotation;
-            //}
+            }
             
-            //if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITY) {
-                //object_rotation = object_rotation * glm::quat(rotation);
-           //}
+            if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITY) {
+                object_rotation = object_rotation * glm::quat(rotation);
+            }
             
             if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITYGROUP) {
                 // TODO: implement entity group transforms
             }
             
-            auto rotation_euler = EulerFromQuat(object_rotation);
-            //auto rotation_euler = glm::eulerAngles(object_rotation);
-            
-            // temporary alt rotation
-            if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_WORLD && (rotate_x || rotate_y || rotate_z)) {
-                rotation_euler = alt_euler_rotation + alt_object_rotation;
-                rotation_euler = glm::mod(rotation_euler, 6.28318f);
-            }
+            auto rotation_euler = EulerFromQuat(object_rotation, object_rotation_euler);
             
             object->SetProperty("rotation-x", rotation_euler.x);
             object->SetProperty("rotation-y", rotation_euler.y);
@@ -598,14 +591,10 @@ public:
             
             vec2 screen_direction = (vec2(delta_x, delta_y));
             
-            float ammount = glm::dot(glm::normalize(vec2(screen_axis.y,  -screen_axis.x)), glm::normalize(screen_direction));
+            float amount = glm::dot(glm::normalize(vec2(screen_axis.y,  -screen_axis.x)), glm::normalize(screen_direction));
             
-            // temporary alt rotation
-            if (rotate_x) alt_euler_rotation.x += glm::length(screen_direction) * ammount * 0.01f;
-            if (rotate_y) alt_euler_rotation.y += glm::length(screen_direction) * ammount * 0.01f;
-            if (rotate_z) alt_euler_rotation.z += glm::length(screen_direction) * ammount * 0.01f;
             
-            rotation = glm::rotate(rotation, glm::length(screen_direction) * ammount * 0.01f, axis);
+            rotation = glm::rotate(rotation, glm::length(screen_direction) * amount * 0.01f, axis);
         }
         
         Apply();
@@ -643,51 +632,36 @@ public:
             
         
         if (code == WXK_CONTROL) {
-            if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITY) {
-                for (auto& object : Editor::SELECTION->objects) {
-                    float x = object->GetProperty("rotation-x");
-                    float y = object->GetProperty("rotation-y");
-                    float z = object->GetProperty("rotation-z");
-                    
-                    float div = 1.0f;
-                    switch (Editor::Settings::ROTATION_SNAP) {
-                        case Editor::Settings::SNAP_15: div = 0.261799f; break;
-                        case Editor::Settings::SNAP_30: div = 0.523599f; break;
-                        case Editor::Settings::SNAP_45: div = 0.785398f; break;
-                        default:
-                        case Editor::Settings::SNAP_90: div = 1.5708f; break;
-                    }
-                    
-                    object->SetProperty("rotation-x", round(x/div)*div);
-                    object->SetProperty("rotation-y", round(y/div)*div);
-                    object->SetProperty("rotation-z", round(z/div)*div);
-                }
-                
-                Editor::Viewport::Refresh();
-                
-            } else {
-                //vec3 euler_rotation = glm::eulerAngles(rotation);
-                vec3 euler_rotation = EulerFromQuat(rotation);
-                
-                float div = 1.0f;
-                switch (Editor::Settings::ROTATION_SNAP) {
-                    case Editor::Settings::SNAP_15: div = 0.261799f; break;
-                    case Editor::Settings::SNAP_30: div = 0.523599f; break;
-                    case Editor::Settings::SNAP_45: div = 0.785398f; break;
-                    default:
-                    case Editor::Settings::SNAP_90: div = 1.5708f; break;
-                }
-                
-                euler_rotation = glm::round(euler_rotation/div) * div;
-                alt_euler_rotation = glm::round(alt_euler_rotation/div) * div;
-
-                rotation = euler_rotation;
-
-                Apply();
-                
-                Editor::Viewport::Refresh();
+            vec3 euler_rotation = EulerFromQuat(rotation);
+            
+            float div = 1.0f;
+            switch (Editor::Settings::ROTATION_SNAP) {
+                case Editor::Settings::SNAP_15: div = 0.261799f; break;
+                case Editor::Settings::SNAP_30: div = 0.523599f; break;
+                case Editor::Settings::SNAP_45: div = 0.785398f; break;
+                default:
+                case Editor::Settings::SNAP_90: div = 1.5708f; break;
             }
+            
+            euler_rotation = glm::round(euler_rotation/div) * div;
+
+            rotation = euler_rotation;
+
+            Apply();
+            
+            for (auto& object : Editor::SELECTION->objects) {
+                float x = object->GetProperty("rotation-x");
+                float y = object->GetProperty("rotation-y");
+                float z = object->GetProperty("rotation-z");
+                
+                object->SetProperty("rotation-x", round(x/div)*div);
+                object->SetProperty("rotation-y", round(y/div)*div);
+                object->SetProperty("rotation-z", round(z/div)*div);
+            }
+            
+            Editor::Viewport::Refresh();
         }
+        
     }
     
     void Keyup(wchar_t keycode, int code) {
@@ -727,12 +701,10 @@ protected:
     quat rotation = {1.0f, 0.0f, 0.0f, 0.0f};
     vec3 middle_point = {0.0f, 0.0f, 0.0f};
 
-    vec3 alt_euler_rotation = {0.0f, 0.0f, 0.0f};
-
     struct TransformBackup {
         vec3 position;
         quat rotation;
-        vec3 alt_euler_rotation;
+        vec3 rotation_euler;
     };
 
     std::map<Object*, TransformBackup> backups;
