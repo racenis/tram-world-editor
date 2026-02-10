@@ -10,6 +10,8 @@
 #include <iostream>
 #include <framework/math.h>
 
+#include <platform/other.h>
+
 namespace tram {
     class RenderComponent;
     class SerializedEntityData;
@@ -131,7 +133,7 @@ extern std::unordered_map<std::string, std::vector<std::string>> PROPERTY_ENUMER
 /// Value of a property.
 struct PropertyValue {    
     inline static PropertyValue String(const std::string& value) {
-        PropertyValue v; v.type = PROPERTY_STRING; v.str_value = value; return v;
+        PropertyValue v; v.type = PROPERTY_STRING; new (&v.str_value) std::string(value); return v;
     }
     
     inline static PropertyValue Float(const float& value) {
@@ -241,7 +243,7 @@ struct PropertyValue {
     }
     
     operator std::string() { assert(type == PROPERTY_STRING); return str_value; }
-    operator float() { assert(type == PROPERTY_FLOAT); return float_value; }
+    operator float() { if (type != PROPERTY_FLOAT) tram::Platform::TryDebugging(); assert(type == PROPERTY_FLOAT); return float_value; }
     operator int32_t() { assert(type == PROPERTY_INT || type == PROPERTY_ENUM); return int_value; }
     operator uint32_t() { assert(type == PROPERTY_UINT || type == PROPERTY_FLAG); return uint_value; }
     operator bool() { assert(type == PROPERTY_BOOL); return bool_value; }
@@ -350,6 +352,7 @@ struct EntityDefinition {
     
     std::vector<PropertyDefinition> definitions;
     std::vector<WidgetDefinition> widgets;
+    std::vector<std::pair<std::string, PropertyValue>> default_properties;
 };
 
 void RegisterEntityType(EntityDefinition definition);

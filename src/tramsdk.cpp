@@ -1,7 +1,6 @@
 #define ENGINE_EDITOR_MODE
 
 #include <platform/file.cpp>
-//#include <platform/time.cpp>
 
 #include <framework/core.cpp>
 #include <framework/async.cpp>
@@ -42,8 +41,12 @@
 #include <glad/glad.c>
 
 bool tram::Platform::Window::IsRenderContextThread() {
-	return true;
+    return true;
 }
 
+bool tram::UI::ShouldExit() {
+    return false;
+}
 
+#include <platform/terminal.cpp>
 #include <platform/other.cpp>

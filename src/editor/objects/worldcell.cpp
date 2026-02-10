@@ -135,6 +135,8 @@ void WorldCell::LoadFromDisk() {
                 }
             }
             
+            entity->InitDefaultPropertyValues();
+            
             // attach entity to parent group
             ((Object*)current_group)->AddChild(entity);
             

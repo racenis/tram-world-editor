@@ -150,7 +150,10 @@ void Entity::SetProperty (std::string property_name, PropertyValue property_valu
         }
     }
     
-    if (property_name == "entity-type") Editor::PropertyPanel::Refresh();
+    if (property_name == "entity-type") {
+        InitDefaultPropertyValues();
+        Editor::PropertyPanel::Refresh();
+    }
     
     Entity::CheckModel();
 }
@@ -284,6 +287,23 @@ void Entity::SetEntityType (std::string type) {
     }
     
     this->SetProperty("entity-type", (int32_t) entity_name_to_id[type]);
+}
+
+void Entity::InitDefaultPropertyValues() {
+    auto definition = FindEntityDefinition((int32_t) this->GetProperty("entity-type"));
+    
+    for (size_t i = 0; i < definition->definitions.size(); i++) {
+        assert(definition->definitions[i].name == definition->default_properties[i].first);
+        
+        auto property_name = definition->definitions[i].name;
+        auto property_value = definition->default_properties[i].second;
+        
+        auto current = this->GetProperty(property_name);
+        
+        if (current.type != PROPERTY_NULL) continue;
+        
+        this->SetProperty(property_name, property_value);
+    } 
 }
 
 }

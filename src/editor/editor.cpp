@@ -82,6 +82,8 @@ PropertyDefinition ReadEntityField(File& file) {
     name_t type = file.read_name();
     name_t name = file.read_name();
     
+    // TODO: add checks for forbidden field names, e.g. rotation-x or name or whatever
+    
     if (type == "string") {
         return {name, name, "group-entity-specific", PROPERTY_STRING};
     } else if (type == "int") {
@@ -103,6 +105,31 @@ PropertyDefinition ReadEntityField(File& file) {
     // - flags
 
     std::cout << "unrezgonized entry type: " << type << std::endl;
+    
+    return {};
+}
+
+PropertyValue ReadDefaultValue(File& file, PropertyType type) {
+    
+    switch (type) {
+        case PROPERTY_STRING:
+            return PropertyValue::String(std::string(file.read_string()));
+        case PROPERTY_INT:
+            return PropertyValue::Int(file.read_int32());
+        case PROPERTY_UINT:
+            return PropertyValue::UInt(file.read_uint32());
+        case PROPERTY_FLOAT:
+            return PropertyValue::Float(file.read_float32());
+        case PROPERTY_ORIGIN:
+        case PROPERTY_DIRECTION:
+        case PROPERTY_VECTOR:
+            return PropertyValue::Vector({file.read_float32(), file.read_float32(), file.read_float32()});
+        default:
+            break;
+        
+    }
+    
+    std::cout << "cannot read default value for entdef: " << PROPERTY_STRING << std::endl;
     
     return {};
 }
@@ -139,6 +166,7 @@ void ReadEntityDefinition(File& file) {
     
     std::vector<PropertyDefinition> property_defs;
     std::vector<WidgetDefinition> widget_defs;
+    std::vector<std::pair<std::string, PropertyValue>> default_properties;
     
     while (file.is_continue()) {
         name_t entry_type = file.read_name();
@@ -150,13 +178,15 @@ void ReadEntityDefinition(File& file) {
         } else if (entry_type == "model") {
             model_name = file.read_name();
         } else if (entry_type == "field") {
-            property_defs.push_back(ReadEntityField(file));
+            auto definition = ReadEntityField(file);
+            property_defs.push_back(definition);
+            default_properties.push_back({definition.name, ReadDefaultValue(file, definition.type)});
         } else if (entry_type == "gizmo") {
             widget_defs.push_back(ReadEntityWidget(file));
         } else if (entry_type == "end") {
             break;
         } else {
-            std::cout << "Unrecognized entry: " << entry_type << std::endl;
+            std::cout << "Unrecognized entdef entry: " << entry_type << std::endl;
         }
         
     }
@@ -178,6 +208,7 @@ void ReadEntityDefinition(File& file) {
     
     definition.definitions = property_defs;
     definition.widgets = widget_defs;
+    definition.default_properties = default_properties;
     
     RegisterEntityType(definition);
 }

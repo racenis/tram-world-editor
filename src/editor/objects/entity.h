@@ -56,6 +56,7 @@ public:
     std::vector<PropertyDefinition> GetSerializationPropertyDefinitions(uint32_t);
     
     void SetEntityType (std::string type);
+    void InitDefaultPropertyValues();
     
     std::vector<WidgetDefinition> GetWidgetDefinitions();
     
