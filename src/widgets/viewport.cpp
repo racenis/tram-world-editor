@@ -28,6 +28,7 @@ using namespace Editor;
 
 #include <numeric>
 #include <map>
+#include <set>
 
 ViewportCtrl* viewport = nullptr;
 
@@ -879,6 +880,108 @@ void ViewportCtrl::CancelViewportOperation() {
     //viewport_mode = MODE_NONE;
 }
 
+std::set<Object*> FindWidgetables() {
+    std::set<Object*> widgetables;
+    
+    for (auto& object : Editor::SELECTION->objects) {
+        widgetables.emplace(object.get());
+        
+        if (object->IsWidgetedWithChildren()) {
+            for (auto& object : object->GetChildren()) {
+                widgetables.emplace(object.get());
+            }
+        }
+        
+        auto parent = object->GetParent().get();
+        
+        if (!parent) continue;
+        
+        if (!parent->IsWidgetedWithChildren()) continue;
+        
+        if (widgetables.contains(parent)) continue;
+        
+        for (auto& object : parent->GetChildren()) {
+            widgetables.emplace(object.get());
+        }
+        
+        widgetables.emplace(parent);
+    }
+    
+    return widgetables;
+}
+
+Object* FindCursorObject(std::set<Object*>& objects, float cursor_x, float cursor_y) {
+    tram::vec3 far_point = tram::Render::ProjectInverse({cursor_x, cursor_y, 0.0f});
+    tram::vec3 near_point = tram::Render::ProjectInverse({cursor_x, cursor_y, 1000.0f});
+    
+    tram::vec3 look_direction = glm::normalize(far_point - near_point);
+    tram::vec3 look_position = near_point;
+    
+    auto res = tram::Render::AABB::FindNearestFromRay(look_position, look_direction, -1);
+    
+    float distance = INFINITY;
+    Object* nearest = nullptr;
+    
+    //std::cout << "trying.." << std::endl;
+    for (auto object : objects) {
+        //std::cout << "looking at: " << typeid(*object).name() << " and its " << object->IsHidden() << std::endl;
+        auto gizmos = object->GetWidgetDefinitions();
+        
+        vec3 position = {
+            object->GetProperty("position-x").float_value,
+            object->GetProperty("position-y").float_value,
+            object->GetProperty("position-z").float_value
+        };
+        
+        vec3 edge = position;
+        
+        bool has_widget = false;
+        
+        for (const auto& gizmo : gizmos) {
+            if (gizmo.type != Editor::WidgetDefinition::WIDGET_SELECTION_BOX) continue;
+            
+            edge += (tram::vec3)gizmo.value1;
+            
+            has_widget = true;
+            break;
+        }
+        
+        if (!has_widget) continue;
+        
+        vec3 projected_position = position;
+        vec3 projected_edge = edge;
+        
+        Project(projected_position, projected_position);
+        Project(projected_edge, projected_edge);
+        
+        vec2 screen_pos = {projected_position.x, projected_position.y};
+        vec2 screen_edge = {projected_edge.x, projected_edge.y};
+        vec2 pointer_pos = {cursor_x, cursor_y};
+        
+        float radius = glm::distance(screen_pos, screen_edge);
+        float screen_distance = glm::distance(pointer_pos, screen_pos);
+    
+        if (screen_distance > radius) continue;
+        
+        float object_distance = glm::distance(GetViewPosition(), position);
+        
+        if (object_distance > distance) continue;
+        
+        distance = object_distance;
+        nearest = object;
+    };
+    
+    Object* selected = nullptr;
+    
+    if (res.data && distance > glm::distance(GetViewPosition(), res.intersection)) {
+        selected = GetEntityFromViewmodel((tram::RenderComponent*) res.data);
+    } else if (nearest) {
+        selected = nearest;
+    }
+    
+    return selected;
+}
+
 void ViewportCtrl::OnLeftClick(wxMouseEvent& event) {
     
     if (viewport_tool) {
@@ -896,54 +999,10 @@ void ViewportCtrl::OnLeftClick(wxMouseEvent& event) {
     
     // if control key is pressed down, select object in viewport
     if (wxGetKeyState(WXK_CONTROL)) {
-        tram::vec3 far_point = tram::Render::ProjectInverse({event.GetX(), event.GetY(), 0.0f});
-        tram::vec3 near_point = tram::Render::ProjectInverse({event.GetX(), event.GetY(), 1000.0f});
-        
-        tram::vec3 look_direction = glm::normalize(far_point - near_point);
-        tram::vec3 look_position = near_point;
-        
-        auto res = tram::Render::AABB::FindNearestFromRay(look_position, look_direction, -1);
-        
-        float distance = INFINITY;
-        Object* nearest = nullptr;
-        
-        auto find_flat = [&](Object* object, auto find_flat) {
-            if (object->IsHidden()) return;
-            for (auto& obj : object->GetChildren()) find_flat(obj.get(), find_flat);
-            if (object->SelectSize() == 0.0f) return;
-            
-            vec3 position = {
-                object->GetProperty("position-x").float_value,
-                object->GetProperty("position-y").float_value,
-                object->GetProperty("position-z").float_value
-            };
-            
-            vec3 projected_position = position; Project(projected_position, projected_position);
-            
-            vec2 screen_pos = {projected_position.x, projected_position.y};
-            vec2 pointer_pos = {event.GetX(), event.GetY()};
-        
-            if (object->SelectSize() < glm::distance(screen_pos, pointer_pos)) return;
-            
-            float object_distance = glm::distance(GetViewPosition(), position);
-            
-            if (object_distance > distance) return;
-            
-            distance = object_distance;
-            nearest = object;
-        };
-        
-        find_flat(Editor::WORLD.get(), find_flat);
-        
+        std::set<Object*> widgetables = FindWidgetables();
+    
         Object* selected = nullptr;
-        
-        if (res.data && distance > glm::distance(GetViewPosition(), res.intersection)) {
-            selected = GetEntityFromViewmodel((tram::RenderComponent*) res.data);
-        } else if (nearest) {
-            selected = nearest;
-        }
-        
-        std::cout << " nearest : " << nearest << " distance : " << distance << std::endl;
+        selected = FindCursorObject(widgetables, cursor_x, cursor_y);
         
         if (selected) {
             //std::cout << GetEntityFromViewmodel((tram::RenderComponent*) res.data)->GetName() << std::endl;
@@ -1021,7 +1080,10 @@ void ViewportCtrl::OnRightClick(wxMouseEvent& event) {
 void ViewportCtrl::OnMouseMove(wxMouseEvent& event) {
     static float prev_x = event.GetX();
     static float prev_y = event.GetY();
-    
+        
+    this->cursor_x = event.GetX();
+    this->cursor_y = event.GetY();
+
     // if using a tool, wrap mouse pointer around
     if (viewport_tool) {
         int width, height;
@@ -1062,7 +1124,7 @@ void ViewportCtrl::OnMouseMove(wxMouseEvent& event) {
         
     }
     
-    if (viewport_tool) {
+    if (viewport_tool || wxGetKeyState(WXK_CONTROL)) {
         /*int width, height;
         GetSize(&width, &height);
         int center_x = width/2, center_y = height/2;
@@ -1206,8 +1268,7 @@ void ViewportCtrl::ViewCenterOnSelection() {
     Refresh();
 }
 
-void ViewportCtrl::OnPaint(wxPaintEvent& event)
-{
+void ViewportCtrl::OnPaint(wxPaintEvent& event) {
     //assert(GetParent()->IsShown());
     //if (!GetParent()->IsShown()) return;
         
@@ -1225,7 +1286,46 @@ void ViewportCtrl::OnPaint(wxPaintEvent& event)
     };
     recursive_draw(Editor::WORLD.get(), recursive_draw);*/
 
+    std::set<Object*> selected;
     for (auto& object : Editor::SELECTION->objects) {
+        selected.emplace(object.get());
+    }
+
+    // 1. create an object set
+    // 2. go through all selection objects and then add it or parent [ add drawn by parent method ]
+    // 3. do same thing with widgets?
+    std::set<Object*> widgetables = FindWidgetables();
+    
+    Object* selectable = nullptr;
+    if (!viewport_tool) {
+        selectable = FindCursorObject(widgetables, cursor_x, cursor_y);
+    }
+    
+    for (auto& object : Editor::SELECTION->objects) {
+        widgetables.emplace(object.get());
+        
+        if (object->IsWidgetedWithChildren()) {
+            for (auto& object : object->GetChildren()) {
+                widgetables.emplace(object.get());
+            }
+        }
+        
+        auto parent = object->GetParent().get();
+        
+        if (!parent) continue;
+        
+        if (!parent->IsWidgetedWithChildren()) continue;
+        
+        if (widgetables.contains(parent)) continue;
+        
+        for (auto& object : parent->GetChildren()) {
+            widgetables.emplace(object.get());
+        }
+        
+        widgetables.emplace(parent);
+    }
+
+    for (auto object : widgetables) {
         glm::quat space;
         if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_WORLD) space = glm::vec3(0.0f);
         if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITY) space = glm::quat(glm::vec3 {
@@ -1252,20 +1352,36 @@ void ViewportCtrl::OnPaint(wxPaintEvent& event)
         
         auto gizmos = object->GetWidgetDefinitions();
         
-        //std::cout << "gizmoing" << std::endl;
+    
+        
+        
         
         for (const auto& gizmo : gizmos) {
+            
             // important
-            if (!object->HasProperty(gizmo.property)) continue;
+            switch (gizmo.type) {
+                case Editor::WidgetDefinition::WIDGET_SELECTION_BOX:
+                case Editor::WidgetDefinition::WIDGET_LINE:
+                    break;
+                default:
+                    if (!object->HasProperty(gizmo.property)) continue;
+            }
+            
             
             //std::cout << "drawing gizmo" << std::endl;
             
             glm::vec3 color;
             switch (gizmo.color) {
+                case Editor::WidgetDefinition::WIDGET_GREEN:
+                    color = {0.0f, 1.0f, 0.0f}; break;
                 case Editor::WidgetDefinition::WIDGET_CYAN:
                 default:
                     color = {0.0f, 1.0f, 1.0f};
             }
+            
+            glm::vec3 inv_color = vec3(1.0f, 1.0f, 1.0f) - color;
+            
+            if (object == selectable) color *= vec3{0.5f, 0.5f, 0.5f};
             
             //std::cout << "got color" << std::endl;
             
@@ -1284,13 +1400,28 @@ void ViewportCtrl::OnPaint(wxPaintEvent& event)
                     AddLine(pos, pos+dir, color);
                     //std::cout << "done roonomal gizmo" << std::endl;
                     } break;
-                case Editor::WidgetDefinition::WIDGET_POINT:{
+                case Editor::WidgetDefinition::WIDGET_POINT: {
                     //std::cout << "widget point" << std::endl;
                     PropertyValue pos_vec = object->GetProperty(gizmo.property);
                     //std::cout << "doing point gizmo" << std::endl;
                     glm::vec3 pos = {pos_vec.vector_value.x, pos_vec.vector_value.y, pos_vec.vector_value.z};
                     AddLineMarker(pos, color);
                     //std::cout << "done point gizmo" << std::endl;
+                    } break;
+                    
+                case Editor::WidgetDefinition::WIDGET_SELECTION_BOX: {
+                    
+                    AddLineAABB(-(glm::vec3)gizmo.value1, gizmo.value1, gizmo_location, vec3(0.0f, 0.0f, 0.0f), color);
+                    //std::cout << "done point gizmo" << std::endl;
+                    
+                    if (selected.contains(object)) {
+                        AddLineAABB(-2.0f * (glm::vec3)gizmo.value1, 2.0f * (glm::vec3)gizmo.value1, gizmo_location, vec3(0.0f, 0.0f, 0.0f), inv_color);
+                    }
+                    
+                    } break;
+                    
+                case Editor::WidgetDefinition::WIDGET_LINE: {
+                    AddLine(gizmo.value1, gizmo.value2, color);
                     } break;
                     
                 default:

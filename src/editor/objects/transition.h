@@ -41,6 +41,7 @@ public:
         float SelectSize() { return 5.0f; }
         
         void Draw();
+        std::vector<WidgetDefinition> GetWidgetDefinitions();
         
         std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
             return std::vector<PropertyDefinition> {
@@ -78,6 +79,8 @@ public:
         return new_transition;
     }
     
+    bool IsWidgetedWithChildren() { return true; }
+    std::vector<WidgetDefinition> GetWidgetDefinitions();
     void Draw();
     
     std::vector<PropertyDefinition> GetListPropertyDefinitions() { 

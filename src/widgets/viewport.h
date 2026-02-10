@@ -34,6 +34,9 @@ private:
     void CancelViewportOperation();
     
     wxTimer key_timer;
+    
+    float cursor_x = 0.0f;
+    float cursor_y = 0.0f;
 
     wxGLContext* m_context;
 };

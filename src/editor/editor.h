@@ -242,12 +242,12 @@ struct PropertyValue {
         return false;
     }
     
-    operator std::string() { assert(type == PROPERTY_STRING); return str_value; }
-    operator float() { if (type != PROPERTY_FLOAT) tram::Platform::TryDebugging(); assert(type == PROPERTY_FLOAT); return float_value; }
-    operator int32_t() { assert(type == PROPERTY_INT || type == PROPERTY_ENUM); return int_value; }
-    operator uint32_t() { assert(type == PROPERTY_UINT || type == PROPERTY_FLAG); return uint_value; }
-    operator bool() { assert(type == PROPERTY_BOOL); return bool_value; }
-    operator tram::vec3() { assert(type == PROPERTY_VECTOR || type == PROPERTY_DIRECTION || type == PROPERTY_ORIGIN); return vector_value; }
+    operator std::string() const { assert(type == PROPERTY_STRING); return str_value; }
+    operator float() const { if (type != PROPERTY_FLOAT) tram::Platform::TryDebugging(); assert(type == PROPERTY_FLOAT); return float_value; }
+    operator int32_t() const { assert(type == PROPERTY_INT || type == PROPERTY_ENUM); return int_value; }
+    operator uint32_t() const { assert(type == PROPERTY_UINT || type == PROPERTY_FLAG); return uint_value; }
+    operator bool() const { assert(type == PROPERTY_BOOL); return bool_value; }
+    operator tram::vec3() const { assert(type == PROPERTY_VECTOR || type == PROPERTY_DIRECTION || type == PROPERTY_ORIGIN); return vector_value; }
     
     PropertyType type;
     union {
@@ -262,17 +262,33 @@ struct PropertyValue {
 
 struct WidgetDefinition {
     enum Color {
-        WIDGET_CYAN
+        WIDGET_CYAN,
+        WIDGET_GREEN,
     };
     
     enum Type {
         WIDGET_POINT,
         WIDGET_NORMAL,
+        WIDGET_SELECTION_BOX,
+        
+        WIDGET_LINE,
     };
+    
+    inline static WidgetDefinition Line(tram::vec3 from, tram::vec3 to, Color color) {
+        return {.color = color, .type = WIDGET_LINE, .value1 = from, .value2 = to};
+    }
+    
+    inline static WidgetDefinition SelectionBox(tram::vec3 size, Color color) {
+        return {.color = color, .type = WIDGET_SELECTION_BOX, .value1 = size};
+    }
     
     Color color;
     Type type;
+    
     std::string property;
+    
+    PropertyValue value1;
+    PropertyValue value2;
 };
 
 /// Editor object base class.
@@ -328,6 +344,7 @@ public:
     // this is stupid and it should be yeeted, but alas, it is not possible for the time being
     virtual void Draw() {}
     // now THIS is a good replacement
+    virtual bool IsWidgetedWithChildren() { return false; }
     virtual std::vector<WidgetDefinition> GetWidgetDefinitions() { return {}; }
     
     // these are the properties that will be shown in the object list
