@@ -38,9 +38,6 @@ public:
             return Duplicate();
         }
         
-        float SelectSize() { return 5.0f; }
-        
-        void Draw();
         std::vector<WidgetDefinition> GetWidgetDefinitions();
         
         std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
@@ -81,7 +78,6 @@ public:
     
     bool IsWidgetedWithChildren() { return true; }
     std::vector<WidgetDefinition> GetWidgetDefinitions();
-    void Draw();
     
     std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {

@@ -144,16 +144,8 @@ void Path::SaveToDisk() {
     }
 }
 
-void Path::Draw() {
-    for (auto& child : children) {
-        vec3 position = {
-            child->GetProperty("position-x"),
-            child->GetProperty("position-y"),
-            child->GetProperty("position-z")
-        };
-        
-        Render::AddLineAABB({-0.1f, -0.1f, -0.1f}, {0.1f, 0.1f, 0.1f}, position, vec3(0.0f, 0.0f, 0.0f), Render::COLOR_GREEN);
-    }
+std::vector<WidgetDefinition> Path::GetWidgetDefinitions() {
+    std::vector<WidgetDefinition> widgets;
     
     for (auto& edge : edges) {
         if (edge.dormant) continue;
@@ -169,21 +161,14 @@ void Path::Draw() {
             edge.b->GetProperty("position-z")
         };
         
-        Render::AddLine(node_a, node_b, Render::COLOR_WHITE);
+        widgets.push_back(WidgetDefinition::Line(node_a, node_b, WidgetDefinition::WIDGET_WHITE));
     }
     
+    return widgets;
 }
 
-void Path::Node::Draw() {
-    parent->Draw();
-    
-    vec3 pos = {
-        this->GetProperty("position-x"),
-        this->GetProperty("position-y"),
-        this->GetProperty("position-z")
-    };
-    
-    Render::AddLineAABB({-0.2f, -0.2f, -0.2f}, {0.2f, 0.2f, 0.2f}, pos, vec3(0.0f, 0.0f, 0.0f), Render::COLOR_RED);    
+std::vector<WidgetDefinition> Path::Node::GetWidgetDefinitions() {
+    return {WidgetDefinition::SelectionBox({0.1f, 0.1f, 0.1f}, WidgetDefinition::WIDGET_GREEN)};    
 }
 
 std::shared_ptr<Object> Path::Node::Extrude() {

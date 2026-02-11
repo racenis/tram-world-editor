@@ -39,10 +39,8 @@ public:
         void Connect(std::shared_ptr<Object> other);
         void Disconnect(std::shared_ptr<Object> other);
         bool IsConnected(std::shared_ptr<Object> other);
-        
-        float SelectSize() { return 5.0f; }
-        
-        void Draw();
+
+        std::vector<WidgetDefinition> GetWidgetDefinitions();
         
         std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
             return std::vector<PropertyDefinition> {
@@ -73,7 +71,8 @@ public:
     std::list<Edge> GetEdges() { return edges; }
     std::list<Edge> edges;
     
-    void Draw();
+    bool IsWidgetedWithChildren() { return true; }
+    std::vector<WidgetDefinition> GetWidgetDefinitions();
     
     void LoadFromDisk();
     void SaveToDisk();

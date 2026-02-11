@@ -1335,8 +1335,6 @@ void ViewportCtrl::OnPaint(wxPaintEvent& event) {
                 });
         if (Editor::Settings::TRANSFORM_SPACE == Editor::Settings::SPACE_ENTITYGROUP) space = glm::vec3(glm::radians(180.0f));
         
-        object->Draw();
-        
         //if (viewport_mode == MODE_TRANSLATE || viewport_mode == MODE_ROTATE) {
             glm::vec3 gizmo_location = glm::vec3 {
                 object->GetProperty("position-x").float_value,
@@ -1361,6 +1359,7 @@ void ViewportCtrl::OnPaint(wxPaintEvent& event) {
             // important
             switch (gizmo.type) {
                 case Editor::WidgetDefinition::WIDGET_SELECTION_BOX:
+                case Editor::WidgetDefinition::WIDGET_SELECTION_AABB:
                 case Editor::WidgetDefinition::WIDGET_LINE:
                     break;
                 default:
@@ -1372,6 +1371,8 @@ void ViewportCtrl::OnPaint(wxPaintEvent& event) {
             
             glm::vec3 color;
             switch (gizmo.color) {
+                case Editor::WidgetDefinition::WIDGET_WHITE:
+                    color = {1.0f, 1.0f, 1.0f}; break;
                 case Editor::WidgetDefinition::WIDGET_GREEN:
                     color = {0.0f, 1.0f, 0.0f}; break;
                 case Editor::WidgetDefinition::WIDGET_CYAN:
@@ -1420,6 +1421,16 @@ void ViewportCtrl::OnPaint(wxPaintEvent& event) {
                     
                     } break;
                     
+                case Editor::WidgetDefinition::WIDGET_SELECTION_AABB: {
+                    tram::vec3 rotation = {
+                        object->GetProperty("rotation-x").float_value,
+                        object->GetProperty("rotation-y").float_value,
+                        object->GetProperty("rotation-z").float_value
+                    };
+                    
+                    AddLineAABB(gizmo.value1, gizmo.value2, gizmo_location, rotation, color);
+                    
+                    } break;
                 case Editor::WidgetDefinition::WIDGET_LINE: {
                     AddLine(gizmo.value1, gizmo.value2, color);
                     } break;

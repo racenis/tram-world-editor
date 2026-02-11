@@ -117,7 +117,7 @@ PropertyValue ReadDefaultValue(File& file, PropertyType type) {
         case PROPERTY_INT:
             return PropertyValue::Int(file.read_int32());
         case PROPERTY_UINT:
-            return PropertyValue::UInt(file.read_uint32());
+            return PropertyValue::UInt(file.read_int32()); // yep
         case PROPERTY_FLOAT:
             return PropertyValue::Float(file.read_float32());
         case PROPERTY_ORIGIN:
@@ -159,7 +159,7 @@ WidgetDefinition ReadEntityWidget(File& file) {
     return {widget_color, widget_type, field};
 }
 
-void ReadEntityDefinition(File& file) {
+void ReadEntityDefinition(File& file, const char* path) {
     name_t entity_name;
     name_t model_name;
     uint32_t entity_version = 0;
@@ -186,7 +186,7 @@ void ReadEntityDefinition(File& file) {
         } else if (entry_type == "end") {
             break;
         } else {
-            std::cout << "Unrecognized entdef entry: " << entry_type << std::endl;
+            std::cout << "Unrecognized entdef entry: " << entry_type << " on line " << file.get_line() << " in file " << path << std::endl;
         }
         
     }
@@ -230,7 +230,7 @@ void Init() {
             name_t record_type = file.read_name();
             
             if (record_type == "begin") {
-                ReadEntityDefinition(file);
+                ReadEntityDefinition(file, path.c_str());
             } else {
                 std::cout << "Unrezognized record: " << record_type << std::endl;
                 return;

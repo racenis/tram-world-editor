@@ -64,7 +64,6 @@ public:
     
     void SetProperty (std::string property_name, PropertyValue property_value);
     
-    void Draw();
     void CheckModel();
     
     void CenterOrigin();

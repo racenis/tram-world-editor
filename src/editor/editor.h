@@ -262,6 +262,7 @@ struct PropertyValue {
 
 struct WidgetDefinition {
     enum Color {
+        WIDGET_WHITE,
         WIDGET_CYAN,
         WIDGET_GREEN,
     };
@@ -270,6 +271,7 @@ struct WidgetDefinition {
         WIDGET_POINT,
         WIDGET_NORMAL,
         WIDGET_SELECTION_BOX,
+        WIDGET_SELECTION_AABB,
         
         WIDGET_LINE,
     };
@@ -280,6 +282,10 @@ struct WidgetDefinition {
     
     inline static WidgetDefinition SelectionBox(tram::vec3 size, Color color) {
         return {.color = color, .type = WIDGET_SELECTION_BOX, .value1 = size};
+    }
+    
+    inline static WidgetDefinition SelectionAABB(tram::vec3 min, tram::vec3 max, Color color) {
+        return {.color = color, .type = WIDGET_SELECTION_AABB, .value1 = min, .value2 = max};
     }
     
     Color color;
@@ -337,13 +343,8 @@ public:
     virtual bool IsCopyable() { std::cout << "IsCopyable() not implemented for " << typeid(*this).name() << std::endl; return false; }
     virtual bool IsHidden() { for (auto& child : children) if (child->IsHidden()) return true; return false; }
     
-    virtual float SelectSize() { return 0.0f; }
-    
     virtual std::shared_ptr<Object> Duplicate() { std::cout << "Duplicate(void) not implemented for " << typeid(*this).name() << std::endl; return std::shared_ptr<Object>(nullptr); }
     
-    // this is stupid and it should be yeeted, but alas, it is not possible for the time being
-    virtual void Draw() {}
-    // now THIS is a good replacement
     virtual bool IsWidgetedWithChildren() { return false; }
     virtual std::vector<WidgetDefinition> GetWidgetDefinitions() { return {}; }
     

@@ -37,18 +37,6 @@ Entity* GetEntityFromViewmodel(tram::RenderComponent* model) {
     return viewmodel_ptr_to_entity_ptr[model];
 }
 
-void Entity::Draw() {
-    if (model) {
-        Render::AddLineAABB(
-            model->GetModel()->GetAABBMin(),
-            model->GetModel()->GetAABBMax(),
-            model->GetLocation(),
-            model->GetRotation(),
-            Render::COLOR_GREEN
-        );
-    }
-}
-
 void Entity::CenterOrigin() {
     //PropertyValue::Vector vec;
     vec3 vec;
@@ -238,10 +226,19 @@ void Entity::SetHidden(bool is_hidden) {
 }
 
 std::vector<WidgetDefinition> Entity::GetWidgetDefinitions() {
+    std::vector<WidgetDefinition> widgets = {
+        WidgetDefinition::SelectionAABB(model->GetModel()->GetAABBMin(), model->GetModel()->GetAABBMax(), WidgetDefinition::WIDGET_GREEN)
+    };
+    
     auto entity_defs = FindEntityDefinition((int32_t) this->GetProperty("entity-type"));
     
-    if (entity_defs) return entity_defs->widgets;
-    return std::vector<WidgetDefinition>();
+    if (entity_defs) {
+        for (auto& widg : entity_defs->widgets) {
+            widgets.push_back(widg);
+        }
+    }
+    
+    return widgets;
 }
 
 std::vector<PropertyDefinition> Entity::GetFullPropertyDefinitions() { 
