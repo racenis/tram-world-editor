@@ -1,4 +1,9 @@
-#include <glad.h>
+#ifdef _WIN32
+    #include <glad.h>
+#else
+    #include <GL/gl.h>
+    #include <GLES3/gl3.h>
+#endif
 
 #include <editor/editor.h>
 #include <editor/actions.h>
@@ -807,7 +812,9 @@ ViewportCtrl::ViewportCtrl(wxWindow* parent) : wxGLCanvas(parent, wxID_ANY, null
     
     m_context = new wxGLContext(this);
     SetCurrent(*m_context);
+#ifdef _WIN32
     gladLoadGL();
+#endif
 
     std::cout << "OpenGL: " << glGetString(GL_VERSION) << std::endl;
     

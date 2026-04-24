@@ -173,9 +173,9 @@ void PropertyPanelCtrl::OnChanged (wxPropertyGridEvent& event) {
     
     for (auto& object : Editor::SELECTION->objects) {
         if (value.GetType() == "longlong") {
-            object->SetProperty(value_name, value.GetLongLong().GetValue());
+            object->SetProperty(value_name, Editor::PropertyValue::Int(static_cast<int32_t>(value.GetLongLong().GetValue())));
         } else if (value.GetType() == "ulonglong") {
-            object->SetProperty(value_name, value.GetULongLong().GetValue());
+            object->SetProperty(value_name, Editor::PropertyValue::UInt(static_cast<uint32_t>(value.GetULongLong().GetValue())));
         } else if (value.GetType() == "double") {
             float float_value = value.GetDouble();
             

@@ -38,7 +38,9 @@
 #include <components/render.cpp>
 #include <components/animation.cpp>
 
+#ifdef _WIN32
 #include <glad/glad.c>
+#endif
 
 bool tram::Platform::Window::IsRenderContextThread() {
     return true;
