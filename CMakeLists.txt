@@ -137,6 +137,11 @@ else()
     # "Built in help controller can't be compiled" guard doesn't fire.
     set(wxUSE_HELP          OFF CACHE BOOL "" FORCE)
     set(wxUSE_WXHTML_HELP   OFF CACHE BOOL "" FORCE)
+    # wxUSE_DEBUGREPORT triggers the build of wx::qa, which transitively
+    # link-depends on `wxxml` — and we turned wxUSE_XML off above since the
+    # editor has no XML usage. The editor doesn't use wxDebugReport either,
+    # so turning it off is both safe and the cleanest fix for that cascade.
+    set(wxUSE_DEBUGREPORT   OFF CACHE BOOL "" FORCE)
 
     include(FetchContent)
     FetchContent_Declare(wxwidgets_source
