@@ -32,7 +32,7 @@ void LightGraph::LoadFromDisk() {
         if (record_type == "node") {
             auto new_node = std::make_shared<Node>(this);
             
-            new_node->SetProperty("index", nodes.size());
+            new_node->SetProperty("index", PropertyValue::UInt(static_cast<uint32_t>(nodes.size())));
         
             new_node->SetProperty("position-x", file.read_float32());
             new_node->SetProperty("position-y", file.read_float32());
@@ -176,7 +176,7 @@ std::shared_ptr<Object> LightGraph::Node::Extrude() {
     //auto new_node = std::make_shared<Node>(this);
     auto new_node = std::dynamic_pointer_cast<LightGraph::Node>(parent->AddChild());
     
-    new_node->SetProperty("index", parent->GetChildren().size());
+    new_node->SetProperty("index", PropertyValue::UInt(static_cast<uint32_t>(parent->GetChildren().size())));
 
     new_node->SetProperty("position-x", this->GetProperty("position-x"));
     new_node->SetProperty("position-y", this->GetProperty("position-y"));
