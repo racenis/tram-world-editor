@@ -114,10 +114,15 @@ EntityDefinition* FindEntityDefinition(int32_t type_id) {
 }
 
 void RegisterEntityType(EntityDefinition definition) {
-    int32_t type_index = PROPERTY_ENUMERATIONS["entity-type"].size();
-    PROPERTY_ENUMERATIONS["entity-type"].push_back(definition.name);
-    
-    entity_name_to_id[definition.name] = type_index;
+    int32_t type_index = 0;
+    if (entity_name_to_id.contains(definition.name)) {
+        type_index = entity_name_to_id[definition.name];
+    } else {
+        type_index = PROPERTY_ENUMERATIONS["entity-type"].size();
+        PROPERTY_ENUMERATIONS["entity-type"].push_back(definition.name);
+        
+        entity_name_to_id[definition.name] = type_index;
+    } 
     
     entity_type_infos[type_index].push_back(definition);
 }
@@ -269,10 +274,13 @@ std::vector<PropertyDefinition> Entity::GetFullPropertyDefinitions() {
 }
 
 std::vector<PropertyDefinition> Entity::GetSerializationPropertyDefinitions() {
+    // TODO: add a check for if FindEntityDefinition returns nullptr
     return FindEntityDefinition((int32_t) this->GetProperty("entity-type"))->definitions;
 }
 
 std::vector<PropertyDefinition> Entity::GetSerializationPropertyDefinitions(uint32_t version) {
+    // TODO: add a check for if FindEntityDefinition returns nullptr and also add error message
+    // the message should say that this entity that version has not been found in entdef file
     return FindEntityDefinition(version, (int32_t) this->GetProperty("entity-type"))->definitions;
 }
 

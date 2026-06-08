@@ -27,6 +27,8 @@
 
 #include <render/scene.cpp>
 #include <render/animation.cpp>
+#include <render/lightmap.cpp>
+#include <render/environment.cpp>
 #include <render/material.cpp>
 #include <render/light.cpp>
 #include <render/sprite.cpp>
