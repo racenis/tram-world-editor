@@ -26,17 +26,18 @@ void LoadCells() {
     auto navmeshes = Editor::WORLD->navmesh_manager->GetChildren();
     auto cells = Editor::WORLD->worldcell_manager->GetChildren();
     
+    int loadables = paths.size() + navmeshes.size() + cells.size();
     float progress = 0;
-    float progress_increment = ((float) 100 / (float) (paths.size() + navmeshes.size() + cells.size()));
+    float progress_increment = loadables ? ((float) 100 / (float) (loadables)) : 100.0f;
     
     for (auto& wpath : paths) {
-        progress_dialog.Update(progress, Editor::Get("dialog_loading_cell") + std::string(wpath->GetName()));
+        progress_dialog.Update(progress, Editor::Get("dialog_loading_path") + std::string(wpath->GetName()));
         std::dynamic_pointer_cast<Editor::Path>(wpath)->LoadFromDisk();
         progress += progress_increment;
     }
     
     for (auto& wnavmesh : navmeshes) {
-        progress_dialog.Update(progress, Editor::Get("dialog_loading_cell") + std::string(wnavmesh->GetName()));
+        progress_dialog.Update(progress, Editor::Get("dialog_loading_navmesh") + std::string(wnavmesh->GetName()));
         std::dynamic_pointer_cast<Editor::Navmesh>(wnavmesh)->LoadFromDisk();
         progress += progress_increment;
     }
@@ -66,19 +67,19 @@ void SaveCells() {
     float progress_increment = ((float) 100 / (float) (paths.size() + navmeshes.size() + cells.size()));
     
     for (auto& wpath : paths) {
-        progress_dialog.Update(progress, Editor::Get("dialog_loading_cell") + std::string(wpath->GetName()));
+        progress_dialog.Update(progress, Editor::Get("dialog_saving_path") + std::string(wpath->GetName()));
         std::dynamic_pointer_cast<Editor::Path>(wpath)->SaveToDisk();
         progress += progress_increment;
     }
     
     for (auto& wnavmesh : navmeshes) {
-        progress_dialog.Update(progress, Editor::Get("dialog_loading_cell") + std::string(wnavmesh->GetName()));
+        progress_dialog.Update(progress, Editor::Get("dialog_saving_navmesh") + std::string(wnavmesh->GetName()));
         std::dynamic_pointer_cast<Editor::Navmesh>(wnavmesh)->SaveToDisk();
         progress += progress_increment;
     }
     
     for (auto& wcell : cells) {
-        progress_dialog.Update(progress, Editor::Get("dialog_loading_cell") + std::string(wcell->GetName()));
+        progress_dialog.Update(progress, Editor::Get("dialog_saving_cell") + std::string(wcell->GetName()));
         std::dynamic_pointer_cast<Editor::WorldCell>(wcell)->SaveToDisk();
         progress += progress_increment;
     }

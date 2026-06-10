@@ -144,7 +144,7 @@ public:
             reparent.object->SetHidden(reparent.prev_parent->IsHidden());
 
             reparent.prev_parent->AddChild(reparent.object);
-            if (reparent.prev_parent->IsChildrenTreeable()) Editor::WorldTree::Remove(reparent.object.get());
+            if (reparent.prev_parent->IsChildrenTreeable()) Editor::WorldTree::Add(reparent.object.get());
         }
         
         std::swap(Editor::SELECTION, Editor::STASH);
@@ -376,11 +376,13 @@ public:
     ActionWorldspawnOffset() {
         if (STASH->objects.size() == 0) {
             Editor::Viewport::ShowErrorDialog("No stashed objects to worldspawn offset to!");
+            failed = true;
             return;
         }
         
         if (SELECTION->objects.size() != 1) {
             Editor::Viewport::ShowErrorDialog("Need to select a single worldspawn object!");
+            failed = true;
             return;
         }
         
@@ -388,6 +390,7 @@ public:
         
         if (!worldspawn) {
             Editor::Viewport::ShowErrorDialog("Selected worldspawn is not an entity!");
+            failed = true;
             return;
         }
         
@@ -417,6 +420,8 @@ public:
     
     // Swaps the backed-up properties with the new properties.
     void Perform () {
+        if (failed) return;
+        
         for (auto& backup : origin_backups) {
             Transform new_transform = {backup.first->GetProperty("position-x"),
                                        backup.first->GetProperty("position-y"),
@@ -446,6 +451,8 @@ public:
     
     // Swaps the new properties with the backed-up properties.
     void Unperform() {
+        if (failed) return;
+        
         Perform();
     }
     
@@ -454,6 +461,7 @@ public:
         float rot_x, rot_y, rot_z;
     };
     
+    bool failed = false;
     std::list<std::pair<std::shared_ptr<Object>, Transform>> origin_backups;
 };
 
@@ -481,6 +489,7 @@ public:
         
         std::swap(selection, Editor::SELECTION);
         
+        Editor::ObjectList::Refresh();
         Editor::PropertyPanel::Refresh();
         Editor::Viewport::Refresh();
     }
@@ -497,6 +506,7 @@ public:
         
         std::swap(selection, Editor::SELECTION);
         
+        Editor::ObjectList::Refresh();
         Editor::PropertyPanel::Refresh();
         Editor::Viewport::Refresh();
     }
@@ -514,6 +524,7 @@ public:
         
         std::swap(selection, Editor::SELECTION);
         
+        Editor::ObjectList::Refresh();
         Editor::PropertyPanel::Refresh();
         Editor::Viewport::Refresh();
     }
@@ -552,6 +563,7 @@ public:
         
         std::swap(selection, Editor::SELECTION);
         
+        Editor::ObjectList::Refresh();
         Editor::PropertyPanel::Refresh();
         Editor::Viewport::Refresh();
     }
@@ -568,6 +580,7 @@ public:
         
         std::swap(selection, Editor::SELECTION);
         
+        Editor::ObjectList::Refresh();
         Editor::PropertyPanel::Refresh();
         Editor::Viewport::Refresh();
     }
@@ -585,6 +598,7 @@ public:
         
         std::swap(selection, Editor::SELECTION);
         
+        Editor::ObjectList::Refresh();
         Editor::PropertyPanel::Refresh();
         Editor::Viewport::Refresh();
     }
@@ -611,8 +625,6 @@ public:
         
         object_a = *SELECTION->objects.begin();
         object_b = *++SELECTION->objects.begin();
-        
-        std::cout << "object_a "<< object_a.get() << " object b " << object_b.get() << std::endl;
         
         connect = !object_a->IsConnected(object_b);
         

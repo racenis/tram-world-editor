@@ -14,7 +14,7 @@ ObjectMenuCtrl::ObjectMenuCtrl () : wxMenu() {
     add_selection = Append(2, Editor::Get("dialog_add_new"));
     edit_selection = Append(3, Editor::Get("dialog_edit"));
     duplicate_selection = Append(4,Editor::Get("dialog_duplicate"));
-    duplicate_selection = Append(5, Editor::Get("dialog_signals"));
+    signal_selection = Append(5, Editor::Get("dialog_signals"));
     delete_selection = Append(6, Editor::Get("dialog_delete"));
     
     this->Bind(wxEVT_MENU, &ObjectMenuCtrl::OnIsVisibleCheckboxClick, this, 1);
@@ -27,7 +27,7 @@ ObjectMenuCtrl::ObjectMenuCtrl () : wxMenu() {
 
 void ObjectMenuCtrl::SetSelectionStatus(Editor::Selection* selection) {
     bool is_visible, is_addable, is_editable, is_duplicatable, is_deletable;
-    is_visible = is_addable = is_editable = is_duplicatable = is_deletable = true;
+    is_visible = is_addable = is_editable = is_duplicatable = is_deletable = selection->objects.size();
     
     for (auto& object : selection->objects) { if (object->IsHidden()) { is_visible = false; break; } }
     for (auto& object : selection->objects) { if (!object->IsAddable()) { is_addable = false; break; } }

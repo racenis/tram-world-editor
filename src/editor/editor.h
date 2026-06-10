@@ -330,8 +330,8 @@ public:
     // graph object operations
     virtual std::shared_ptr<Object> Extrude() { std::cout << "Extrude() not implemented for " << typeid(*this).name() << std::endl; return std::shared_ptr<Object>(nullptr); }
     virtual void Connect(std::shared_ptr<Object> other) { std::cout << "Connect() not implemented for " << typeid(*this).name() << std::endl; }
-    virtual void Disconnect(std::shared_ptr<Object> other) { std::cout << "Connect() not implemented for " << typeid(*this).name() << std::endl; }
-    virtual bool IsConnected(std::shared_ptr<Object> other) { std::cout << "Connect() not implemented for " << typeid(*this).name() << std::endl; return false; }
+    virtual void Disconnect(std::shared_ptr<Object> other) { std::cout << "Disconnect() not implemented for " << typeid(*this).name() << std::endl; }
+    virtual bool IsConnected(std::shared_ptr<Object> other) { std::cout << "IsConnected() not implemented for " << typeid(*this).name() << std::endl; return false; }
 
     bool is_hidden = true;
     Object* parent = nullptr;

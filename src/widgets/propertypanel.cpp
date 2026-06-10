@@ -114,7 +114,7 @@ void Editor::PropertyPanel::SetCurrentSelection() {
                     field->SetValue(wxULongLong(value.uint_value));
                     break;
                 case PROPERTY_ENUM:
-                    field->SetValue((long) value.uint_value);
+                    field->SetValue((long) value.int_value);
                     break;
                 case PROPERTY_BOOL:
                     field->SetValue(value.bool_value);
@@ -128,8 +128,8 @@ void Editor::PropertyPanel::SetCurrentSelection() {
                     std::string z_str = std::to_string(value.vector_value.z);
                 
                     x_str.erase(x_str.find_last_not_of('0') + 1, std::string::npos);
-                    y_str.erase(x_str.find_last_not_of('0') + 1, std::string::npos);
-                    z_str.erase(x_str.find_last_not_of('0') + 1, std::string::npos);
+                    y_str.erase(y_str.find_last_not_of('0') + 1, std::string::npos);
+                    z_str.erase(z_str.find_last_not_of('0') + 1, std::string::npos);
                 
                 //std::cout << "READ IN!!!" << value.vector_value.x << "  " << value.vector_value.z << std::endl;
                 
@@ -206,7 +206,7 @@ void PropertyPanelCtrl::OnChanged (wxPropertyGridEvent& event) {
             }
         } else if (value.GetType() == "long") {
             // long in wxWidgets PropGrid is used for enums
-            object->SetProperty(value_name, (int32_t) value.GetLong());
+            object->SetProperty(value_name, Editor::PropertyValue::Enum((int32_t) value.GetLong()));
         } else if (value.GetType() == "bool") {
             object->SetProperty(value_name, value.GetBool());
         } else {

@@ -205,8 +205,8 @@ void Entity::CheckModel() {
     if (this->model && model_name != this->model->GetModel()->GetName()) {
         std::cout << "deleting rendercomp for " << model_name << std::endl;
         PoolProxy<RenderComponent>::Delete(this->model);
-        this->model = nullptr;
         viewmodel_ptr_to_entity_ptr[this->model] = nullptr;
+        this->model = nullptr;
         CheckModel();
         return;
     }

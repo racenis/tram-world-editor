@@ -53,16 +53,18 @@ void Path::LoadFromDisk() {
             const uint32_t from_node_index = file.read_uint32();
             const uint32_t to_node_index = file.read_uint32();
             
-            Node* from_node = nodes[from_node_index];
-            Node* to_node = nodes[to_node_index];
-            
             if (from_node_index >= nodes.size()) {
-                std::cout << "invalid from node index " << from_node_index << std::endl;
+                std::cout << "invalid from node index " << from_node_index << " in " << path << std::endl;
+                continue;
             }
             
             if (to_node_index >= nodes.size()) {
-                std::cout << "invalid to node index " << to_node_index << std::endl;
+                std::cout << "invalid to node index " << to_node_index << " in " << path << std::endl;
+                continue;
             }
+            
+            Node* from_node = nodes[from_node_index];
+            Node* to_node = nodes[to_node_index];
             
             Edge* existing = nullptr;
             for (auto& edge : edges) {

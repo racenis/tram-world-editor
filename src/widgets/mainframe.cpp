@@ -72,7 +72,7 @@ MainFrameCtrl::MainFrameCtrl() : wxFrame(NULL, wxID_ANY, Editor::Get("title_bar"
  
     wxMenu* edit_menu = new wxMenu;
     edit_menu->Append(ID_Action_Undo, Editor::Get("edit_menu_undo"), Editor::Get("edit_menu_undo_info"));
-    edit_menu->Append(ID_Action_Redo, Editor::Get("edit_menu_redo"), Editor::Get("edit_menu_undo_info"));
+    edit_menu->Append(ID_Action_Redo, Editor::Get("edit_menu_redo"), Editor::Get("edit_menu_redo_info"));
     edit_menu->AppendSeparator();
     edit_menu->Append(ID_Action_Duplicate, Editor::Get("edit_menu_duplicate"), Editor::Get("edit_menu_duplicate_info"));
     edit_menu->Append(ID_Action_Signals, Editor::Get("edit_menu_signals"), Editor::Get("edit_menu_signals_info"));

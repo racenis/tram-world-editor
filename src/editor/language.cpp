@@ -42,7 +42,7 @@ void Editor::ResetLanguage() {
             l["edit_menu_undo"] = L"Undo\tCtrl-Z";
             l["edit_menu_undo_info"] = L"Reverses the previously committed action.";
             l["edit_menu_redo"] = L"Redo\tCtrl-Y";
-            l["edit_menu_undo_info"] = L"Performs again a previously reversed action.";
+            l["edit_menu_redo_info"] = L"Performs again a previously reversed action.";
 
             l["edit_menu_duplicate"] = L"Duplicate";
             l["edit_menu_duplicate_info"] = L"Duplicates the selected objects.";

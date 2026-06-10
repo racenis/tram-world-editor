@@ -284,8 +284,7 @@ void SignalEditor::Select(wxListEvent& event) {
 
 void SignalEditor::Change(wxCommandEvent& event) {
     if (selected == -1) return;
-    
-    std::cout << "change!! " << event.GetId() << " " << event.GetSelection() << std::endl;
+
     switch (event.GetId()) {
         case INPUT_FIELD_SIGNAL_TYPE:
             entity->signals[selected].type = signal_type_value->GetString(event.GetSelection());
@@ -312,7 +311,7 @@ void SignalEditor::Change(wxCommandEvent& event) {
             break;
     }
     
-    signal_list->RefreshItem(event.GetSelection());
+    signal_list->RefreshItem(selected);
 }
 
 void SignalEditor::Closng(wxCloseEvent& event) {

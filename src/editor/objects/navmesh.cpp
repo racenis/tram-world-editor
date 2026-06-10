@@ -20,7 +20,7 @@ void Navmesh::LoadFromDisk() {
     File file (path.c_str(), File::READ);
     
     if (!file.is_open()) {
-        std::cout << "Can't find path file: " << path << std::endl; return;
+        std::cout << "Can't find navmesh file: " << path << std::endl; return;
     }
     
     if (file.read_name() != "NAVMESHv1") {
@@ -29,7 +29,7 @@ void Navmesh::LoadFromDisk() {
     
     file.read_name(); // skip navmesh name
     
-    while (file.is_open()) {
+    while (file.is_continue()) {
         uint64_t node_id = file.read_uint32();
         
         if (node_id > navmesh_id_counter) {
@@ -40,10 +40,10 @@ void Navmesh::LoadFromDisk() {
         
         new_node->SetProperty("id", node_id);
         
-        new_node->SetProperty("next-id", file.read_uint64());
-        new_node->SetProperty("prev-id", file.read_uint64());
-        new_node->SetProperty("left-id", file.read_uint64());
-        new_node->SetProperty("right-id", file.read_uint64());
+        new_node->SetProperty("next-id", (uint64_t)file.read_uint32());
+        new_node->SetProperty("prev-id", (uint64_t)file.read_uint32());
+        new_node->SetProperty("left-id", (uint64_t)file.read_uint32());
+        new_node->SetProperty("right-id", (uint64_t)file.read_uint32());
         
         new_node->SetProperty("position-x", file.read_float32());
         new_node->SetProperty("position-y", file.read_float32());

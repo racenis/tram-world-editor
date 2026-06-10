@@ -65,6 +65,10 @@ public:
     MoveTool() {
         viewport->CaptureMouse();
         viewport->CenterMouseCursor();
+        
+        vec3 direction = Render::GetViewRotation() * DIRECTION_FORWARD;
+        mouse_y = -glm::degrees(asinf(direction.y));
+        mouse_x = glm::degrees(atan2f(direction.x, -direction.z));
     }
     
     ~MoveTool() {
@@ -73,9 +77,6 @@ public:
     }
 
     void MouseMove(float x, float y, float delta_x_e, float delta_y_e) {
-        static float mouse_x = 0.0f;
-        static float mouse_y = 0.0f;
-        
         int width, height;
         viewport->GetSize(&width, &height);
         int center_x = width/2, center_y = height/2;
@@ -206,6 +207,9 @@ private:
     bool key_left = false;
     bool key_right = false;
     bool key_shift = false;
+    
+    float mouse_x = 0.0f;
+    float mouse_y = 0.0f;
 };
 
 class TranslateTool : public ViewportTool {
@@ -592,7 +596,7 @@ public:
             Project(world_axis, world_axis);
             Project(world_point, world_point);
             
-            vec2 screen_axis = vec2(world_axis.y, world_axis.y) - vec2(world_point.x, world_point.y);
+            vec2 screen_axis = vec2(world_axis.x, world_axis.y) - vec2(world_point.x, world_point.y);
             
             vec2 screen_direction = (vec2(delta_x, delta_y));
             
@@ -1173,6 +1177,8 @@ void ViewportCtrl::OnKeydown(wxKeyEvent& event) {
     if (keycode == 'D' /*&& event.ShiftDown()*/ && (!viewport_tool || !dynamic_cast<MoveTool*>(viewport_tool))) {
         if (viewport_tool) {
             delete viewport_tool;
+            // we delete the tool without cancelling, as to allow chaining
+            // together translates and duplicates
         }
         
         Editor::PerformAction<Editor::ActionDuplicate>();
@@ -1222,7 +1228,9 @@ void ViewportCtrl::OnKeyup(wxKeyEvent& event) {
     
     if (viewport_tool) viewport_tool->Keyup(event.GetUnicodeKey(), event.GetKeyCode());
     
-    
+    if (event.GetKeyCode() == WXK_CONTROL) {
+        Refresh();
+    }
 }
 
 void ViewportCtrl::OnTimer(wxTimerEvent& event) {
@@ -1307,30 +1315,6 @@ void ViewportCtrl::OnPaint(wxPaintEvent& event) {
     if (!viewport_tool) {
         selectable = FindCursorObject(widgetables, cursor_x, cursor_y);
     }
-    
-    for (auto& object : Editor::SELECTION->objects) {
-        widgetables.emplace(object.get());
-        
-        if (object->IsWidgetedWithChildren()) {
-            for (auto& object : object->GetChildren()) {
-                widgetables.emplace(object.get());
-            }
-        }
-        
-        auto parent = object->GetParent().get();
-        
-        if (!parent) continue;
-        
-        if (!parent->IsWidgetedWithChildren()) continue;
-        
-        if (widgetables.contains(parent)) continue;
-        
-        for (auto& object : parent->GetChildren()) {
-            widgetables.emplace(object.get());
-        }
-        
-        widgetables.emplace(parent);
-    }
 
     for (auto object : widgetables) {
         glm::quat space;
@@ -1389,7 +1373,9 @@ void ViewportCtrl::OnPaint(wxPaintEvent& event) {
             
             glm::vec3 inv_color = vec3(1.0f, 1.0f, 1.0f) - color;
             
-            if (object == selectable) color *= vec3{0.5f, 0.5f, 0.5f};
+            // darkens the widget color to signal that a selected object can be
+            // unselected by clicking on it
+            if (wxGetKeyState(WXK_CONTROL) && object == selectable) color *= vec3{0.5f, 0.5f, 0.5f};
             
             //std::cout << "got color" << std::endl;
             
@@ -1422,6 +1408,9 @@ void ViewportCtrl::OnPaint(wxPaintEvent& event) {
                     AddLineAABB(-(glm::vec3)gizmo.value1, gizmo.value1, gizmo_location, vec3(0.0f, 0.0f, 0.0f), color);
                     //std::cout << "done point gizmo" << std::endl;
                     
+                    // used to distinguish the selected object in point objects,
+                    // such as paths and transitions, as selecting a single point
+                    // also highlights all other points from the parent
                     if (selected.contains(object)) {
                         AddLineAABB(-2.0f * (glm::vec3)gizmo.value1, 2.0f * (glm::vec3)gizmo.value1, gizmo_location, vec3(0.0f, 0.0f, 0.0f), inv_color);
                     }
@@ -1447,6 +1436,39 @@ void ViewportCtrl::OnPaint(wxPaintEvent& event) {
             }
             
             //std::cout << "done!" << std::endl;
+        }
+    }
+    
+    // this should draw a box round an entity that hasn't been selected, but
+    // can be selected by clicking on it
+    if (selectable && wxGetKeyState(WXK_CONTROL) && !widgetables.contains(selectable)) {
+        glm::vec3 location = glm::vec3 {
+            selectable->GetProperty("position-x").float_value,
+            selectable->GetProperty("position-y").float_value,
+            selectable->GetProperty("position-z").float_value
+        };
+
+        auto gizmos = selectable->GetWidgetDefinitions();
+        
+        for (const auto& gizmo : gizmos) {
+            
+            switch (gizmo.type) {
+                case Editor::WidgetDefinition::WIDGET_SELECTION_BOX: {
+                    AddLineAABB(-(glm::vec3)gizmo.value1, gizmo.value1, location, vec3(0.0f, 0.0f, 0.0f), COLOR_YELLOW);
+                } break;
+                case Editor::WidgetDefinition::WIDGET_SELECTION_AABB: {
+                    tram::vec3 rotation = {
+                        selectable->GetProperty("rotation-x").float_value,
+                        selectable->GetProperty("rotation-y").float_value,
+                        selectable->GetProperty("rotation-z").float_value
+                    };
+                    
+                    AddLineAABB(gizmo.value1, gizmo.value2, location, rotation, COLOR_YELLOW);
+                    
+                    } break;
+                default:
+                    break;
+            }
         }
     }
     

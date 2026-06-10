@@ -32,7 +32,7 @@ void Reset() {
     
     SELECTION = std::make_shared<Selection>();
     
-    Editor::UNPERFORMED_ACTIONS.clear();
+    Editor::PERFORMED_ACTIONS.clear();
     Editor::UNPERFORMED_ACTIONS.clear();
     Editor::data_modified = false;
     
@@ -71,7 +71,7 @@ void Reset() {
         for (auto& navmesh_file : navmesh_dir) {
             if (navmesh_file.is_regular_file() && navmesh_file.path().extension() == ".navmesh") {
                 auto navmesh_name = navmesh_file.path().stem().string();
-                auto navmesh_object = std::make_shared<Path>(navmesh_manager, navmesh_name);
+                auto navmesh_object = std::make_shared<Navmesh>(navmesh_manager, navmesh_name);
                 ((Object*) navmesh_manager)->AddChild(navmesh_object);
             }
         }
@@ -129,7 +129,7 @@ PropertyValue ReadDefaultValue(File& file, PropertyType type) {
         
     }
     
-    std::cout << "cannot read default value for entdef: " << PROPERTY_STRING << std::endl;
+    std::cout << "cannot read default value for entdef: " << type << std::endl;
     
     return {};
 }
@@ -142,8 +142,12 @@ WidgetDefinition ReadEntityWidget(File& file) {
     WidgetDefinition::Color widget_color;
     WidgetDefinition::Type widget_type;
     
-    if (type == "cyan") {
+    if (color == "cyan") {
         widget_color = WidgetDefinition::WIDGET_CYAN;
+    } else if (color == "green") {
+        widget_color = WidgetDefinition::WIDGET_GREEN;
+    } else if (color == "white") {
+        widget_color = WidgetDefinition::WIDGET_WHITE;
     } else {
         widget_color = WidgetDefinition::WIDGET_CYAN;
     }
@@ -233,7 +237,7 @@ void Init() {
                 ReadEntityDefinition(file, path.c_str());
             } else {
                 std::cout << "Unrezognized record: " << record_type << std::endl;
-                return;
+                break;
             }
             
         }

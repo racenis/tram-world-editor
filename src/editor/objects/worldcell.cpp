@@ -55,7 +55,7 @@ void WorldCell::LoadFromDisk() {
             static_cast<Object*>(cell->transition_manager.get())->AddChild(trans);
         } else if (ent_type == "signal") {
             
-            uint32_t source = file.read_uint64();
+            uint32_t source = file.read_uint32();
             
             Signal signal;
             
@@ -96,7 +96,7 @@ void WorldCell::LoadFromDisk() {
 
             entity->SetEntityType(ent_type);
             
-            entity->SetProperty("id", file.read_uint64());
+            entity->SetProperty("id", (uint64_t)file.read_uint32());
             entity->properties["name"] = std::string(file.read_name());
             entity->properties["entity-flags"] = PropertyValue::Flag(file.read_uint32());
             
@@ -274,7 +274,7 @@ void WorldCell::SaveToDisk() {
         file.write_name(trans->GetProperty("name").str_value);
         file.write_name(trans->GetProperty("cell-into").str_value);
         
-        file.write_uint64(trans->GetChildren().size());
+        file.write_uint32(trans->GetChildren().size());
         
         for (auto& point : trans->GetChildren()) {
             file.write_float32(point->GetProperty("position-x"));

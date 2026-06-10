@@ -15,7 +15,7 @@ void SoundGraph::LoadFromDisk() {
     File file (path.c_str(), File::READ /*| MODE_PAUSE_LINE*/);
     
     if (!file.is_open()) {
-        std::cout << "Can't find path file: " << path << std::endl; return;
+        std::cout << "Can't find soundgraph file: " << path << std::endl; return;
     }
     
     if (file.read_name() != "SOUNDGRAPHv1") {
@@ -45,16 +45,18 @@ void SoundGraph::LoadFromDisk() {
             const uint32_t from_node_index = file.read_uint32();
             const uint32_t to_node_index = file.read_uint32();
             
-            Node* from_node = nodes[from_node_index];
-            Node* to_node = nodes[to_node_index];
-            
             if (from_node_index >= nodes.size()) {
-                std::cout << "invalid from node index " << from_node_index << std::endl;
+                std::cout << "invalid from node index " << from_node_index << " in " << path << std::endl;
+                continue;
             }
             
             if (to_node_index >= nodes.size()) {
-                std::cout << "invalid to node index " << to_node_index << std::endl;
+                std::cout << "invalid to node index " << to_node_index << " in " << path << std::endl;
+                continue;
             }
+            
+            Node* from_node = nodes[from_node_index];
+            Node* to_node = nodes[to_node_index];
             
             Edge* existing = nullptr;
             for (auto& edge : edges) {
@@ -82,7 +84,7 @@ void SoundGraph::LoadFromDisk() {
 }
 
 void SoundGraph::SaveToDisk() {
-    std::string path = "data/paths/";
+    std::string path = "data/worldcells/";
     path += this->parent->GetName();
     path += ".sound";
     
