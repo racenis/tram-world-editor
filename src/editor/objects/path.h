@@ -49,12 +49,10 @@ public:
         
         std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
             return std::vector<PropertyDefinition> {
-                {"group-path-node", "Path Node", "", PROPERTY_CATEGORY},
-                {"index", "Index", "group-path-node", PROPERTY_UINT},
-                {"group-path-node-pos", "Position", "group-path-node", PROPERTY_CATEGORY},
-                {"position-x", "X", "group-path-node-pos", PROPERTY_FLOAT},
-                {"position-y", "Y", "group-path-node-pos", PROPERTY_FLOAT},
-                {"position-z", "Z", "group-path-node-pos", PROPERTY_FLOAT},
+                {"index",       "group-path-node",      PROPERTY_UINT},
+                {"position-x",  "group-path-node-pos",  PROPERTY_FLOAT},
+                {"position-y",  "group-path-node-pos",  PROPERTY_FLOAT},
+                {"position-z",  "group-path-node-pos",  PROPERTY_FLOAT},
             };
         }
     };
@@ -82,16 +80,15 @@ public:
     
     std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
-            {"position-x", "x", "", PROPERTY_FLOAT},
-            {"position-y", "y", "", PROPERTY_FLOAT},
-            {"position-z", "z", "", PROPERTY_FLOAT}
+            {"position-x", "", PROPERTY_FLOAT},
+            {"position-y", "", PROPERTY_FLOAT},
+            {"position-z", "", PROPERTY_FLOAT}
         };
     }
     
     std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
-            {"group-path", "path", "", PROPERTY_CATEGORY},
-            {"name", "Name", "group-path", PROPERTY_STRING}
+            {"name", "group-path", PROPERTY_STRING}
         };
     }
     

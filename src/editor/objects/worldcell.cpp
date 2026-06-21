@@ -43,8 +43,8 @@ void WorldCell::LoadFromDisk() {
             auto trans = std::make_shared<Transition>(cell->transition_manager.get());
             trans->SetProperty("name", std::string(file.read_name()));
             trans->SetProperty("cell-into", std::string(file.read_name()));
-            uint64_t point_count = file.read_uint32();
-            for (uint64_t i = 0; i < point_count; i++) {
+            uint32_t point_count = file.read_uint32();
+            for (uint32_t i = 0; i < point_count; i++) {
                 auto p = trans->AddChild();
                 p->SetProperty("position-x", file.read_float32());
                 p->SetProperty("position-y", file.read_float32());
@@ -94,7 +94,7 @@ void WorldCell::LoadFromDisk() {
 
             entity->SetEntityType(ent_type);
             
-            entity->SetProperty("id", (uint64_t)file.read_uint32());
+            entity->SetProperty("id", file.read_uint32());
             entity->properties["name"] = std::string(file.read_name());
             entity->properties["entity-flags"] = PropertyValue::Flag(file.read_uint32());
             
@@ -115,9 +115,9 @@ void WorldCell::LoadFromDisk() {
                     case PROPERTY_STRING:
                         entity->SetProperty(prop.name, std::string(file.read_name())); break;
                     case PROPERTY_INT:
-                        entity->SetProperty(prop.name, file.read_int64()); break;
+                        entity->SetProperty(prop.name, file.read_int32()); break;
                     case PROPERTY_UINT:
-                        entity->SetProperty(prop.name, file.read_uint64()); break;
+                        entity->SetProperty(prop.name, file.read_uint32()); break;
                     case PROPERTY_FLOAT:
                         entity->SetProperty(prop.name, file.read_float32()); break;
                     case PROPERTY_ENUM:
@@ -207,11 +207,11 @@ void WorldCell::SaveToDisk() {
             
             for (auto& prop : data_defs) {
                 switch (prop.type) {
-                    default: // TODO: actually implement writers for other types
                     case PROPERTY_STRING:
                         file.write_name(ent->GetProperty(prop.name).str_value); break;
                     case PROPERTY_INT:
                         file.write_int32(ent->GetProperty(prop.name)); break;
+                    case PROPERTY_FLAG:
                     case PROPERTY_UINT:
                         file.write_uint32(ent->GetProperty(prop.name)); break;
                     case PROPERTY_FLOAT:
@@ -225,7 +225,9 @@ void WorldCell::SaveToDisk() {
                         file.write_float32(ent->GetProperty(prop.name).vector_value.y);
                         file.write_float32(ent->GetProperty(prop.name).vector_value.z);
                         break;
-                    case PROPERTY_CATEGORY:
+                    case PROPERTY_BOOL:
+                        file.write_uint32((bool)ent->GetProperty(prop.name));
+                    case PROPERTY_NULL:
                         break;
                 }
             }

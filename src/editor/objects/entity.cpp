@@ -30,7 +30,7 @@ void Entity::GenerateNewRandomId() {
     std::mt19937 randomizer(device());
     std::uniform_int_distribution<std::mt19937::result_type> distribution(100000000, 999999999);
 
-    this->SetProperty("id", (uint64_t)distribution(randomizer));
+    this->SetProperty("id", (uint32_t)distribution(randomizer));
 }
 
 Entity* GetEntityFromViewmodel(tram::RenderComponent* model) {
@@ -38,7 +38,6 @@ Entity* GetEntityFromViewmodel(tram::RenderComponent* model) {
 }
 
 void Entity::CenterOrigin() {
-    //PropertyValue::Vector vec;
     vec3 vec;
     
     if (!model) {
@@ -248,20 +247,16 @@ std::vector<WidgetDefinition> Entity::GetWidgetDefinitions() {
 
 std::vector<PropertyDefinition> Entity::GetFullPropertyDefinitions() { 
     auto defs = std::vector<PropertyDefinition> {
-        {"group-entity", "Entity", "", PROPERTY_CATEGORY},
-        {"id", "ID", "group-entity", PROPERTY_UINT},
-        {"name", "Name", "group-entity", PROPERTY_STRING},
-        {"entity-flags", "Flags", "group-entity", PROPERTY_FLAG},
-        {"group-position", "Position", "", PROPERTY_CATEGORY},
-        {"position-x", "X", "group-position", PROPERTY_FLOAT},
-        {"position-y", "Y", "group-position", PROPERTY_FLOAT},
-        {"position-z", "Z", "group-position", PROPERTY_FLOAT},
-        {"group-rotation", "Rotation", "", PROPERTY_CATEGORY},
-        {"rotation-x", "X", "group-rotation", PROPERTY_FLOAT},
-        {"rotation-y", "Y", "group-rotation", PROPERTY_FLOAT},
-        {"rotation-z", "Z", "group-rotation", PROPERTY_FLOAT},
-        {"entity-type", "Entity Type", "group-entity", PROPERTY_ENUM},
-        {"group-entity-specific", "Type", "", PROPERTY_CATEGORY},
+        {"id",              "group-entity",     PROPERTY_UINT},
+        {"name",            "group-entity",     PROPERTY_STRING},
+        {"entity-flags",    "group-entity",     PROPERTY_FLAG},
+        {"position-x",      "group-position",   PROPERTY_FLOAT},
+        {"position-y",      "group-position",   PROPERTY_FLOAT},
+        {"position-z",      "group-position",   PROPERTY_FLOAT},
+        {"rotation-x",      "group-rotation",   PROPERTY_FLOAT},
+        {"rotation-y",      "group-rotation",   PROPERTY_FLOAT},
+        {"rotation-z",      "group-rotation",   PROPERTY_FLOAT},
+        {"entity-type",     "group-entity",     PROPERTY_ENUM},
     };
     
     // add entity type specific definitions, it it has any
@@ -291,7 +286,7 @@ void Entity::SetEntityType (std::string type) {
         abort();
     }
     
-    this->SetProperty("entity-type", (int32_t) entity_name_to_id[type]);
+    this->SetProperty("entity-type", PropertyValue::Enum(entity_name_to_id[type]));
 }
 
 void Entity::InitDefaultPropertyValues() {

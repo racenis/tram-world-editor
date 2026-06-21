@@ -41,16 +41,15 @@ public:
     
     std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
-            {"name", "name", "", PROPERTY_STRING}
+            {"name", "", PROPERTY_STRING}
         };
     }
     
     std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
-            {"group-worldcell", "Worldcell", "", PROPERTY_CATEGORY},
-            {"name", "name", "group-worldcell", PROPERTY_STRING},
-            {"is-interior", "interior", "group-worldcell", PROPERTY_BOOL},
-            {"is-interior-lighting", "interior_lighting", "group-worldcell", PROPERTY_BOOL}
+            {"name",                    "group-worldcell",  PROPERTY_STRING},
+            {"is-interior",             "group-worldcell",  PROPERTY_BOOL},
+            {"is-interior-lighting",    "group-worldcell",  PROPERTY_BOOL}
         };
     }
     

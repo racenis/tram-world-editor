@@ -52,7 +52,7 @@ void Editor::ObjectList::SetCurrentSelection() {
         columns = selected_object->GetListPropertyDefinitions();
         
         for (size_t i = 0; i < columns.size(); i++) {
-            object_list->InsertColumn(i, Editor::Get(columns[i].display_name));
+            object_list->InsertColumn(i, Editor::Get(columns[i].name));
         }
         
         object_list->SetItemCount(selected_object->GetChildren().size());

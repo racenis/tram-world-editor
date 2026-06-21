@@ -42,12 +42,10 @@ public:
         
         std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
             return std::vector<PropertyDefinition> {
-                {"group-sound-graph-node", "Path Node", "", PROPERTY_CATEGORY},
-                {"index", "Index", "group-sound-graph-node", PROPERTY_UINT},
-                {"group-sound-graph-node-pos", "Position", "group-sound-graph-node", PROPERTY_CATEGORY},
-                {"position-x", "X", "group-sound-graph-node-pos", PROPERTY_FLOAT},
-                {"position-y", "Y", "group-sound-graph-node-pos", PROPERTY_FLOAT},
-                {"position-z", "Z", "group-sound-graph-node-pos", PROPERTY_FLOAT},
+                {"index",       "group-sound-graph-node",       PROPERTY_UINT},
+                {"position-x",  "group-sound-graph-node-pos",   PROPERTY_FLOAT},
+                {"position-y",  "group-sound-graph-node-pos",   PROPERTY_FLOAT},
+                {"position-z",  "group-sound-graph-node-pos",   PROPERTY_FLOAT},
             };
         }
     };
@@ -75,16 +73,14 @@ public:
     
     std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
-            {"position-x", "x", "", PROPERTY_FLOAT},
-            {"position-y", "y", "", PROPERTY_FLOAT},
-            {"position-z", "z", "", PROPERTY_FLOAT}
+            {"position-x", "", PROPERTY_FLOAT},
+            {"position-y", "", PROPERTY_FLOAT},
+            {"position-z", "", PROPERTY_FLOAT}
         };
     }
     
     std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
-        return std::vector<PropertyDefinition> {
-            {"group-sound-graph", "sound_graph", "", PROPERTY_CATEGORY}
-        };
+        return std::vector<PropertyDefinition> {};
     }
     
     std::shared_ptr<Object> AddChild() { auto child = std::make_shared<Node>(this); children.push_back(child); return child; }

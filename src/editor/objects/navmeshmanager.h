@@ -22,14 +22,12 @@ public:
     
     std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
-            {"name", "name", "", PROPERTY_STRING}
+            {"name", "", PROPERTY_STRING}
         };
     }
     
     std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
-        return std::vector<PropertyDefinition> {
-            {"group-navmesh-manager", "navmesh_manager", "", PROPERTY_CATEGORY}
-        };
+        return std::vector<PropertyDefinition> {};
     }
     
     std::shared_ptr<Object> AddChild() { auto child = std::make_shared<Navmesh>(this); children.push_back(child); return child; }

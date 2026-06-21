@@ -24,17 +24,16 @@ public:
     
     std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
-            {"name", "name", "", PROPERTY_STRING},
-            {"position-x", "x", "", PROPERTY_FLOAT},
-            {"position-y", "y", "", PROPERTY_FLOAT},
-            {"position-z", "z", "", PROPERTY_FLOAT}
+            {"name",        "", PROPERTY_STRING},
+            {"position-x",  "", PROPERTY_FLOAT},
+            {"position-y",  "", PROPERTY_FLOAT},
+            {"position-z",  "", PROPERTY_FLOAT}
         };
     }
     
     std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
-            {"group-entity-group", "entity_group", "", PROPERTY_CATEGORY},
-            {"name", "Name", "group-entity-group", PROPERTY_STRING}
+            {"name", "group-entity-group", PROPERTY_STRING}
         };
     }
 };

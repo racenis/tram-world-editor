@@ -85,19 +85,19 @@ PropertyDefinition ReadEntityField(File& file) {
     // TODO: add checks for forbidden field names, e.g. rotation-x or name or whatever
     
     if (type == "string") {
-        return {name, name, "group-entity-specific", PROPERTY_STRING};
+        return {name,  "group-entity-specific", PROPERTY_STRING};
     } else if (type == "int") {
-        return {name, name, "group-entity-specific", PROPERTY_INT};
+        return {name,  "group-entity-specific", PROPERTY_INT};
     } else if (type == "uint") {
-        return {name, name, "group-entity-specific", PROPERTY_UINT};
+        return {name,  "group-entity-specific", PROPERTY_UINT};
     } else if (type == "float") {
-        return {name, name, "group-entity-specific", PROPERTY_FLOAT};
+        return {name,  "group-entity-specific", PROPERTY_FLOAT};
     } else if (type == "vector") {
-        return {name, name, "group-entity-specific", PROPERTY_VECTOR};
+        return {name,  "group-entity-specific", PROPERTY_VECTOR};
     } else if (type == "origin") {
-        return {name, name, "group-entity-specific", PROPERTY_ORIGIN};
+        return {name,  "group-entity-specific", PROPERTY_ORIGIN};
     } else if (type == "direction") {
-        return {name, name, "group-entity-specific", PROPERTY_DIRECTION};
+        return {name,  "group-entity-specific", PROPERTY_DIRECTION};
     }
 
     // in the future some possible other values could be:
@@ -124,9 +124,14 @@ PropertyValue ReadDefaultValue(File& file, PropertyType type) {
         case PROPERTY_DIRECTION:
         case PROPERTY_VECTOR:
             return PropertyValue::Vector({file.read_float32(), file.read_float32(), file.read_float32()});
-        default:
-            break;
-        
+        case PROPERTY_BOOL:
+            return PropertyValue::Bool(file.read_uint32());
+        case PROPERTY_ENUM:
+            return PropertyValue::Enum(file.read_uint32());
+        case PROPERTY_FLAG:
+            return PropertyValue::Flag(file.read_uint32());
+        case PROPERTY_NULL:
+            return PropertyValue();
     }
     
     std::cout << "cannot read default value for entdef: " << type << std::endl;

@@ -42,10 +42,9 @@ public:
         
         std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
             return std::vector<PropertyDefinition> {
-                {"group-transition-node", "transition_node", "", PROPERTY_CATEGORY},
-                {"position-x", "X", "group-transition-node", PROPERTY_FLOAT},
-                {"position-y", "Y", "group-transition-node", PROPERTY_FLOAT},
-                {"position-z", "Z", "group-transition-node", PROPERTY_FLOAT}
+                {"position-x",  "group-transition-node",    PROPERTY_FLOAT},
+                {"position-y",  "group-transition-node",    PROPERTY_FLOAT},
+                {"position-z",  "group-transition-node",    PROPERTY_FLOAT}
             };
         }
     };
@@ -81,17 +80,16 @@ public:
     
     std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
-            {"position-x", "x", "", PROPERTY_FLOAT},
-            {"position-y", "y", "", PROPERTY_FLOAT},
-            {"position-z", "z", "", PROPERTY_FLOAT}
+            {"position-x", "", PROPERTY_FLOAT},
+            {"position-y", "", PROPERTY_FLOAT},
+            {"position-z", "", PROPERTY_FLOAT}
         };
     }
     
     std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
-            {"group-transition", "transition", "", PROPERTY_CATEGORY},
-            {"name", "Name", "group-transition", PROPERTY_STRING},
-            {"cell-into", "Into", "group-transition", PROPERTY_STRING},
+            {"name",        "group-transition", PROPERTY_STRING},
+            {"cell-into",   "group-transition", PROPERTY_STRING},
         };
     }
     

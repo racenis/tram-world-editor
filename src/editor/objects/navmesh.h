@@ -31,16 +31,14 @@ public:
         
         std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
             return std::vector<PropertyDefinition> {
-                {"group-navmesh-node", "navmesh_node", "", PROPERTY_CATEGORY},
-                {"id", "ID", "group-navmesh-node", PROPERTY_UINT},
-                {"next-id", "Next ID", "group-navmesh-node", PROPERTY_UINT},
-                {"prev-id", "Prev ID", "group-navmesh-node", PROPERTY_UINT},
-                {"left-id", "Left ID", "group-navmesh-node", PROPERTY_UINT},
-                {"right-id", "Right ID", "group-navmesh-node", PROPERTY_UINT},
-                {"group-navmesh-node-position", "position", "group-navmesh-node", PROPERTY_CATEGORY},
-                {"position-x", "X", "group-navmesh-node-position", PROPERTY_FLOAT},
-                {"position-y", "Y", "group-navmesh-node-position", PROPERTY_FLOAT},
-                {"position-z", "Z", "group-navmesh-node-position", PROPERTY_FLOAT}
+                {"id",          "group-navmesh-node",           PROPERTY_UINT},
+                {"next-id",     "group-navmesh-node",           PROPERTY_UINT},
+                {"prev-id",     "group-navmesh-node",           PROPERTY_UINT},
+                {"left-id",     "group-navmesh-node",           PROPERTY_UINT},
+                {"right-id",    "group-navmesh-node",           PROPERTY_UINT},
+                {"position-x",  "group-navmesh-node-position",  PROPERTY_FLOAT},
+                {"position-y",  "group-navmesh-node-position",  PROPERTY_FLOAT},
+                {"position-z",  "group-navmesh-node-position",  PROPERTY_FLOAT}
             };
         }
     };
@@ -60,20 +58,19 @@ public:
     void LoadFromDisk();
     void SaveToDisk();
     
-    static uint64_t GetNewID();
+    static uint32_t GetNewID();
     
     std::vector<PropertyDefinition> GetListPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
-            {"position-x", "x", "", PROPERTY_FLOAT},
-            {"position-y", "y", "", PROPERTY_FLOAT},
-            {"position-z", "z", "", PROPERTY_FLOAT}
+            {"position-x", "", PROPERTY_FLOAT},
+            {"position-y", "", PROPERTY_FLOAT},
+            {"position-z", "", PROPERTY_FLOAT}
         };
     }
     
     std::vector<PropertyDefinition> GetFullPropertyDefinitions() { 
         return std::vector<PropertyDefinition> {
-            {"group-path", "navmesh", "", PROPERTY_CATEGORY},
-            {"name", "Name", "group-path", PROPERTY_STRING}
+            {"name", "group-path", PROPERTY_STRING}
         };
     }
     

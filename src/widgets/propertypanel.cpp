@@ -32,32 +32,28 @@ void Editor::PropertyPanel::SetCurrentSelection() {
                         case PROPERTY_VECTOR:
                         case PROPERTY_ORIGIN:
                         case PROPERTY_DIRECTION:
-                            field_ptr = new wxStringProperty(Editor::Get(field.display_name), field.name);
+                            field_ptr = new wxStringProperty(Editor::Get(field.name), field.name);
                             break;
                         case PROPERTY_FLOAT:
-                            field_ptr = new wxFloatProperty(Editor::Get(field.display_name), field.name);
+                            field_ptr = new wxFloatProperty(Editor::Get(field.name), field.name);
                             break;
                         case PROPERTY_INT:
-                            field_ptr = new wxIntProperty(Editor::Get(field.display_name), field.name);
+                            field_ptr = new wxIntProperty(Editor::Get(field.name), field.name);
                             break;
                         case PROPERTY_UINT:
                         case PROPERTY_FLAG:
-                            field_ptr = new wxUIntProperty(Editor::Get(field.display_name), field.name);
+                            field_ptr = new wxUIntProperty(Editor::Get(field.name), field.name);
                             break;
                         case PROPERTY_ENUM:
                             {
                                 wxPGChoices choices;
                                 for (auto& enumeration: PROPERTY_ENUMERATIONS[field.name]) choices.Add(Editor::Get(enumeration));
-                                field_ptr = new wxEnumProperty(Editor::Get(field.display_name), field.name, choices);
+                                field_ptr = new wxEnumProperty(Editor::Get(field.name), field.name, choices);
                             }
                             break;
                         case PROPERTY_BOOL:
-                            field_ptr = new wxBoolProperty(Editor::Get(field.display_name), field.name);
+                            field_ptr = new wxBoolProperty(Editor::Get(field.name), field.name);
                             field_ptr->SetAttribute("UseCheckbox", 1);
-                            break;
-                        case PROPERTY_CATEGORY:
-                            field_ptr = new wxPropertyCategory(Editor::Get(field.display_name), field.name);
-                            field_ptr->ChangeFlag(wxPG_PROP_COLLAPSED, category_is_collapsed[field.name]);
                             break;
                         case PROPERTY_NULL:
                             abort();
@@ -66,12 +62,20 @@ void Editor::PropertyPanel::SetCurrentSelection() {
                     fields[field.name] = field_ptr;
                     fields_list.push_back(field_ptr);
                     
+                    // check which category to put the field into or create a
+                    // new one if it doesn't exist
                     auto category_ptr = fields[field.category_name];
-                    if (category_ptr) {
-                        property_panel->AppendIn(category_ptr, field_ptr);
-                    } else {
-                        property_panel->Append(field_ptr);
+                    if (!category_ptr) {
+                        category_ptr = new wxPropertyCategory(Editor::Get(field.category_name), field.category_name);
+                        category_ptr->ChangeFlag(wxPG_PROP_COLLAPSED, category_is_collapsed[field.category_name]);
+
+                        property_panel->Append(category_ptr);
+                        
+                        fields[field.category_name] = category_ptr;
+                        fields_list.push_back(category_ptr);
                     }
+                    
+                    property_panel->AppendIn(category_ptr, field_ptr);
                 }
             }
         }
@@ -132,9 +136,7 @@ void Editor::PropertyPanel::SetCurrentSelection() {
                     x_str.erase(x_str.find_last_not_of('0') + 1, std::string::npos);
                     y_str.erase(y_str.find_last_not_of('0') + 1, std::string::npos);
                     z_str.erase(z_str.find_last_not_of('0') + 1, std::string::npos);
-                
-                //std::cout << "READ IN!!!" << value.vector_value.x << "  " << value.vector_value.z << std::endl;
-                
+                    
                     field->SetValue(x_str + " " + y_str + " " + z_str);
                 }
                     break;
