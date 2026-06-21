@@ -95,6 +95,15 @@ void Editor::ObjectList::Refresh() {
     }
 }
 
+void Editor::ObjectList::Deselect() {
+    object_list->disable_selection = true;
+    int count = object_list->GetItemCount();
+    for (int i = 0; i < count; i++) {
+        object_list->SetItemState(i, 0, wxLIST_STATE_SELECTED);
+    }
+    object_list->disable_selection = false;
+}
+
 wxString ObjectListCtrl::OnGetItemText (long item, long column) const {
     auto childrens = selected_object->GetChildren();
     auto first_childrens = childrens.begin();
@@ -141,6 +150,7 @@ void ObjectListCtrl::OnSelectionChanged(wxListEvent& event) {
         new_selection->objects.push_back(*chi_benig);
     }
     
+    Editor::WorldTree::Deselect();
     Editor::PerformAction<Editor::ActionChangeSelection>(new_selection);
 }
 

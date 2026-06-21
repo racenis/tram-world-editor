@@ -48,6 +48,8 @@ void ObjectMenuCtrl::OnIsVisibleCheckboxClick(wxCommandEvent& event) {
     bool is_hidden = false;
     for (auto& object : Editor::SELECTION->objects) { if (object->IsHidden()) { is_hidden = true; break; } }
     for (auto& object : Editor::SELECTION->objects) { object->SetHidden(!is_hidden); }
+    
+    Editor::Viewport::Refresh();
 }
 
 void ObjectMenuCtrl::OnAddSelection(wxCommandEvent& event) {

@@ -118,6 +118,15 @@ void RegisterEntityType(EntityDefinition definition) {
         entity_name_to_id[definition.name] = type_index;
     } 
     
+    if (entity_type_infos.contains(type_index)) {
+        for (auto& info : entity_type_infos[type_index]) {
+            if (info.version == definition.version) {
+                std::cout << "Found duplicate entity definition: " << info.name << " version " << info.version << ", ignoring." << std::endl;
+                return;
+            }
+        }
+    }
+    
     entity_type_infos[type_index].push_back(definition);
 }
 
@@ -222,9 +231,12 @@ void Entity::SetHidden(bool is_hidden) {
 }
 
 std::vector<WidgetDefinition> Entity::GetWidgetDefinitions() {
-    std::vector<WidgetDefinition> widgets = {
-        WidgetDefinition::SelectionAABB(model->GetModel()->GetAABBMin(), model->GetModel()->GetAABBMax(), WidgetDefinition::WIDGET_GREEN)
-    };
+    std::vector<WidgetDefinition> widgets;
+    if (model) {
+        widgets = {WidgetDefinition::SelectionAABB(model->GetModel()->GetAABBMin(), model->GetModel()->GetAABBMax(), WidgetDefinition::WIDGET_GREEN)};
+    } else {
+        widgets = {WidgetDefinition::SelectionAABB({-1.0f, -1.0f, -1.0f}, {1.0f, 1.0f, 1.0f}, WidgetDefinition::WIDGET_GREEN)};
+    }
     
     auto entity_defs = FindEntityDefinition((int32_t) this->GetProperty("entity-type"));
     
@@ -283,6 +295,7 @@ void Entity::SetEntityType (std::string type) {
 
 void Entity::InitDefaultPropertyValues() {
     auto definition = FindEntityDefinition((int32_t) this->GetProperty("entity-type"));
+    if (!definition) return;
     
     for (size_t i = 0; i < definition->definitions.size(); i++) {
         assert(definition->definitions[i].name == definition->default_properties[i].first);

@@ -1081,6 +1081,9 @@ void ViewportCtrl::OnLeftClick(wxMouseEvent& event) {
             Editor::PerformAction<Editor::ActionChangeSelection>(std::make_shared<Editor::Selection>());
         }
         
+        Editor::WorldTree::Deselect();
+        Editor::ObjectList::Deselect();
+        
         return;
     }
     
@@ -1273,7 +1276,7 @@ void ViewportCtrl::ViewCenterOnSelection() {
 void ViewportCtrl::OnPaint(wxPaintEvent& event) {
     using namespace tram;
     using namespace tram::Render;
-
+    
     if (viewport_tool) viewport_tool->Display();
 
     std::set<Object*> selected;

@@ -151,7 +151,7 @@ void Editor::PropertyPanel::SetCurrentSelection() {
             field->SetValue("---");
         }
         
-        property_panel->Refresh();
+        //property_panel->Refresh();
     }
     
     property_panel->Layout();

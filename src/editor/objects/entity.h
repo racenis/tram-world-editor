@@ -33,7 +33,7 @@ public:
         properties["rotation-x"] = 0.0f;
         properties["rotation-y"] = 0.0f;
         properties["rotation-z"] = 0.0f;
-        properties["entity-type"] = (int32_t) 0;
+        properties["entity-type"] = PropertyValue::Enum(0);
         GenerateNewRandomId();
     }
 

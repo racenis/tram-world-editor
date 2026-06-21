@@ -228,7 +228,6 @@ void Init() {
         
         auto path = entry.path().string();
         
-        //File file("data/entities.entdef", File::READ);
         File file(path.c_str(), File::READ);
     
         if (!file.is_open()) {

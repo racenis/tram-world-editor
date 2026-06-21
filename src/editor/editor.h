@@ -28,6 +28,7 @@ namespace WorldTree {
     void Remove (Object* object);
     void Rename (Object* object);
     void Rebuild();
+    void Deselect();
     std::shared_ptr<Object> GetObject(void* Id);
 }
 
@@ -41,6 +42,7 @@ namespace PropertyPanel {
 /// Object list panel.
 namespace ObjectList {
     void SetCurrentSelection();
+    void Deselect();
     void Refresh();
 }
 
@@ -297,7 +299,7 @@ public:
     std::unordered_map<std::string, PropertyValue> properties;
     
     std::shared_ptr<Object> GetPointer() { return shared_from_this(); }
-    std::shared_ptr<Object> GetParent() { return parent->GetPointer(); }
+    std::shared_ptr<Object> GetParent() { return parent ? parent->GetPointer() : nullptr; }
     std::shared_ptr<Object> GetCopy() { return GetPointer(); } // TODO: implement copying
     
     auto GetProperties() { return properties; }

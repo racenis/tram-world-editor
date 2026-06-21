@@ -9,6 +9,7 @@
 #include <widgets/worldtree.h>
 
 WorldTreeCtrl* world_tree = nullptr;
+bool ignore_selection = false;
 
 namespace Editor::WorldTree {
     std::unordered_map<worldTreeID_t, Object*> treeId_to_obj;
@@ -89,6 +90,12 @@ namespace Editor::WorldTree {
     std::shared_ptr<Object> GetObject(void* Id) {
         return treeId_to_obj[Id]->GetPointer();
     }
+    
+    void Deselect() {
+        ignore_selection = true;
+        world_tree->UnselectAll();
+        ignore_selection = false;
+    }
 }
 
 WorldTreeCtrl::WorldTreeCtrl (wxWindow* parent) : wxTreeCtrl(parent, -1, wxDefaultPosition, wxSize(200, 150), wxTR_DEFAULT_STYLE | wxTR_MULTIPLE) {
@@ -103,6 +110,8 @@ void WorldTreeCtrl::OnMenuOpen (wxTreeEvent& event) {
 }
 
 void WorldTreeCtrl::OnSelectionChanged (wxTreeEvent& event) {
+    if (ignore_selection) return;
+    
     wxArrayTreeItemIds selected_ids;
     size_t selected_count = GetSelections(selected_ids);
     
