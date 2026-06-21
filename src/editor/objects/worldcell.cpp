@@ -20,9 +20,7 @@ void WorldCell::LoadFromDisk() {
     
     name_t header = file.read_name();
     
-    assert(header == "CELLv3");
-    
-    file.read_name(); // skip cell name 
+    assert(header == "CELLv4");
     
     cell->SetProperty("is-interior", (bool) file.read_uint32());
     cell->SetProperty("is-interior-lighting", (bool) file.read_uint32());
@@ -158,9 +156,8 @@ void WorldCell::SaveToDisk() {
         return;
     }
     
-    file.write_name ("CELLv3");
-    file.write_name (GetName().data());
-    
+    file.write_name ("CELLv4");
+
     file.write_uint32((bool) GetProperty("is-interior"));
     file.write_uint32((bool) GetProperty("is-interior-lighting"));
 

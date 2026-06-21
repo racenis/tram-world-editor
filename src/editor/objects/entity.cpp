@@ -156,7 +156,7 @@ void Entity::CheckModel() {
     // check if model needs to be hidden
     if (this->is_hidden) {
         if (this->model) {
-            PoolProxy<RenderComponent>::Delete(this->model);
+            RenderComponent::Yeet(this->model);
             
             viewmodel_ptr_to_entity_ptr[this->model] = nullptr;
             
@@ -193,9 +193,9 @@ void Entity::CheckModel() {
     
     if (!this->model) {
         //std::cout << "making rendercomp for " << model_name << std::endl;
-        this->model = PoolProxy<RenderComponent>::New();
-        this->model->SetModel(model_name);
-        this->model->SetLightmap("fullbright");
+        this->model = RenderComponent::Make();
+        this->model->SetModel(Render::Model::Find(model_name));
+        this->model->SetLightmap(Render::Lightmap::Find("fullbright"));
         //this->model->SetPose(Render::poseList.begin().ptr);
         this->model->Init();
         
@@ -204,7 +204,7 @@ void Entity::CheckModel() {
     
     if (this->model && model_name != this->model->GetModel()->GetName()) {
         std::cout << "deleting rendercomp for " << model_name << std::endl;
-        PoolProxy<RenderComponent>::Delete(this->model);
+        RenderComponent::Yeet(this->model);
         viewmodel_ptr_to_entity_ptr[this->model] = nullptr;
         this->model = nullptr;
         CheckModel();

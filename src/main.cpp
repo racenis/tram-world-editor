@@ -1,5 +1,7 @@
 #include <wx/wx.h>
 
+#undef ERROR
+
 #include <editor/editor.h>
 #include <editor/language.h>
 #include <editor/settings.h>

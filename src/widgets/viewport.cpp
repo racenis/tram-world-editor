@@ -20,6 +20,8 @@
 
 using namespace Editor;
 
+#undef ERROR
+
 #include <framework/core.h>
 #include <framework/async.h>
 #include <framework/language.h>
@@ -223,6 +225,8 @@ public:
     
     ~TranslateTool() {
         viewport->ReleaseMouse();
+        
+        Editor::PropertyPanel::Refresh();
     }
     
     void MouseMove(float x, float y, float delta_x, float delta_y) {

@@ -12,6 +12,8 @@ std::unordered_map<std::string, bool> category_is_collapsed;
 PropertyPanelCtrl* property_panel = nullptr;
 
 void Editor::PropertyPanel::SetCurrentSelection() {
+    auto scroll_state = property_panel->GetViewStart();
+    property_panel->Freeze();
     property_panel->Clear();
     if (SELECTION->objects.size()) {
         std::unordered_map<std::string, wxPGProperty*> fields;
@@ -151,6 +153,10 @@ void Editor::PropertyPanel::SetCurrentSelection() {
     } else {
         //std::cout << "Selection canceled! " << std::endl;
     }
+    
+    property_panel->Layout();
+    property_panel->Scroll(scroll_state);
+    property_panel->Thaw();
 }
     
 void Editor::PropertyPanel::Refresh() {

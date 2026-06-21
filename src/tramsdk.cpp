@@ -52,5 +52,27 @@ bool tram::UI::ShouldExit() {
     return false;
 }
 
+// all of these are due to keyboard stuff being in settings...
+// we should probably move the keyboard stuff into UI instead. bwah.
+tram::UI::keyboardaction_t tram::UI::GetKeyboardAction(name_t name) {
+    return 0;
+}
+
+name_t tram::UI::GetKeyboardActionName(tram::UI::keyboardaction_t type) {
+    return name_t();
+}
+
+void tram::UI::BindKeyboardKey(tram::UI::KeyboardKey key, tram::UI::keyboardaction_t action) {
+
+}
+
+std::vector<std::pair<tram::UI::keyboardaction_t, std::vector<tram::UI::KeyboardKey>>> tram::UI::GetAllKeyboardKeyBindings() {
+    return {};
+}
+
+const char* tram::UI::GetKeyboardKeyName(tram::UI::KeyboardKey key) {
+    return nullptr;
+}
+
 #include <platform/terminal.cpp>
 #include <platform/other.cpp>
