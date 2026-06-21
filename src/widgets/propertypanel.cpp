@@ -152,8 +152,6 @@ void Editor::PropertyPanel::SetCurrentSelection() {
         }
         
         property_panel->Refresh();
-    } else {
-        //std::cout << "Selection canceled! " << std::endl;
     }
     
     property_panel->Layout();

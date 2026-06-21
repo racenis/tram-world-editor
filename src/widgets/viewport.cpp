@@ -50,6 +50,7 @@ class ViewportTool {
 public:
     virtual ~ViewportTool() = default;
     virtual void MouseMove(float x, float y, float delta_x, float delta_y) = 0;
+    virtual void MouseScroll(int vertical) = 0;
     virtual void LeftClick() = 0;
     virtual void RightClick() = 0;
     virtual void Keydown(wchar_t keycode, int code) = 0;
@@ -105,6 +106,10 @@ public:
         Viewport::CURSOR_X = cursor_pos.x;
         Viewport::CURSOR_Y = cursor_pos.y;
         Viewport::CURSOR_Z = cursor_pos.z;
+    }
+    
+    void MouseScroll(int) {
+        
     }
     
     void LeftClick() {
@@ -218,7 +223,6 @@ class TranslateTool : public ViewportTool {
 public:
     TranslateTool() {
         viewport->CaptureMouse();
-        //viewport->CenterMouseCursor();
         
         Editor::PerformAction<Editor::ActionChangeProperties>(std::vector<std::string> {"position-x", "position-y", "position-z"});
     }
@@ -229,7 +233,7 @@ public:
         Editor::PropertyPanel::Refresh();
     }
     
-    void MouseMove(float x, float y, float delta_x, float delta_y) {
+    vec3 GetSelectionMidpoint() {
         std::vector<vec3> positions(Editor::SELECTION->objects.size());
         std::transform(Editor::SELECTION->objects.begin(),
                        Editor::SELECTION->objects.end(),
@@ -241,7 +245,10 @@ public:
                                 object->GetProperty("position-z").float_value
                             };
                        });
-        vec3 middle_point = std::accumulate(positions.begin(), positions.end(), vec3(0, 0, 0)) / (float)positions.size();
+        return std::accumulate(positions.begin(), positions.end(), vec3(0, 0, 0)) / (float)positions.size();
+    }
+    
+    void MouseMove(float x, float y, float delta_x, float delta_y) {
         
         if (delta_x == 0.0f && delta_y == 0.0f) return;
         
@@ -254,8 +261,8 @@ public:
             return;
         }
         
-
         // TODO: fix project function!!!
+        vec3 middle_point = GetSelectionMidpoint();
         vec3 screen_origin = middle_point;
         
         Project(screen_origin, screen_origin);
@@ -348,6 +355,27 @@ public:
             object->SetProperty("position-z", object_position.z);
         }
         
+        Editor::Viewport::Refresh();
+    }
+    
+    void MouseScroll(int scroll) {
+        vec3 midpoint = GetSelectionMidpoint();
+        vec3 away_dir = glm::normalize(midpoint - Render::GetViewPosition());
+        if (glm::dot(Render::GetViewRotation() * DIRECTION_FORWARD, away_dir) < 0.0f) away_dir = -away_dir;
+        vec3 move_dir = away_dir * (scroll > 0 ? 0.5f : -0.5f) * (shifting ? 1.0f : 0.125f);
+        for (auto& object : Editor::SELECTION->objects) {
+            glm::vec3 object_position = glm::vec3 {
+                object->GetProperty("position-x").float_value,
+                object->GetProperty("position-y").float_value,
+                object->GetProperty("position-z").float_value
+            };
+
+            object_position += move_dir;
+                            
+            object->SetProperty("position-x", object_position.x);
+            object->SetProperty("position-y", object_position.y);
+            object->SetProperty("position-z", object_position.z);
+        }
         Editor::Viewport::Refresh();
     }
     
@@ -616,6 +644,10 @@ public:
         Editor::Viewport::Refresh();
     }
     
+    void MouseScroll(int) {
+        
+    }
+    
     void LeftClick() {
         
     }
@@ -749,6 +781,10 @@ public:
         
     }
     
+    void MouseScroll(int) {
+        
+    }
+    
     void LeftClick() {
         
     }
@@ -861,6 +897,7 @@ ViewportCtrl::ViewportCtrl(wxWindow* parent) : wxGLCanvas(parent, wxID_ANY, null
     Bind(wxEVT_LEFT_UP, &ViewportCtrl::OnLeftClick, this);
     Bind(wxEVT_RIGHT_UP, &ViewportCtrl::OnRightClick, this);
     Bind(wxEVT_MOTION, &ViewportCtrl::OnMouseMove, this);
+    Bind(wxEVT_MOUSEWHEEL, &ViewportCtrl::OnMouseWheel, this);
     Bind(wxEVT_SIZE, &ViewportCtrl::OnSizeChange, this);
     Bind(wxEVT_KEY_DOWN, &ViewportCtrl::OnKeydown, this);
     Bind(wxEVT_KEY_UP, &ViewportCtrl::OnKeyup, this);
@@ -937,9 +974,7 @@ Object* FindCursorObject(std::set<Object*>& objects, float cursor_x, float curso
     float distance = INFINITY;
     Object* nearest = nullptr;
     
-    //std::cout << "trying.." << std::endl;
     for (auto object : objects) {
-        //std::cout << "looking at: " << typeid(*object).name() << " and its " << object->IsHidden() << std::endl;
         auto gizmos = object->GetWidgetDefinitions();
         
         vec3 position = {
@@ -998,19 +1033,12 @@ Object* FindCursorObject(std::set<Object*>& objects, float cursor_x, float curso
 }
 
 void ViewportCtrl::OnLeftClick(wxMouseEvent& event) {
-    
     if (viewport_tool) {
         delete viewport_tool;
         viewport_tool = nullptr;
         CancelViewportOperation();
         return;
     }
-    
-    // if viewport is in move mode or translate mode, cancel them
-    //if (viewport_mode != MODE_NONE) {
-    //    CancelViewportOperation();
-   //     return;
-   // }
     
     // if control key is pressed down, select object in viewport
     if (wxGetKeyState(WXK_CONTROL)) {
@@ -1020,10 +1048,6 @@ void ViewportCtrl::OnLeftClick(wxMouseEvent& event) {
         selected = FindCursorObject(widgetables, cursor_x, cursor_y);
         
         if (selected) {
-            //std::cout << GetEntityFromViewmodel((tram::RenderComponent*) res.data)->GetName() << std::endl;
-            
-            //std::cout << "distance to intersection is " <<  glm::distance(GetViewPosition(), res.intersection) << std::endl;
-            
             // create a new selection object
             auto new_selection = std::make_shared<Editor::Selection>();
             
@@ -1061,13 +1085,6 @@ void ViewportCtrl::OnLeftClick(wxMouseEvent& event) {
     }
     
     viewport_tool = new MoveTool;
-    
-    // otherwise
-    
-    //CaptureMouse();
-    //CenterMouseCursor();
-    
-    //viewport_mode = MODE_MOVE;
 }
 
 void ViewportCtrl::OnRightClick(wxMouseEvent& event) {
@@ -1077,14 +1094,6 @@ void ViewportCtrl::OnRightClick(wxMouseEvent& event) {
         viewport_tool = nullptr;
         return;
     }
-    
-    /*if (viewport_mode == MODE_TRANSLATE || viewport_mode == MODE_ROTATE) {
-        Editor::Undo();
-        
-        CancelViewportOperation();
-        
-        return;
-    }*/
     
     if (!viewport_tool) {
         world_tree_popup->SetSelectionStatus(Editor::SELECTION.get());
@@ -1131,25 +1140,19 @@ void ViewportCtrl::OnMouseMove(wxMouseEvent& event) {
     prev_y = event.GetY();
     
     if (viewport_tool) {
-        
-        
         viewport_tool->MouseMove(event.GetX(), event.GetY(), delta_x, delta_y);
-        
-        //std::cout << event.GetX() << ":" << event.GetY() << std::endl;
-        
     }
     
     if (viewport_tool || wxGetKeyState(WXK_CONTROL)) {
-        /*int width, height;
-        GetSize(&width, &height);
-        int center_x = width/2, center_y = height/2;
-        
-        float delta_x = (float)(event.GetX() - center_x);
-        float delta_y = (float)(event.GetY() - center_y);
-        WarpPointer(center_x, center_y);*/
-        
         Refresh();
     }
+}
+
+void ViewportCtrl::OnMouseWheel(wxMouseEvent& event) {
+    if (event.GetWheelAxis() != wxMOUSE_WHEEL_VERTICAL) {
+        return;
+    }
+    if (viewport_tool) viewport_tool->MouseScroll(event.GetWheelRotation());
 }
 
 void ViewportCtrl::OnKeydown(wxKeyEvent& event) {
@@ -1202,9 +1205,7 @@ void ViewportCtrl::OnKeydown(wxKeyEvent& event) {
 
     if (keycode == 'E') {
         if (viewport_tool) {
-            //viewport_tool->Cancel();
             delete viewport_tool;
-            //viewport_tool = nullptr;
         }
         
         Editor::PerformAction<Editor::ActionExtrude>();
@@ -1221,15 +1222,9 @@ void ViewportCtrl::OnKeydown(wxKeyEvent& event) {
         
         Editor::PerformAction<Editor::ActionConnect>();
     }
-    
-    
-    
-     
 }
 
 void ViewportCtrl::OnKeyup(wxKeyEvent& event) {
-    //auto keycode = event.GetUnicodeKey();
-    
     if (viewport_tool) viewport_tool->Keyup(event.GetUnicodeKey(), event.GetKeyCode());
     
     if (event.GetKeyCode() == WXK_CONTROL) {
@@ -1242,24 +1237,12 @@ void ViewportCtrl::OnTimer(wxTimerEvent& event) {
     using namespace tram;
     
     if (viewport_tool) viewport_tool->Update();
-    
-    //if (key_forward) CAMERA_POSITION += CAMERA_ROTATION * DIRECTION_FORWARD * 0.1f;
-    //if (key_backward) CAMERA_POSITION -= CAMERA_ROTATION * DIRECTION_FORWARD * 0.1f;
-    //if (key_left) CAMERA_POSITION -= CAMERA_ROTATION * DIRECTION_SIDE * 0.1f;
-    //if (key_right) CAMERA_POSITION += CAMERA_ROTATION * DIRECTION_SIDE * 0.1f;
-    
-    
 }
 
 void ViewportCtrl::OnSizeChange(wxSizeEvent& event) {
-    //assert(GetParent()->IsShown());
-    
     int width, height;
     GetSize(&width, &height);
-    //glViewport(0, 0, width, height);
-    //return;
     
-    //tram::Render::API::SetScreenSize(width, height);
     tram::Render::SetScreenSize(width, height);
 }
 
@@ -1288,31 +1271,16 @@ void ViewportCtrl::ViewCenterOnSelection() {
 }
 
 void ViewportCtrl::OnPaint(wxPaintEvent& event) {
-    //assert(GetParent()->IsShown());
-    //if (!GetParent()->IsShown()) return;
-        
-    //SetCurrent(*m_context);
-
     using namespace tram;
     using namespace tram::Render;
 
     if (viewport_tool) viewport_tool->Display();
-
-    /*auto recursive_draw = [](Object* object, auto draw_func) {
-        if (object->IsHidden()) return;
-        object->Draw();
-        for (auto& obj : object->GetChildren()) draw_func(obj.get(), draw_func);
-    };
-    recursive_draw(Editor::WORLD.get(), recursive_draw);*/
 
     std::set<Object*> selected;
     for (auto& object : Editor::SELECTION->objects) {
         selected.emplace(object.get());
     }
 
-    // 1. create an object set
-    // 2. go through all selection objects and then add it or parent [ add drawn by parent method ]
-    // 3. do same thing with widgets?
     std::set<Object*> widgetables = FindWidgetables();
     
     Object* selectable = nullptr;
@@ -1344,11 +1312,7 @@ void ViewportCtrl::OnPaint(wxPaintEvent& event) {
         //}
         
         auto gizmos = object->GetWidgetDefinitions();
-        
-    
-        
-        
-        
+
         for (const auto& gizmo : gizmos) {
             
             // important
@@ -1360,9 +1324,6 @@ void ViewportCtrl::OnPaint(wxPaintEvent& event) {
                 default:
                     if (!object->HasProperty(gizmo.property)) continue;
             }
-            
-            
-            //std::cout << "drawing gizmo" << std::endl;
             
             glm::vec3 color;
             switch (gizmo.color) {
@@ -1381,36 +1342,25 @@ void ViewportCtrl::OnPaint(wxPaintEvent& event) {
             // unselected by clicking on it
             if (wxGetKeyState(WXK_CONTROL) && object == selectable) color *= vec3{0.5f, 0.5f, 0.5f};
             
-            //std::cout << "got color" << std::endl;
-            
             switch (gizmo.type) {
                 case Editor::WidgetDefinition::WIDGET_NORMAL: {
-                    //std::cout << "normawl widegt" << std::endl;
                     PropertyValue dir_vec = object->GetProperty(gizmo.property);
-                    //std::cout << "got prop" << std::endl;
                     glm::vec3 dir = {dir_vec.vector_value.x, dir_vec.vector_value.y, dir_vec.vector_value.z};
                     glm::vec3 pos = glm::vec3 {
                         object->GetProperty("position-x").float_value,
                         object->GetProperty("position-y").float_value,
                         object->GetProperty("position-z").float_value
                     };
-                    //std::cout << "got pos" << std::endl;
                     AddLine(pos, pos+dir, color);
-                    //std::cout << "done roonomal gizmo" << std::endl;
                     } break;
                 case Editor::WidgetDefinition::WIDGET_POINT: {
-                    //std::cout << "widget point" << std::endl;
                     PropertyValue pos_vec = object->GetProperty(gizmo.property);
-                    //std::cout << "doing point gizmo" << std::endl;
                     glm::vec3 pos = {pos_vec.vector_value.x, pos_vec.vector_value.y, pos_vec.vector_value.z};
                     AddLineMarker(pos, color);
-                    //std::cout << "done point gizmo" << std::endl;
                     } break;
                     
                 case Editor::WidgetDefinition::WIDGET_SELECTION_BOX: {
-                    
                     AddLineAABB(-(glm::vec3)gizmo.value1, gizmo.value1, gizmo_location, vec3(0.0f, 0.0f, 0.0f), color);
-                    //std::cout << "done point gizmo" << std::endl;
                     
                     // used to distinguish the selected object in point objects,
                     // such as paths and transitions, as selecting a single point
@@ -1438,8 +1388,6 @@ void ViewportCtrl::OnPaint(wxPaintEvent& event) {
                 default:
                     color = {0.0f, 1.0f, 1.0f};
             }
-            
-            //std::cout << "done!" << std::endl;
         }
     }
     
@@ -1479,17 +1427,10 @@ void ViewportCtrl::OnPaint(wxPaintEvent& event) {
 
     AddLineMarker(glm::vec3(0.0f, 0.0f, 0.0f), COLOR_CYAN);
     
-    //SetSun(time_of_day);
-    //SetSun(0.8f);
-
-    //Async::ResourceLoader1stStage();
-    //Async::ResourceLoader2ndStage();
-    //Async::FinishResource();
     Async::LoadResourcesFromDisk();
     Async::LoadResourcesFromMemory();
     Async::FinishResources();
     
-    //Render::UpdateArmatures();
     Render::Render();
 
     glFlush();

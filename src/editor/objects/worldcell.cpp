@@ -33,8 +33,6 @@ void WorldCell::LoadFromDisk() {
     while (file.is_continue()) {
         name_t ent_type = file.read_name();
         
-        //std::cout << "entity type: " << ent_type << std::endl; 
-        
         if (ent_type == "group") {
             auto new_group = current_group->parent->AddChild();
             new_group->SetProperty("name", std::string(file.read_name()));
@@ -110,22 +108,24 @@ void WorldCell::LoadFromDisk() {
             
             for (auto& prop : entity_definitions) {
                 switch (prop.type) {
-                    default: // TODO: actually implement writers for other types
-                        std::cout << "idk what this is" << std::endl;
                     case PROPERTY_STRING:
                         entity->SetProperty(prop.name, std::string(file.read_name())); break;
                     case PROPERTY_INT:
                         entity->SetProperty(prop.name, file.read_int32()); break;
                     case PROPERTY_UINT:
+                    case PROPERTY_FLAG:
                         entity->SetProperty(prop.name, file.read_uint32()); break;
                     case PROPERTY_FLOAT:
                         entity->SetProperty(prop.name, file.read_float32()); break;
                     case PROPERTY_ENUM:
                         entity->SetProperty(prop.name, file.read_int32()); break;
+                    case PROPERTY_BOOL:
+                        entity->SetProperty(prop.name, (bool)file.read_uint32()); break;
+                    case PROPERTY_NULL:
+                        break;
                     case PROPERTY_VECTOR:
                     case PROPERTY_ORIGIN:
                     case PROPERTY_DIRECTION:
-                        //Editor::PropertyValue new_prop = Editor::PropertyValue::Vector {file.read_float32(), file.read_float32(), file.read_float32()};
                         Editor::PropertyValue new_prop = vec3{file.read_float32(), file.read_float32(), file.read_float32()};
                         new_prop.type = prop.type;
                         entity->SetProperty(prop.name, new_prop);

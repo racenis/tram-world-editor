@@ -14,28 +14,15 @@ public:
         prev_selection = SELECTION;
         next_selection = new_selection;
         
-        //std::cout << "Arrived selection: ";
-        //for (auto& obj : new_selection->objects) std::cout << obj->GetName() << " ";
-        //std::cout << std::endl;
-        
         Perform();
     }
     
     void Perform() {
-        
-        //std::cout << "CHANGED selection: ";
-        //for (auto& obj : next_selection->objects) std::cout << obj->GetName() << " ";
-        //std::cout << std::endl;
-        
         SELECTION = next_selection;
-        
-        //std::cout << "finished chaning! now updating!" << std::endl;
-        
+
         Editor::PropertyPanel::Refresh();
         Editor::ObjectList::Refresh();
         Editor::Viewport::Refresh();
-        
-        //std::cout << "okay done!" << std::endl;
     }
     
     void Unperform() {

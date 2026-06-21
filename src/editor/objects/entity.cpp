@@ -64,11 +64,6 @@ void Entity::WorldspawnOffset(Entity* worldspawn) {
         return;
     }
     
-    std::cout << "settings!!!" << std::endl;
-    std::cout << "ee " << model->GetModel()->GetOrigin().x<< std::endl;
-    std::cout << "ee " << model->GetModel()->GetOrigin().y<< std::endl;
-    std::cout << "ee " << model->GetModel()->GetOrigin().z<< std::endl;
-    
     vec3 worldspawn_pos = vec3 {worldspawn->GetProperty("position-x"),
                                 worldspawn->GetProperty("position-y"),
                                 worldspawn->GetProperty("position-z")};
@@ -167,7 +162,6 @@ void Entity::CheckModel() {
     
     
     // find the name of the model
-    //EntityDefinition& type_info = entity_type_infos[this->GetProperty("entity-type")];
     EntityDefinition* type_def = FindEntityDefinition(this->GetProperty("entity-type"));
     if (!type_def) return;
     
@@ -191,11 +185,9 @@ void Entity::CheckModel() {
     }    
     
     if (!this->model) {
-        //std::cout << "making rendercomp for " << model_name << std::endl;
         this->model = RenderComponent::Make();
         this->model->SetModel(Render::Model::Find(model_name));
         this->model->SetLightmap(Render::Lightmap::Find("fullbright"));
-        //this->model->SetPose(Render::poseList.begin().ptr);
         this->model->Init();
         
         viewmodel_ptr_to_entity_ptr[this->model] = this;
